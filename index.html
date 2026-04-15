@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>v0.9 — Laguttagning</title>
+  <title>v1.0 — Laguttagning</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
@@ -266,14 +266,14 @@
     .formation-select:focus { border-color: var(--green); }
     .lineup-placeholder { text-align: center; padding: 3rem 1rem; color: var(--muted); font-size: .95rem; }
 
-    .lineup-main { display: grid; grid-template-columns: 360px 1fr; gap: 2rem; align-items: start; }
+    .lineup-main { display: grid; grid-template-columns: 2.3fr 1fr; gap: 2rem; align-items: start; }
     @media (max-width: 780px) { .lineup-main { grid-template-columns: 1fr; } }
 
     /* ── PITCH ───────────────────────────────────────── */
     .pitch {
       background: #1e5918;
       background-image: repeating-linear-gradient(to bottom, rgba(0,0,0,0) 0, rgba(0,0,0,0) 48px, rgba(0,0,0,.07) 48px, rgba(0,0,0,.07) 96px);
-      border-radius: 10px; position: relative; width: 100%; max-width: 360px;
+      border-radius: 10px; position: relative; width: 100%;
       padding: 10px; box-shadow: 0 8px 32px rgba(0,0,0,.4);
     }
     .pitch::before { content: ''; position: absolute; inset: 8px; border: 2px solid rgba(255,255,255,.15); border-radius: 2px; pointer-events: none; z-index: 0; }
@@ -1064,7 +1064,7 @@
 
       return `<div class="${cls}" data-pid="${p.id}">
         <div class="pool-dot ${dotCls}"></div>
-        <div class="pool-info"><div class="pool-name">${escHtml(p.name||'—')}</div>${tags?`<div class="pool-tags">${escHtml(tags)}</div>`:''}${absReasonHtml}</div>
+        <div class="pool-info"><div class="pool-name">${escHtml(shortName(p))}</div>${tags?`<div class="pool-tags">${escHtml(tags)}</div>`:''}${absReasonHtml}</div>
         <div class="pool-right">
           ${assignedSlot&&!inSelected?`<span class="pool-badge">${escHtml(slotLabel)}</span>`:''}
           ${inSelected?'<span class="pool-check">✓</span>':''}

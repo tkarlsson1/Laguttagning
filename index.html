@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>v1.5 — Laguttagning</title>
+  <title>v1.6 — Laguttagning</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
@@ -738,6 +738,12 @@
       document.getElementById('user-email').textContent = user.email;
       showView('app');
       startPlayerListener(); startMatchListener(); startAllLineupsListener();
+      // Default to lineup tab
+      document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+      document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+      document.querySelector('[data-page="lineup"]').classList.add('active');
+      document.getElementById('page-lineup').classList.add('active');
+      refreshMatchSelector();
     } else {
       showView('login');
       [unsubPlayers,unsubMatches,unsubLineup,unsubAllLineups].forEach(f=>f&&f());
@@ -1162,11 +1168,20 @@
       </div>`;
     }
 
-    const avail   = players.filter(p=>!isPlayerUnavailableOnDate(p, matchDate||todayStr())).sort((a,b)=> posMatchScore(a)-posMatchScore(b) || shortName(a).localeCompare(shortName(b),'sv'));
-    const unavail = players.filter(p=> isPlayerUnavailableOnDate(p, matchDate||todayStr())).sort((a,b)=>shortName(a).localeCompare(shortName(b),'sv'));
+    const availAll  = players.filter(p=>!isPlayerUnavailableOnDate(p, matchDate||todayStr()));
+    const availMatch= availAll.filter(p=>posMatchScore(p)===0).sort((a,b)=>shortName(a).localeCompare(shortName(b),'sv'));
+    const availRest = availAll.filter(p=>posMatchScore(p)!==0).sort((a,b)=>shortName(a).localeCompare(shortName(b),'sv'));
+    const unavail   = players.filter(p=> isPlayerUnavailableOnDate(p, matchDate||todayStr())).sort((a,b)=>shortName(a).localeCompare(shortName(b),'sv'));
 
     let html='';
-    if (avail.length)   { html+='<div class="pool-section-label">Tillgängliga</div>'+avail.map(renderPoolItem).join(''); }
+    if (availMatch.length && availRest.length) {
+      // position-matched group + divider + rest
+      html += availMatch.map(renderPoolItem).join('');
+      html += '<div style="border-top:1px solid var(--border);margin:.4rem 0"></div>';
+      html += availRest.map(renderPoolItem).join('');
+    } else {
+      html += [...availMatch,...availRest].map(renderPoolItem).join('');
+    }
     if (unavail.length) { html+='<div class="pool-section-label">Ej tillgängliga</div>'+unavail.map(renderPoolItem).join(''); }
     pool.innerHTML=html;
 

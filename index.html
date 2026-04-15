@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>v1.9 — Laguttagning</title>
+  <title>v2.0 — Laguttagning</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
@@ -278,7 +278,7 @@
     }
     .pitch::before { content: ''; position: absolute; inset: 8px; border: 2px solid rgba(255,255,255,.15); border-radius: 2px; pointer-events: none; z-index: 0; }
     .pitch::after  { content: ''; position: absolute; left: 8px; right: 8px; top: 50%; height: 2px; background: rgba(255,255,255,.1); pointer-events: none; z-index: 0; }
-    .pitch-rows { display: flex; flex-direction: column; gap: 8px; position: relative; z-index: 1; min-height: 460px; }
+    .pitch-rows { display: flex; flex-direction: column; gap: 5px; position: relative; z-index: 1; min-height: 460px; }
     .pitch-row  { display: flex; justify-content: space-evenly; align-items: center; flex: 1; gap: 5px; }
 
     .pos-slot {
@@ -393,8 +393,13 @@
       .lineup-formation-group { flex: unset; }
       .formation-select { width: 100%; }
 
-      /* Pitch: slightly reduce row minimum height on mobile */
-      .pitch-rows { min-height: 360px; }
+      /* Pitch: sticky on mobile, tighter rows */
+      .pitch-col {
+        position: sticky;
+        top: 112px; /* topbar (56px) + tabs (56px) */
+        z-index: 10;
+      }
+      .pitch-rows { min-height: 300px; gap: 3px; }
       .pos-slot { min-width: 44px; padding: 3px 3px; }
       .pos-label { font-size: .52rem; }
       .chip-starter { font-size: .72rem; padding: 2px 3px; }

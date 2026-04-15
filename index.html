@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>v2.4 — Laguttagning</title>
+  <title>v2.5 — Laguttagning</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
@@ -789,7 +789,8 @@
     unsubPlayers = onSnapshot(collection(db,'players'), snap => {
       players = snap.docs.map(d=>({id:d.id,...d.data()}));
       players.sort((a,b)=>(a.name||'').localeCompare(b.name||'','sv'));
-      renderPlayers(); renderPlayerPool();
+      renderPlayers();
+      if (currentLineupMatchId && lineupFormation) renderPlayerPool();
     });
   }
 
@@ -1055,7 +1056,8 @@
     unsubAllLineups = onSnapshot(collection(db,'lineups'), snap=>{
       allLineups={};
       snap.docs.forEach(d=>{ allLineups[d.id]=d.data(); });
-      renderPlayerPool();
+      // Only re-render pool if a lineup is actively being viewed
+      if (currentLineupMatchId && lineupFormation) renderPlayerPool();
     });
   }
 

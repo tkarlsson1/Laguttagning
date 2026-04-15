@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>v2.1 — Laguttagning</title>
+  <title>v2.2 — Laguttagning</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
@@ -1204,11 +1204,17 @@
   }
 
   function selectSlot(key) {
-    selectedSlot=key;
+    selectedSlot = key;
     const n=(lineupSlots[key]||[]).length, label=getSlotLabel(key);
     const hint=document.getElementById('pool-hint');
     if (hint) hint.textContent=`Lägger till i: ${label} · ${n===0?'Ingen ännu':(n===1?'1 spelare':n+' spelare')}`;
     renderPitch(); renderPlayerPool();
+    // Scroll player pool to top so position-sorted players are visible
+    const pool = document.getElementById('player-pool');
+    if (pool) pool.scrollTop = 0;
+    // On mobile: scroll the pool section into view
+    const poolCol = pool?.closest('.pool-col');
+    if (poolCol && window.innerWidth <= 640) poolCol.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }
 
   function toggleInSlot(pid) {

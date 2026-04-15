@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>v2.5 — Laguttagning</title>
+  <title>v2.6 — Laguttagning</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
@@ -292,8 +292,8 @@
     .pos-empty  { font-size: 1rem; color: rgba(255,255,255,.18); line-height: 1.4; }
     .pos-players { display: flex; flex-direction: column; gap: 2px; }
 
-    .chip-starter { background: var(--green); color: #0e1110; font-size: .82rem; font-weight: 700; padding: 3px 5px; border-radius: 4px; display: flex; align-items: center; justify-content: space-between; gap: 2px; overflow: hidden; }
-    .chip-sub     { background: rgba(76,175,110,.2); color: rgba(255,255,255,.6); font-size: .75rem; font-weight: 500; padding: 3px 5px; border-radius: 3px; display: flex; align-items: center; justify-content: space-between; gap: 2px; overflow: hidden; }
+    .chip-starter { background: var(--green); color: #0e1110; font-size: 1.1rem; font-weight: 700; padding: 3px 5px; border-radius: 4px; display: flex; align-items: center; justify-content: space-between; gap: 2px; overflow: hidden; }
+    .chip-sub     { background: rgba(76,175,110,.2); color: rgba(255,255,255,.6); font-size: 1rem; font-weight: 500; padding: 3px 5px; border-radius: 3px; display: flex; align-items: center; justify-content: space-between; gap: 2px; overflow: hidden; }
     .chip-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
     .chip-rm { background: none; border: none; cursor: pointer; color: inherit; font-size: .75rem; padding: 0 1px; opacity: .5; flex-shrink: 0; line-height: 1; }
     .chip-rm:hover { opacity: 1; color: var(--danger); }
@@ -319,7 +319,7 @@
     .dot-absent      { background: var(--danger); }
 
     .pool-info  { flex: 1; min-width: 0; }
-    .pool-name  { font-weight: 500; font-size: .9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .pool-name  { font-weight: 500; font-size: 1.35rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .pool-tags  { font-size: .7rem; color: var(--muted); margin-top: 1px; }
     .pool-absent-reason { font-size: .7rem; color: var(--danger); margin-top: 2px; }
 
@@ -402,8 +402,8 @@
       .pitch-rows { min-height: 300px; gap: 3px; }
       .pos-slot { min-width: 44px; padding: 3px 3px; }
       .pos-label { font-size: .52rem; }
-      .chip-starter { font-size: .72rem; padding: 2px 3px; }
-      .chip-sub     { font-size: .65rem; padding: 2px 3px; }
+      .chip-starter { font-size: .9rem; padding: 2px 3px; }
+      .chip-sub     { font-size: .82rem; padding: 2px 3px; }
 
       /* Player pool: full height below pitch, no scroll cap */
       .player-pool { max-height: none; }
@@ -787,7 +787,14 @@
   // ── PLAYERS ───────────────────────────────────────
   function startPlayerListener() {
     unsubPlayers = onSnapshot(collection(db,'players'), snap => {
-      players = snap.docs.map(d=>({id:d.id,...d.data()}));
+      players = snap.docs.map(d => {
+        const p = { id:d.id, ...d.data() };
+        // Recompute status from absences to avoid stale data
+        const today = todayStr();
+        const openEnded = (p.absences||[]).find(a => !a.to && absenceActiveOnDate(a, today));
+        p.status = openEnded ? openEnded.type : 'available';
+        return p;
+      });
       players.sort((a,b)=>(a.name||'').localeCompare(b.name||'','sv'));
       renderPlayers();
       if (currentLineupMatchId && lineupFormation) renderPlayerPool();
@@ -1077,7 +1084,10 @@
 
   function selectLineupMatch(matchId) {
     if (unsubLineup) { unsubLineup(); unsubLineup=null; }
-    currentLineupMatchId=matchId||null; selectedSlot=null;
+    currentLineupMatchId=matchId||null;
+    selectedSlot=null;
+    lineupFormation='';
+    lineupSlots={};
     if (!matchId) { document.getElementById('formation-group').style.display='none'; document.getElementById('lineup-body').innerHTML='<div class="lineup-placeholder">Välj en match ovan för att sätta laget.</div>'; return; }
     const match=matches.find(m=>m.id===matchId); if (!match) return;
     renderFormationPicker(match.format||'9v9');

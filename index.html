@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>v1.0 — Laguttagning</title>
+  <title>v1.2 — Laguttagning</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
@@ -292,8 +292,8 @@
     .pos-empty  { font-size: 1rem; color: rgba(255,255,255,.18); line-height: 1.4; }
     .pos-players { display: flex; flex-direction: column; gap: 2px; }
 
-    .chip-starter { background: var(--green); color: #0e1110; font-size: .68rem; font-weight: 700; padding: 2px 3px; border-radius: 4px; display: flex; align-items: center; justify-content: space-between; gap: 1px; overflow: hidden; }
-    .chip-sub     { background: rgba(76,175,110,.2); color: rgba(255,255,255,.6); font-size: .62rem; font-weight: 500; padding: 2px 3px; border-radius: 3px; display: flex; align-items: center; justify-content: space-between; gap: 1px; overflow: hidden; }
+    .chip-starter { background: var(--green); color: #0e1110; font-size: .82rem; font-weight: 700; padding: 3px 5px; border-radius: 4px; display: flex; align-items: center; justify-content: space-between; gap: 2px; overflow: hidden; }
+    .chip-sub     { background: rgba(76,175,110,.2); color: rgba(255,255,255,.6); font-size: .75rem; font-weight: 500; padding: 3px 5px; border-radius: 3px; display: flex; align-items: center; justify-content: space-between; gap: 2px; overflow: hidden; }
     .chip-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
     .chip-rm { background: none; border: none; cursor: pointer; color: inherit; font-size: .75rem; padding: 0 1px; opacity: .5; flex-shrink: 0; line-height: 1; }
     .chip-rm:hover { opacity: 1; color: var(--danger); }
@@ -383,7 +383,7 @@
   <div class="nav-tabs">
     <button class="nav-tab active" data-page="players">SPELARE</button>
     <button class="nav-tab" data-page="matches">MATCHER</button>
-    <button class="nav-tab" data-page="lineup">UTTAG</button>
+    <button class="nav-tab" data-page="lineup">UTTAGNING</button>
   </div>
 
   <!-- SPELARE -->
@@ -416,7 +416,7 @@
   <!-- UTTAG -->
   <div id="page-lineup" class="page">
     <div class="page-header">
-      <div class="page-title">UTTAG</div>
+      <div class="page-title">UTTAGNING</div>
       <div class="save-indicator" id="save-indicator"></div>
     </div>
     <div class="lineup-top">

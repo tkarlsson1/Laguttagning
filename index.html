@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>v0.4 — Laguttagning</title>
+  <title>v0.5 — Laguttagning</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
@@ -12,17 +12,17 @@
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --bg:        #0e1110;
-      --surface:   #161c18;
-      --surface2:  #1d2520;
-      --border:    #2a332c;
-      --green:     #4caf6e;
-      --green-dim: #2e7d4a;
-      --text:      #e8ede9;
-      --muted:     #6b7a6e;
-      --danger:    #e05c5c;
-      --warn:      #e0a85c;
-      --info:      #5c9ee0;
+      --bg:         #0e1110;
+      --surface:    #161c18;
+      --surface2:   #1d2520;
+      --border:     #2a332c;
+      --green:      #4caf6e;
+      --green-dim:  #2e7d4a;
+      --text:       #e8ede9;
+      --muted:      #6b7a6e;
+      --danger:     #e05c5c;
+      --warn:       #e0a85c;
+      --info:       #5c9ee0;
       --diff-green: #4caf6e;
       --diff-blue:  #5c9ee0;
       --diff-red:   #e05c5c;
@@ -32,7 +32,6 @@
     }
 
     html, body { height: 100%; background: var(--bg); color: var(--text); font-family: var(--font-body); }
-
     .view { display: none; min-height: 100vh; }
     .view.active { display: flex; flex-direction: column; }
 
@@ -40,7 +39,7 @@
     #view-login { align-items: center; justify-content: center; padding: 2rem; position: relative; overflow: hidden; }
     #view-login::before {
       content: ''; position: absolute; inset: 0;
-      background: repeating-linear-gradient(to bottom, transparent 0px, transparent 58px, rgba(76,175,110,.04) 58px, rgba(76,175,110,.04) 60px);
+      background: repeating-linear-gradient(to bottom, transparent 0, transparent 58px, rgba(76,175,110,.04) 58px, rgba(76,175,110,.04) 60px);
       pointer-events: none;
     }
     .login-card {
@@ -121,12 +120,12 @@
     .nav-tab.active { color: var(--green); border-bottom-color: var(--green); }
 
     /* ── PAGES ───────────────────────────────────────── */
-    .page { display: none; flex: 1; padding: 2rem; max-width: 1100px; width: 100%; margin: 0 auto; }
+    .page { display: none; flex: 1; padding: 2rem; max-width: 1200px; width: 100%; margin: 0 auto; }
     .page.active { display: block; }
-
     .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem; }
     .page-title  { font-family: var(--font-display); font-size: 2rem; letter-spacing: .06em; }
     .page-title span { color: var(--muted); font-size: 1.2rem; margin-left: .5rem; }
+    .last-edit   { font-size: .75rem; color: var(--muted); margin-bottom: 1rem; min-height: 1.2em; }
 
     .filter-bar { display: flex; gap: .5rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
     .filter-btn {
@@ -136,8 +135,6 @@
     }
     .filter-btn:hover  { border-color: var(--text); color: var(--text); }
     .filter-btn.active { background: var(--green); border-color: var(--green); color: #0e1110; }
-
-    .last-edit { font-size: .75rem; color: var(--muted); margin-bottom: 1rem; min-height: 1.2em; }
 
     /* ── PLAYER GRID ─────────────────────────────────── */
     .player-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1rem; }
@@ -162,52 +159,168 @@
 
     /* ── MATCH LIST ──────────────────────────────────── */
     .match-list { display: flex; flex-direction: column; gap: .75rem; }
-
     .date-group-header {
       font-family: var(--font-display); font-size: 1rem; letter-spacing: .08em;
-      color: var(--muted); padding: .5rem 0 .25rem;
-      border-bottom: 1px solid var(--border); margin-top: 1rem;
+      color: var(--muted); padding: .5rem 0 .25rem; border-bottom: 1px solid var(--border); margin-top: 1rem;
     }
     .date-group-header:first-child { margin-top: 0; }
-
     .match-card {
       background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
       display: flex; align-items: stretch; overflow: hidden;
       cursor: pointer; transition: border-color .2s, transform .15s;
     }
     .match-card:hover { border-color: var(--green); transform: translateY(-1px); }
-
     .match-diff-bar { width: 5px; flex-shrink: 0; }
     .diff-green { background: var(--diff-green); }
     .diff-blue  { background: var(--diff-blue); }
     .diff-red   { background: var(--diff-red); }
     .diff-black { background: var(--diff-black); }
-
     .match-card-body { flex: 1; padding: .9rem 1.2rem; display: flex; align-items: center; gap: 1.5rem; flex-wrap: wrap; }
-
     .match-time-block { min-width: 70px; }
-    .match-time { font-family: var(--font-display); font-size: 1.4rem; letter-spacing: .04em; line-height: 1; }
-    .match-weekday { font-size: .72rem; color: var(--muted); margin-top: .1rem; }
-
-    .match-main { flex: 1; min-width: 120px; }
-    .match-opponent { font-weight: 600; font-size: 1rem; }
-    .match-location { font-size: .8rem; color: var(--muted); margin-top: .15rem; }
-
-    .match-badges { display: flex; gap: .5rem; flex-wrap: wrap; align-items: center; }
-    .badge {
-      font-size: .72rem; font-weight: 600; letter-spacing: .04em; padding: .2rem .55rem;
-      border-radius: 4px; border: 1px solid;
-    }
-    .badge-format     { color: var(--text);   background: rgba(232,237,233,.06); border-color: var(--border); }
-    .badge-formation  { color: var(--muted);  background: transparent;           border-color: var(--border); }
-    .badge-diff-green { color: var(--diff-green); background: rgba(76,175,110,.1);  border-color: rgba(76,175,110,.25); }
-    .badge-diff-blue  { color: var(--diff-blue);  background: rgba(92,158,224,.1);  border-color: rgba(92,158,224,.25); }
-    .badge-diff-red   { color: var(--diff-red);   background: rgba(224,92,92,.1);   border-color: rgba(224,92,92,.25); }
-    .badge-diff-black { color: var(--diff-black); background: rgba(176,184,179,.08);border-color: rgba(176,184,179,.2); }
+    .match-time    { font-family: var(--font-display); font-size: 1.4rem; letter-spacing: .04em; line-height: 1; }
+    .match-main    { flex: 1; min-width: 120px; }
+    .match-opponent{ font-weight: 600; font-size: 1rem; }
+    .match-location{ font-size: .8rem; color: var(--muted); margin-top: .15rem; }
+    .match-badges  { display: flex; gap: .5rem; flex-wrap: wrap; align-items: center; }
+    .badge { font-size: .72rem; font-weight: 600; letter-spacing: .04em; padding: .2rem .55rem; border-radius: 4px; border: 1px solid; }
+    .badge-format     { color: var(--text);       background: rgba(232,237,233,.06); border-color: var(--border); }
+    .badge-diff-green { color: var(--diff-green); background: rgba(76,175,110,.1);   border-color: rgba(76,175,110,.25); }
+    .badge-diff-blue  { color: var(--diff-blue);  background: rgba(92,158,224,.1);   border-color: rgba(92,158,224,.25); }
+    .badge-diff-red   { color: var(--diff-red);   background: rgba(224,92,92,.1);    border-color: rgba(224,92,92,.25); }
+    .badge-diff-black { color: var(--diff-black); background: rgba(176,184,179,.08); border-color: rgba(176,184,179,.2); }
 
     /* ── EMPTY STATE ─────────────────────────────────── */
     .empty-state { text-align: center; padding: 4rem 2rem; color: var(--muted); grid-column: 1 / -1; }
     .empty-state p:first-child { font-family: var(--font-display); font-size: 1.4rem; color: var(--text); margin-bottom: .5rem; }
+
+    /* ── LINEUP PAGE ─────────────────────────────────── */
+    .lineup-top {
+      display: flex; gap: 1.5rem; align-items: flex-end; flex-wrap: wrap; margin-bottom: 1.5rem;
+    }
+    .lineup-match-field { min-width: 280px; max-width: 400px; margin-bottom: 0; flex: 1; }
+    .lineup-formation-group { display: flex; flex-direction: column; gap: .4rem; flex: 2; }
+    .field-label { font-size: .78rem; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+    .formation-btns { display: flex; flex-wrap: wrap; gap: .4rem; }
+    .formation-btn {
+      background: var(--surface); border: 1px solid var(--border); border-radius: 6px;
+      color: var(--muted); font-family: var(--font-body); font-size: .85rem; font-weight: 500;
+      padding: .35rem .8rem; cursor: pointer; transition: all .15s;
+    }
+    .formation-btn:hover  { border-color: var(--text); color: var(--text); }
+    .formation-btn.active { background: var(--green); border-color: var(--green); color: #0e1110; font-weight: 700; }
+
+    .save-indicator { font-size: .78rem; color: var(--muted); align-self: flex-end; white-space: nowrap; }
+
+    .lineup-placeholder { text-align: center; padding: 3rem 1rem; color: var(--muted); font-size: .95rem; }
+
+    .lineup-main {
+      display: grid;
+      grid-template-columns: 360px 1fr;
+      gap: 2rem;
+      align-items: start;
+    }
+    @media (max-width: 780px) {
+      .lineup-main { grid-template-columns: 1fr; }
+    }
+
+    /* ── PITCH ───────────────────────────────────────── */
+    .pitch {
+      background: #1e5918;
+      background-image: repeating-linear-gradient(
+        to bottom, rgba(0,0,0,0) 0, rgba(0,0,0,0) 48px, rgba(0,0,0,.07) 48px, rgba(0,0,0,.07) 96px
+      );
+      border-radius: 10px;
+      position: relative;
+      width: 100%;
+      max-width: 360px;
+      padding: 10px;
+      box-shadow: 0 8px 32px rgba(0,0,0,.4);
+    }
+    /* outer border line */
+    .pitch::before {
+      content: ''; position: absolute; inset: 8px;
+      border: 2px solid rgba(255,255,255,.15); border-radius: 2px; pointer-events: none; z-index: 0;
+    }
+    /* center line */
+    .pitch::after {
+      content: ''; position: absolute; left: 8px; right: 8px; top: 50%;
+      height: 2px; background: rgba(255,255,255,.1); pointer-events: none; z-index: 0;
+    }
+
+    .pitch-rows {
+      display: flex; flex-direction: column; gap: 8px;
+      position: relative; z-index: 1;
+      min-height: 460px;
+    }
+
+    .pitch-row { display: flex; justify-content: space-evenly; align-items: center; flex: 1; gap: 5px; }
+
+    .pos-slot {
+      background: rgba(0,0,0,.3); border: 2px solid rgba(255,255,255,.12); border-radius: 8px;
+      padding: 4px 5px; min-width: 58px; flex: 1; max-width: 90px;
+      text-align: center; cursor: pointer; transition: border-color .15s, background .15s;
+    }
+    .pos-slot:hover    { border-color: rgba(255,255,255,.3); background: rgba(0,0,0,.45); }
+    .pos-slot.selected { border-color: var(--green); background: rgba(76,175,110,.18); box-shadow: 0 0 0 2px rgba(76,175,110,.2); }
+
+    .pos-label  { font-size: .58rem; font-weight: 700; letter-spacing: .06em; color: rgba(255,255,255,.38); text-transform: uppercase; margin-bottom: 3px; }
+    .pos-empty  { font-size: 1rem; color: rgba(255,255,255,.18); line-height: 1.4; }
+    .pos-players { display: flex; flex-direction: column; gap: 2px; }
+
+    .chip-starter {
+      background: var(--green); color: #0e1110; font-size: .68rem; font-weight: 700;
+      padding: 2px 3px; border-radius: 4px;
+      display: flex; align-items: center; justify-content: space-between; gap: 1px;
+      overflow: hidden;
+    }
+    .chip-sub {
+      background: rgba(76,175,110,.2); color: rgba(255,255,255,.6); font-size: .62rem; font-weight: 500;
+      padding: 2px 3px; border-radius: 3px;
+      display: flex; align-items: center; justify-content: space-between; gap: 1px;
+      overflow: hidden;
+    }
+    .chip-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+    .chip-rm {
+      background: none; border: none; cursor: pointer; color: inherit; font-size: .75rem;
+      padding: 0 1px; opacity: .5; flex-shrink: 0; line-height: 1;
+    }
+    .chip-rm:hover { opacity: 1; color: var(--danger); }
+
+    /* ── PLAYER POOL ─────────────────────────────────── */
+    .pool-header { font-family: var(--font-display); font-size: 1.2rem; letter-spacing: .08em; margin-bottom: .4rem; }
+    .pool-hint   { font-size: .8rem; color: var(--muted); margin-bottom: .75rem; min-height: 1.1em; }
+
+    .player-pool { display: flex; flex-direction: column; gap: 2px; max-height: 520px; overflow-y: auto; }
+
+    .pool-item {
+      display: flex; align-items: center; gap: .6rem;
+      padding: .45rem .75rem; border-radius: 8px; cursor: pointer;
+      transition: background .12s; border: 1px solid transparent;
+    }
+    .pool-item:hover            { background: var(--surface2); }
+    .pool-item.in-selected      { background: rgba(76,175,110,.08); border-color: rgba(76,175,110,.25); }
+    .pool-item.pool-unavailable { opacity: .38; pointer-events: none; }
+
+    .pool-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .dot-available   { background: var(--green); }
+    .dot-assigned    { background: var(--warn); }
+    .dot-unavailable { background: var(--muted); }
+
+    .pool-info  { flex: 1; min-width: 0; }
+    .pool-name  { font-weight: 500; font-size: .9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .pool-tags  { font-size: .7rem; color: var(--muted); margin-top: 1px; }
+
+    .pool-badge {
+      font-size: .68rem; color: var(--warn); background: rgba(224,168,92,.1);
+      border: 1px solid rgba(224,168,92,.2); border-radius: 4px;
+      padding: .15rem .4rem; white-space: nowrap; flex-shrink: 0;
+    }
+    .pool-check { color: var(--green); font-size: .95rem; flex-shrink: 0; }
+    .pool-section-label {
+      font-size: .72rem; font-weight: 600; text-transform: uppercase; letter-spacing: .06em;
+      color: var(--muted); padding: .6rem .75rem .3rem; border-top: 1px solid var(--border); margin-top: .25rem;
+    }
+    .pool-section-label:first-child { border-top: none; margin-top: 0; padding-top: .3rem; }
 
     /* ── MODALS ──────────────────────────────────────── */
     .modal-backdrop {
@@ -224,7 +337,6 @@
     .modal-actions { display: flex; gap: .75rem; justify-content: flex-end; margin-top: 1.5rem; flex-wrap: wrap; align-items: center; }
     .modal-actions-left { margin-right: auto; }
 
-    /* position tag picker */
     .tag-group { margin-bottom: 1rem; }
     .tag-group-label { font-size: .78rem; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin-bottom: .5rem; }
     .tag-options { display: flex; flex-wrap: wrap; gap: .4rem; }
@@ -311,13 +423,30 @@
     <div class="match-list" id="match-list"></div>
   </div>
 
-  <!-- UTTAG (placeholder) -->
+  <!-- UTTAG -->
   <div id="page-lineup" class="page">
-    <div class="page-header"><div class="page-title">UTTAG</div></div>
-    <p style="color:var(--muted)">Kommer senare.</p>
+    <div class="page-header">
+      <div class="page-title">UTTAG</div>
+      <div class="save-indicator" id="save-indicator"></div>
+    </div>
+
+    <div class="lineup-top">
+      <div class="field lineup-match-field" style="margin-bottom:0">
+        <label for="lineup-match-select">Match</label>
+        <select id="lineup-match-select"><option value="">— Välj match —</option></select>
+      </div>
+      <div class="lineup-formation-group" id="formation-group" style="display:none">
+        <div class="field-label">Formation</div>
+        <div class="formation-btns" id="formation-btns"></div>
+      </div>
+    </div>
+
+    <div id="lineup-body">
+      <div class="lineup-placeholder">Välj en match ovan för att sätta laget.</div>
+    </div>
   </div>
 
-</div>
+</div><!-- /view-app -->
 
 <!-- ── PLAYER MODAL ──────────────────────────────────── -->
 <div id="player-modal" class="modal-backdrop">
@@ -378,7 +507,6 @@
 <div id="match-modal" class="modal-backdrop">
   <div class="modal">
     <div class="modal-title" id="match-modal-title">LÄGG TILL MATCH</div>
-
     <div class="field-row">
       <div class="field">
         <label for="match-date">Datum</label>
@@ -389,17 +517,14 @@
         <input type="time" id="match-time" />
       </div>
     </div>
-
     <div class="field">
       <label for="match-opponent">Motståndare</label>
       <input type="text" id="match-opponent" placeholder="Motståndarlagets namn" />
     </div>
-
     <div class="field">
       <label for="match-location">Plats</label>
       <input type="text" id="match-location" placeholder="Hemma / Borta / Plannamn" />
     </div>
-
     <div class="field-row">
       <div class="field">
         <label for="match-format">Format</label>
@@ -419,7 +544,6 @@
         </select>
       </div>
     </div>
-
     <div class="modal-actions">
       <div class="modal-actions-left">
         <button class="btn-danger" id="btn-delete-match" style="display:none">Ta bort</button>
@@ -449,7 +573,7 @@
   } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
   import {
     getFirestore, collection, doc,
-    onSnapshot, addDoc, updateDoc, deleteDoc, serverTimestamp
+    onSnapshot, addDoc, updateDoc, deleteDoc, setDoc, serverTimestamp
   } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
   const firebaseConfig = {
@@ -465,68 +589,61 @@
   const auth  = getAuth(fbApp);
   const db    = getFirestore(fbApp);
 
-  // ── Formations data ───────────────────────────────
+  // ── Data ──────────────────────────────────────────
   const FORMATIONS = {
     '7v7':  ['2-3-1','3-2-1','2-2-2','3-1-2'],
     '9v9':  ['3-3-2','3-2-3','4-2-2','4-3-1','3-4-1','2-4-2','4-1-3','2-3-3','1-4-3','2-1-4-1','2-1-3-2'],
     '11v11':['4-4-2','4-3-3','4-2-3-1','3-5-2','3-4-3','4-1-4-1','4-3-2-1','5-3-2','5-4-1','4-5-1','3-4-2-1','4-1-2-1-2','4-2-2-2','3-3-3-1']
   };
 
-  const DIFF_LABEL = { green: 'Grön', blue: 'Blå', red: 'Röd', black: 'Svart' };
+  const ROW_LABELS = {
+    def: { 1:['CB'],2:['LCB','RCB'],3:['LB','CB','RB'],4:['LB','CB','CB','RB'],5:['LB','CB','CB','CB','RB'] },
+    mid: { 1:['CM'],2:['LCM','RCM'],3:['LM','CM','RM'],4:['LM','CM','CM','RM'],5:['LM','CM','CM','CM','RM'] },
+    att: { 1:['ST'],2:['LW','RW'],3:['LW','ST','RW'],4:['LW','CF','CF','RW'] }
+  };
+
+  function parseFormationRows(formStr) {
+    const nums = formStr.split('-').map(Number);
+    const n = nums.length;
+    const rows = [{ rowIdx:0, count:1, labels:['GK'] }];
+    nums.forEach((count, i) => {
+      const rowIdx = i + 1;
+      const type = i === 0 ? 'def' : (i === n-1 ? 'att' : 'mid');
+      const lmap = ROW_LABELS[type];
+      const labels = lmap[count] || Array.from({length:count}, (_,j) => type.toUpperCase().slice(0,1)+(j+1));
+      rows.push({ rowIdx, count, labels });
+    });
+    return rows; // index 0 = GK
+  }
+
+  function getSlotLabel(slotKey) {
+    if (!lineupFormation) return slotKey;
+    const m = slotKey.match(/r(\d+)-(\d+)/);
+    if (!m) return slotKey;
+    const rows = parseFormationRows(lineupFormation);
+    const row  = rows[parseInt(m[1])];
+    return row ? (row.labels[parseInt(m[2])] || slotKey) : slotKey;
+  }
+
+  const DIFF_LABEL = { green:'Grön', blue:'Blå', red:'Röd', black:'Svart' };
   const WEEKDAY    = ['Sön','Mån','Tis','Ons','Tor','Fre','Lör'];
 
-  // ── State ─────────────────────────────────────────
-  let currentUser  = null;
-  let players      = [];
-  let matches      = [];
-  let activeFilter = 'all';
-  let editingPlayerId = null;
-  let editingMatchId  = null;
-  let unsubPlayers = null;
-  let unsubMatches = null;
+  // ── App state ─────────────────────────────────────
+  let currentUser        = null;
+  let players            = [];
+  let matches            = [];
+  let activeFilter       = 'all';
+  let editingPlayerId    = null;
+  let editingMatchId     = null;
+  let unsubPlayers       = null;
+  let unsubMatches       = null;
+  let unsubLineup        = null;
 
-  // ── DOM ───────────────────────────────────────────
-  const emailInput      = document.getElementById('email');
-  const passInput       = document.getElementById('password');
-  const btnLogin        = document.getElementById('btn-login');
-  const loginError      = document.getElementById('login-error');
-  const userEmailEl     = document.getElementById('user-email');
-  const playerGrid      = document.getElementById('player-grid');
-  const playerCountEl   = document.getElementById('player-count');
-  const playersLastEdit = document.getElementById('players-last-edit');
-  const matchList       = document.getElementById('match-list');
-  const matchCountEl    = document.getElementById('match-count');
-  const matchesLastEdit = document.getElementById('matches-last-edit');
-
-  // player modal
-  const playerModal     = document.getElementById('player-modal');
-  const playerModalTitle= document.getElementById('player-modal-title');
-  const playerNameIn    = document.getElementById('player-name');
-  const playerStatusIn  = document.getElementById('player-status');
-  const btnDeletePlayer = document.getElementById('btn-delete-player');
-  const btnPlayerCancel = document.getElementById('btn-player-cancel');
-  const btnPlayerSave   = document.getElementById('btn-player-save');
-  const tagOptions      = document.querySelectorAll('.tag-option');
-
-  // match modal
-  const matchModal      = document.getElementById('match-modal');
-  const matchModalTitle = document.getElementById('match-modal-title');
-  const matchDateIn     = document.getElementById('match-date');
-  const matchTimeIn     = document.getElementById('match-time');
-  const matchOpponentIn = document.getElementById('match-opponent');
-  const matchLocationIn = document.getElementById('match-location');
-  const matchFormatIn   = document.getElementById('match-format');
-  const matchDiffIn     = document.getElementById('match-difficulty');
-  const matchFormationIn= document.getElementById('match-formation');
-  const btnDeleteMatch  = document.getElementById('btn-delete-match');
-  const btnMatchCancel  = document.getElementById('btn-match-cancel');
-  const btnMatchSave    = document.getElementById('btn-match-save');
-
-  // confirm
-  const confirmBackdrop = document.getElementById('confirm-backdrop');
-  const confirmText     = document.getElementById('confirm-text');
-  const confirmCancel   = document.getElementById('confirm-cancel');
-  const confirmOk       = document.getElementById('confirm-ok');
+  // Lineup state
+  let currentLineupMatchId = null;
+  let lineupFormation      = '';
+  let lineupSlots          = {};   // { 'r1-0': ['pid', ...], ... }
+  let selectedSlot         = null;
 
   // ── Helpers ───────────────────────────────────────
   function showView(name) {
@@ -541,17 +658,21 @@
   function formatTs(ts) {
     if (!ts) return '';
     const d = ts.toDate ? ts.toDate() : new Date(ts);
-    return d.toLocaleDateString('sv-SE', { day: 'numeric', month: 'short' }) + ' ' +
-           d.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' });
+    return d.toLocaleDateString('sv-SE', {day:'numeric',month:'short'}) + ' ' +
+           d.toLocaleTimeString('sv-SE', {hour:'2-digit',minute:'2-digit'});
   }
 
   function lastEditText(items, el) {
     const latest = [...items].filter(i => i.updatedAt).sort((a,b) =>
       (b.updatedAt?.toDate?.() || 0) - (a.updatedAt?.toDate?.() || 0)
     )[0];
-    el.textContent = latest?.updatedBy
-      ? `Senast redigerat av ${latest.updatedBy} — ${formatTs(latest.updatedAt)}`
-      : '';
+    el.textContent = latest?.updatedBy ? `Senast redigerat av ${latest.updatedBy} — ${formatTs(latest.updatedAt)}` : '';
+  }
+
+  function shortName(name) {
+    if (!name) return '?';
+    const p = name.trim().split(/\s+/);
+    return p.length === 1 ? p[0] : p[0] + ' ' + p[p.length-1][0] + '.';
   }
 
   // ── Tab nav ───────────────────────────────────────
@@ -561,6 +682,7 @@
       document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
       tab.classList.add('active');
       document.getElementById('page-' + tab.dataset.page).classList.add('active');
+      if (tab.dataset.page === 'lineup') refreshMatchSelector();
     });
   });
 
@@ -568,39 +690,43 @@
   onAuthStateChanged(auth, user => {
     currentUser = user;
     if (user) {
-      userEmailEl.textContent = user.email;
+      document.getElementById('user-email').textContent = user.email;
       showView('app');
       startPlayerListener();
       startMatchListener();
     } else {
       showView('login');
-      if (unsubPlayers) { unsubPlayers(); unsubPlayers = null; }
-      if (unsubMatches) { unsubMatches(); unsubMatches = null; }
+      [unsubPlayers, unsubMatches, unsubLineup].forEach(fn => fn && fn());
+      unsubPlayers = unsubMatches = unsubLineup = null;
       players = []; matches = [];
     }
   });
 
-  btnLogin.addEventListener('click', async () => {
+  const loginError = document.getElementById('login-error');
+  document.getElementById('btn-login').addEventListener('click', async () => {
     loginError.classList.remove('visible');
-    const email = emailInput.value.trim(), pass = passInput.value;
+    const email = document.getElementById('email').value.trim();
+    const pass  = document.getElementById('password').value;
     if (!email || !pass) { loginError.textContent = 'Fyll i e-post och lösenord.'; loginError.classList.add('visible'); return; }
-    btnLogin.disabled = true; btnLogin.textContent = 'LOGGAR IN...';
+    const btn = document.getElementById('btn-login');
+    btn.disabled = true; btn.textContent = 'LOGGAR IN...';
     try { await signInWithEmailAndPassword(auth, email, pass); }
     catch (err) {
       const msgs = { 'auth/invalid-credential':'Fel e-post eller lösenord.','auth/user-not-found':'Ingen användare.','auth/wrong-password':'Fel lösenord.','auth/too-many-requests':'För många försök.','auth/invalid-email':'Ogiltig e-post.' };
       loginError.textContent = msgs[err.code] || 'Inloggning misslyckades.';
       loginError.classList.add('visible');
-    } finally { btnLogin.disabled = false; btnLogin.textContent = 'LOGGA IN'; }
+    } finally { btn.disabled = false; btn.textContent = 'LOGGA IN'; }
   });
-  passInput.addEventListener('keydown', e => { if (e.key === 'Enter') btnLogin.click(); });
+  document.getElementById('password').addEventListener('keydown', e => { if (e.key==='Enter') document.getElementById('btn-login').click(); });
   document.getElementById('btn-logout').addEventListener('click', () => signOut(auth));
 
-  // ── Players ───────────────────────────────────────
+  // ── PLAYERS ───────────────────────────────────────
   function startPlayerListener() {
-    unsubPlayers = onSnapshot(collection(db, 'players'), snap => {
-      players = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    unsubPlayers = onSnapshot(collection(db,'players'), snap => {
+      players = snap.docs.map(d => ({id:d.id,...d.data()}));
       players.sort((a,b) => (a.name||'').localeCompare(b.name||'','sv'));
       renderPlayers();
+      renderPlayerPool(); // refresh pool if lineup open
     });
   }
 
@@ -609,21 +735,22 @@
 
   function renderPlayers() {
     const filtered = activeFilter === 'all' ? players : players.filter(p => p.status === activeFilter);
-    playerCountEl.textContent = `(${players.length})`;
-    lastEditText(players, playersLastEdit);
+    document.getElementById('player-count').textContent = `(${players.length})`;
+    lastEditText(players, document.getElementById('players-last-edit'));
 
+    const grid = document.getElementById('player-grid');
     if (filtered.length === 0) {
-      playerGrid.innerHTML = `<div class="empty-state"><p>${activeFilter==='all'?'Inga spelare ännu':'Inga spelare med den statusen'}</p><p>Lägg till spelare med knappen ovan.</p></div>`;
+      grid.innerHTML = `<div class="empty-state"><p>${activeFilter==='all'?'Inga spelare ännu':'Inga spelare med den statusen'}</p><p>Lägg till spelare med knappen ovan.</p></div>`;
       return;
     }
-    playerGrid.innerHTML = filtered.map(p => `
+    grid.innerHTML = filtered.map(p => `
       <div class="player-card" data-id="${p.id}">
         <div class="player-card-name">${escHtml(p.name||'—')}</div>
         <div class="player-tags">${(p.positions||[]).map(pos=>`<span class="tag">${pos}</span>`).join('')}</div>
         <span class="status-badge ${statusClass[p.status]||'status-available'}">${statusLabel[p.status]||'Tillgänglig'}</span>
         ${p.updatedBy?`<div class="player-meta">${escHtml(p.updatedBy)} · ${formatTs(p.updatedAt)}</div>`:''}
       </div>`).join('');
-    playerGrid.querySelectorAll('.player-card').forEach(c => c.addEventListener('click', () => openPlayerEdit(c.dataset.id)));
+    grid.querySelectorAll('.player-card').forEach(c => c.addEventListener('click', () => openPlayerEdit(c.dataset.id)));
   }
 
   document.querySelectorAll('.filter-btn').forEach(btn => {
@@ -635,90 +762,82 @@
     });
   });
 
-  // player modal
+  // Player modal
+  const playerModal = document.getElementById('player-modal');
+  const tagOptions  = document.querySelectorAll('.tag-option');
+
   document.getElementById('btn-add-player').addEventListener('click', () => {
     editingPlayerId = null;
-    playerModalTitle.textContent = 'LÄGG TILL SPELARE';
-    playerNameIn.value = ''; playerStatusIn.value = 'available';
+    document.getElementById('player-modal-title').textContent = 'LÄGG TILL SPELARE';
+    document.getElementById('player-name').value = '';
+    document.getElementById('player-status').value = 'available';
     tagOptions.forEach(t => t.classList.remove('selected'));
-    btnDeletePlayer.style.display = 'none';
-    playerModal.classList.add('open'); playerNameIn.focus();
+    document.getElementById('btn-delete-player').style.display = 'none';
+    playerModal.classList.add('open');
+    document.getElementById('player-name').focus();
   });
 
   function openPlayerEdit(id) {
-    const p = players.find(pl => pl.id === id); if (!p) return;
+    const p = players.find(pl => pl.id===id); if (!p) return;
     editingPlayerId = id;
-    playerModalTitle.textContent = 'REDIGERA SPELARE';
-    playerNameIn.value   = p.name || '';
-    playerStatusIn.value = p.status || 'available';
+    document.getElementById('player-modal-title').textContent = 'REDIGERA SPELARE';
+    document.getElementById('player-name').value   = p.name || '';
+    document.getElementById('player-status').value = p.status || 'available';
     tagOptions.forEach(t => t.classList.toggle('selected', (p.positions||[]).includes(t.dataset.pos)));
-    btnDeletePlayer.style.display = 'inline-flex';
-    playerModal.classList.add('open'); playerNameIn.focus();
+    document.getElementById('btn-delete-player').style.display = 'inline-flex';
+    playerModal.classList.add('open');
+    document.getElementById('player-name').focus();
   }
 
   function closePlayerModal() { playerModal.classList.remove('open'); }
-  btnPlayerCancel.addEventListener('click', closePlayerModal);
-  playerModal.addEventListener('click', e => { if (e.target === playerModal) closePlayerModal(); });
+  document.getElementById('btn-player-cancel').addEventListener('click', closePlayerModal);
+  playerModal.addEventListener('click', e => { if (e.target===playerModal) closePlayerModal(); });
   tagOptions.forEach(t => t.addEventListener('click', () => t.classList.toggle('selected')));
 
-  btnPlayerSave.addEventListener('click', async () => {
-    const name = playerNameIn.value.trim(); if (!name) { playerNameIn.focus(); return; }
+  document.getElementById('btn-player-save').addEventListener('click', async () => {
+    const name = document.getElementById('player-name').value.trim();
+    if (!name) { document.getElementById('player-name').focus(); return; }
     const positions = [...tagOptions].filter(t => t.classList.contains('selected')).map(t => t.dataset.pos);
-    const data = { name, status: playerStatusIn.value, positions, updatedBy: currentUser?.email||'okänd', updatedAt: serverTimestamp() };
-    btnPlayerSave.disabled = true;
+    const data = { name, status: document.getElementById('player-status').value, positions, updatedBy: currentUser?.email||'okänd', updatedAt: serverTimestamp() };
+    const btn = document.getElementById('btn-player-save'); btn.disabled = true;
     try {
       if (editingPlayerId) await updateDoc(doc(db,'players',editingPlayerId), data);
       else                 await addDoc(collection(db,'players'), data);
       closePlayerModal();
     } catch(err) { console.error(err); alert('Något gick fel.'); }
-    finally { btnPlayerSave.disabled = false; }
+    finally { btn.disabled = false; }
   });
 
-  // ── Matches ───────────────────────────────────────
+  // ── MATCHES ───────────────────────────────────────
   function startMatchListener() {
-    unsubMatches = onSnapshot(collection(db, 'matches'), snap => {
-      matches = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      matches.sort((a,b) => {
-        const da = `${a.date||''}T${a.time||'00:00'}`;
-        const db2= `${b.date||''}T${b.time||'00:00'}`;
-        return da.localeCompare(db2);
-      });
+    unsubMatches = onSnapshot(collection(db,'matches'), snap => {
+      matches = snap.docs.map(d => ({id:d.id,...d.data()}));
+      matches.sort((a,b) => (`${a.date||''}T${a.time||'00:00'}`).localeCompare(`${b.date||''}T${b.time||'00:00'}`));
       renderMatches();
+      refreshMatchSelector();
     });
   }
 
   function renderMatches() {
-    matchCountEl.textContent = `(${matches.length})`;
-    lastEditText(matches, matchesLastEdit);
-
+    document.getElementById('match-count').textContent = `(${matches.length})`;
+    lastEditText(matches, document.getElementById('matches-last-edit'));
+    const list = document.getElementById('match-list');
     if (matches.length === 0) {
-      matchList.innerHTML = `<div class="empty-state" style="grid-column:unset"><p>Inga matcher ännu</p><p>Lägg till en match med knappen ovan.</p></div>`;
+      list.innerHTML = `<div class="empty-state" style="grid-column:unset"><p>Inga matcher ännu</p><p>Lägg till en match med knappen ovan.</p></div>`;
       return;
     }
-
-    // group by date
     const groups = {};
-    matches.forEach(m => {
-      const key = m.date || 'okänt';
-      if (!groups[key]) groups[key] = [];
-      groups[key].push(m);
-    });
-
+    matches.forEach(m => { const k=m.date||'okänt'; if(!groups[k]) groups[k]=[]; groups[k].push(m); });
     let html = '';
-    Object.keys(groups).sort().forEach(dateKey => {
-      const d = dateKey !== 'okänt' ? new Date(dateKey + 'T12:00:00') : null;
-      const label = d
-        ? `${WEEKDAY[d.getDay()]} ${d.toLocaleDateString('sv-SE', { day:'numeric', month:'long', year:'numeric' })}`
-        : 'Okänt datum';
+    Object.keys(groups).sort().forEach(dk => {
+      const d = dk!=='okänt' ? new Date(dk+'T12:00:00') : null;
+      const label = d ? `${WEEKDAY[d.getDay()]} ${d.toLocaleDateString('sv-SE',{day:'numeric',month:'long',year:'numeric'})}` : 'Okänt datum';
       html += `<div class="date-group-header">${label}</div>`;
-      groups[dateKey].forEach(m => {
-        html += `
-        <div class="match-card" data-id="${m.id}">
+      groups[dk].forEach(m => {
+        html += `<div class="match-card" data-id="${m.id}">
           <div class="match-diff-bar diff-${m.difficulty||'green'}"></div>
           <div class="match-card-body">
-            <div class="match-time-block">
-              <div class="match-time">${escHtml(m.time||'??:??')}</div>
-            </div>
+            <div class="match-time-block"><div class="match-time">${escHtml(m.time||'??:??')}</div></div>
             <div class="match-main">
               <div class="match-opponent">${escHtml(m.opponent||'—')}</div>
               ${m.location?`<div class="match-location">${escHtml(m.location)}</div>`:''}
@@ -731,97 +850,354 @@
         </div>`;
       });
     });
-    matchList.innerHTML = html;
-    matchList.querySelectorAll('.match-card').forEach(c => c.addEventListener('click', () => openMatchEdit(c.dataset.id)));
+    list.innerHTML = html;
+    list.querySelectorAll('.match-card').forEach(c => c.addEventListener('click', () => openMatchEdit(c.dataset.id)));
   }
 
-  // match modal open (add)
+  const matchModal = document.getElementById('match-modal');
+
   document.getElementById('btn-add-match').addEventListener('click', () => {
     editingMatchId = null;
-    matchModalTitle.textContent = 'LÄGG TILL MATCH';
-    matchDateIn.value     = '';
-    matchTimeIn.value     = '';
-    matchOpponentIn.value = '';
-    matchLocationIn.value = '';
-    matchFormatIn.value   = '9v9';
-    matchDiffIn.value     = 'green';
-    btnDeleteMatch.style.display = 'none';
-    matchModal.classList.add('open'); matchOpponentIn.focus();
+    document.getElementById('match-modal-title').textContent = 'LÄGG TILL MATCH';
+    document.getElementById('match-date').value     = '';
+    document.getElementById('match-time').value     = '';
+    document.getElementById('match-opponent').value = '';
+    document.getElementById('match-location').value = '';
+    document.getElementById('match-format').value   = '9v9';
+    document.getElementById('match-difficulty').value = 'green';
+    document.getElementById('btn-delete-match').style.display = 'none';
+    matchModal.classList.add('open');
+    document.getElementById('match-opponent').focus();
   });
 
   function openMatchEdit(id) {
-    const m = matches.find(x => x.id === id); if (!m) return;
+    const m = matches.find(x => x.id===id); if (!m) return;
     editingMatchId = id;
-    matchModalTitle.textContent = 'REDIGERA MATCH';
-    matchDateIn.value     = m.date     || '';
-    matchTimeIn.value     = m.time     || '';
-    matchOpponentIn.value = m.opponent || '';
-    matchLocationIn.value = m.location || '';
-    matchFormatIn.value   = m.format   || '9v9';
-    matchDiffIn.value     = m.difficulty || 'green';
-    btnDeleteMatch.style.display = 'inline-flex';
-    matchModal.classList.add('open'); matchOpponentIn.focus();
+    document.getElementById('match-modal-title').textContent = 'REDIGERA MATCH';
+    document.getElementById('match-date').value       = m.date     || '';
+    document.getElementById('match-time').value       = m.time     || '';
+    document.getElementById('match-opponent').value   = m.opponent || '';
+    document.getElementById('match-location').value   = m.location || '';
+    document.getElementById('match-format').value     = m.format   || '9v9';
+    document.getElementById('match-difficulty').value = m.difficulty || 'green';
+    document.getElementById('btn-delete-match').style.display = 'inline-flex';
+    matchModal.classList.add('open');
+    document.getElementById('match-opponent').focus();
   }
 
   function closeMatchModal() { matchModal.classList.remove('open'); }
-  btnMatchCancel.addEventListener('click', closeMatchModal);
-  matchModal.addEventListener('click', e => { if (e.target === matchModal) closeMatchModal(); });
+  document.getElementById('btn-match-cancel').addEventListener('click', closeMatchModal);
+  matchModal.addEventListener('click', e => { if (e.target===matchModal) closeMatchModal(); });
 
-  btnMatchSave.addEventListener('click', async () => {
-    const date = matchDateIn.value;
-    if (!date) { matchDateIn.focus(); return; }
+  document.getElementById('btn-match-save').addEventListener('click', async () => {
+    const date = document.getElementById('match-date').value;
+    if (!date) { document.getElementById('match-date').focus(); return; }
     const data = {
-      date,
-      time:       matchTimeIn.value     || '',
-      opponent:   matchOpponentIn.value.trim() || '',
-      location:   matchLocationIn.value.trim() || '',
-      format:     matchFormatIn.value,
-      difficulty: matchDiffIn.value,
-      updatedBy:  currentUser?.email || 'okänd',
-      updatedAt:  serverTimestamp()
+      date, time: document.getElementById('match-time').value||'',
+      opponent: document.getElementById('match-opponent').value.trim()||'',
+      location: document.getElementById('match-location').value.trim()||'',
+      format: document.getElementById('match-format').value,
+      difficulty: document.getElementById('match-difficulty').value,
+      updatedBy: currentUser?.email||'okänd', updatedAt: serverTimestamp()
     };
-    btnMatchSave.disabled = true;
+    const btn = document.getElementById('btn-match-save'); btn.disabled = true;
     try {
       if (editingMatchId) await updateDoc(doc(db,'matches',editingMatchId), data);
       else                await addDoc(collection(db,'matches'), data);
       closeMatchModal();
     } catch(err) { console.error(err); alert('Något gick fel.'); }
-    finally { btnMatchSave.disabled = false; }
+    finally { btn.disabled = false; }
   });
 
-  // ── Confirm / delete ──────────────────────────────
-  let pendingDelete = null;  // { type: 'player'|'match', id }
+  // ── CONFIRM / DELETE ──────────────────────────────
+  let pendingDelete = null;
+  const confirmBackdrop = document.getElementById('confirm-backdrop');
 
   function openConfirm(type, id, name) {
     pendingDelete = { type, id };
-    confirmText.textContent = `Vill du ta bort ${name}? Det går inte att ångra.`;
+    document.getElementById('confirm-text').textContent = `Vill du ta bort ${name}? Det går inte att ångra.`;
     confirmBackdrop.classList.add('open');
   }
 
-  btnDeletePlayer.addEventListener('click', () => {
-    const p = players.find(pl => pl.id === editingPlayerId); if (!p) return;
-    openConfirm('player', editingPlayerId, p.name);
+  document.getElementById('btn-delete-player').addEventListener('click', () => {
+    const p = players.find(pl => pl.id===editingPlayerId); if (p) openConfirm('player', editingPlayerId, p.name);
   });
-
-  btnDeleteMatch.addEventListener('click', () => {
-    const m = matches.find(x => x.id === editingMatchId); if (!m) return;
-    openConfirm('match', editingMatchId, m.opponent || 'matchen');
+  document.getElementById('btn-delete-match').addEventListener('click', () => {
+    const m = matches.find(x => x.id===editingMatchId); if (m) openConfirm('match', editingMatchId, m.opponent||'matchen');
   });
-
-  confirmCancel.addEventListener('click', () => { confirmBackdrop.classList.remove('open'); pendingDelete = null; });
-
-  confirmOk.addEventListener('click', async () => {
+  document.getElementById('confirm-cancel').addEventListener('click', () => { confirmBackdrop.classList.remove('open'); pendingDelete = null; });
+  document.getElementById('confirm-ok').addEventListener('click', async () => {
     if (!pendingDelete) return;
-    confirmOk.disabled = true;
+    const btn = document.getElementById('confirm-ok'); btn.disabled = true;
     const { type, id } = pendingDelete;
     try {
-      await deleteDoc(doc(db, type === 'player' ? 'players' : 'matches', id));
+      await deleteDoc(doc(db, type==='player'?'players':'matches', id));
       confirmBackdrop.classList.remove('open');
-      if (type === 'player') closePlayerModal();
-      else                   closeMatchModal();
+      if (type==='player') closePlayerModal(); else closeMatchModal();
     } catch(err) { console.error(err); alert('Kunde inte ta bort.'); }
-    finally { confirmOk.disabled = false; pendingDelete = null; }
+    finally { btn.disabled = false; pendingDelete = null; }
   });
+
+  // ── LINEUP ────────────────────────────────────────
+
+  function refreshMatchSelector() {
+    const sel = document.getElementById('lineup-match-select');
+    if (!sel) return;
+    const cur = currentLineupMatchId || '';
+    sel.innerHTML = '<option value="">— Välj match —</option>' +
+      matches.map(m => {
+        const d = m.date ? new Date(m.date+'T12:00:00') : null;
+        const ds = d ? d.toLocaleDateString('sv-SE',{weekday:'short',day:'numeric',month:'short'}) : '?';
+        const emoji = {green:'🟢',blue:'🔵',red:'🔴',black:'⚫'}[m.difficulty]||'';
+        return `<option value="${m.id}"${m.id===cur?' selected':''}>${emoji} ${ds}${m.time?' '+m.time:''} · ${m.opponent||'Okänd'} (${m.format||''})</option>`;
+      }).join('');
+  }
+
+  document.getElementById('lineup-match-select').addEventListener('change', e => selectLineupMatch(e.target.value));
+
+  function selectLineupMatch(matchId) {
+    if (unsubLineup) { unsubLineup(); unsubLineup = null; }
+    currentLineupMatchId = matchId || null;
+    selectedSlot = null;
+
+    if (!matchId) {
+      document.getElementById('formation-group').style.display = 'none';
+      document.getElementById('lineup-body').innerHTML = '<div class="lineup-placeholder">Välj en match ovan för att sätta laget.</div>';
+      return;
+    }
+
+    const match = matches.find(m => m.id===matchId);
+    if (!match) return;
+
+    // Show formation picker
+    renderFormationPicker(match.format || '9v9');
+
+    // Listen to lineup doc
+    unsubLineup = onSnapshot(doc(db,'lineups',matchId), snap => {
+      if (snap.exists()) {
+        const data = snap.data();
+        const valid = FORMATIONS[match.format||'9v9'] || [];
+        if (valid.includes(data.formation)) {
+          lineupFormation = data.formation;
+          lineupSlots     = data.slots || {};
+        } else {
+          lineupFormation = '';
+          lineupSlots     = {};
+        }
+      } else {
+        lineupFormation = '';
+        lineupSlots     = {};
+      }
+      renderFormationPicker(match.format || '9v9'); // update active button
+      renderLineupBody();
+    });
+  }
+
+  function renderFormationPicker(format) {
+    const group = document.getElementById('formation-group');
+    const btns  = document.getElementById('formation-btns');
+    group.style.display = 'flex';
+    const fmts = FORMATIONS[format] || [];
+    btns.innerHTML = fmts.map(f =>
+      `<button class="formation-btn${f===lineupFormation?' active':''}" data-f="${f}">${f}</button>`
+    ).join('');
+    btns.querySelectorAll('.formation-btn').forEach(btn => {
+      btn.addEventListener('click', () => selectFormation(btn.dataset.f));
+    });
+  }
+
+  function selectFormation(f) {
+    if (f === lineupFormation) return;
+    const hasPlayers = Object.values(lineupSlots).some(arr => arr.length > 0);
+    if (hasPlayers && !confirm('Byta formation raderar nuvarande uppställning. Fortsätt?')) return;
+    lineupFormation = f;
+    lineupSlots     = {};
+    selectedSlot    = null;
+    saveLineup();
+    renderFormationPicker(currentMatch()?.format || '9v9');
+    renderLineupBody();
+  }
+
+  function currentMatch() { return matches.find(m => m.id===currentLineupMatchId) || null; }
+
+  function renderLineupBody() {
+    const body = document.getElementById('lineup-body');
+    if (!currentLineupMatchId) {
+      body.innerHTML = '<div class="lineup-placeholder">Välj en match ovan.</div>';
+      return;
+    }
+    if (!lineupFormation) {
+      body.innerHTML = '<div class="lineup-placeholder">Välj en formation ovan för att fortsätta.</div>';
+      return;
+    }
+    body.innerHTML = `
+      <div class="lineup-main">
+        <div class="pitch-col">
+          <div class="pitch" id="pitch">
+            <div class="pitch-rows" id="pitch-rows"></div>
+          </div>
+        </div>
+        <div class="pool-col">
+          <div class="pool-header">SPELARE</div>
+          <div class="pool-hint" id="pool-hint">Välj en position på planen för att lägga till spelare</div>
+          <div class="player-pool" id="player-pool"></div>
+        </div>
+      </div>`;
+    renderPitch();
+    renderPlayerPool();
+  }
+
+  function renderPitch() {
+    const pitchRows = document.getElementById('pitch-rows');
+    if (!pitchRows) return;
+    const rows = parseFormationRows(lineupFormation);
+    // Render attack-to-GK (top to bottom visually = reverse of rows array)
+    pitchRows.innerHTML = [...rows].reverse().map(row => {
+      const slotsHtml = Array.from({length: row.count}, (_, pi) => {
+        const key      = `r${row.rowIdx}-${pi}`;
+        const label    = row.labels[pi] || '';
+        const pids     = lineupSlots[key] || [];
+        const selected = selectedSlot === key;
+
+        const chips = pids.map((pid, ci) => {
+          const pl   = players.find(p => p.id===pid);
+          const name = pl ? escHtml(shortName(pl.name)) : '?';
+          const cls  = ci === 0 ? 'chip-starter' : 'chip-sub';
+          return `<div class="${cls}"><span class="chip-name">${name}</span><button class="chip-rm" data-slot="${key}" data-pid="${pid}">×</button></div>`;
+        }).join('');
+
+        return `<div class="pos-slot${selected?' selected':''}" data-slot="${key}">
+          <div class="pos-label">${label}</div>
+          <div class="pos-players">${chips}</div>
+          ${pids.length===0?'<div class="pos-empty">+</div>':''}
+        </div>`;
+      }).join('');
+      return `<div class="pitch-row">${slotsHtml}</div>`;
+    }).join('');
+
+    pitchRows.querySelectorAll('.pos-slot').forEach(el => {
+      el.addEventListener('click', e => {
+        if (e.target.classList.contains('chip-rm')) return;
+        selectSlot(el.dataset.slot);
+      });
+    });
+    pitchRows.querySelectorAll('.chip-rm').forEach(btn => {
+      btn.addEventListener('click', e => {
+        e.stopPropagation();
+        removeFromSlot(btn.dataset.slot, btn.dataset.pid);
+      });
+    });
+  }
+
+  function renderPlayerPool() {
+    const pool = document.getElementById('player-pool');
+    if (!pool) return;
+
+    // Build assigned map: pid -> slotKey
+    const assignedMap = {};
+    Object.entries(lineupSlots).forEach(([key, pids]) => pids.forEach(pid => { assignedMap[pid] = key; }));
+
+    const available   = players.filter(p => !p.status || p.status==='available');
+    const unavailable = players.filter(p => p.status && p.status!=='available');
+
+    function renderPoolItem(p) {
+      const assignedSlot   = assignedMap[p.id];
+      const isUnavailable  = p.status && p.status !== 'available';
+      const inSelected     = selectedSlot && (lineupSlots[selectedSlot]||[]).includes(p.id);
+      let dotCls = isUnavailable ? 'dot-unavailable' : (assignedSlot ? 'dot-assigned' : 'dot-available');
+      let cls    = 'pool-item' + (inSelected?' in-selected':'') + (isUnavailable?' pool-unavailable':'');
+      const slotLabel = assignedSlot ? getSlotLabel(assignedSlot) : '';
+      const tags = (p.positions||[]).join(' ');
+      return `<div class="${cls}" data-pid="${p.id}">
+        <div class="pool-dot ${dotCls}"></div>
+        <div class="pool-info">
+          <div class="pool-name">${escHtml(p.name||'—')}</div>
+          ${tags?`<div class="pool-tags">${escHtml(tags)}</div>`:''}
+        </div>
+        ${assignedSlot&&!inSelected?`<div class="pool-badge">${escHtml(slotLabel)}</div>`:''}
+        ${inSelected?'<div class="pool-check">✓</div>':''}
+      </div>`;
+    }
+
+    let html = '';
+    if (available.length) {
+      html += '<div class="pool-section-label">Tillgängliga</div>';
+      html += available.map(renderPoolItem).join('');
+    }
+    if (unavailable.length) {
+      html += '<div class="pool-section-label">Ej tillgängliga</div>';
+      html += unavailable.map(renderPoolItem).join('');
+    }
+    pool.innerHTML = html;
+
+    pool.querySelectorAll('.pool-item:not(.pool-unavailable)').forEach(el => {
+      el.addEventListener('click', () => {
+        if (!selectedSlot) return;
+        toggleInSlot(el.dataset.pid);
+      });
+    });
+  }
+
+  function selectSlot(key) {
+    selectedSlot = key;
+    const label  = getSlotLabel(key);
+    const n      = (lineupSlots[key]||[]).length;
+    const hint   = document.getElementById('pool-hint');
+    if (hint) hint.textContent = `Lägger till i: ${label} · ${n===0?'Ingen ännu':(n===1?'1 spelare':n+' spelare')}`;
+    renderPitch();
+    renderPlayerPool();
+  }
+
+  function toggleInSlot(pid) {
+    if (!selectedSlot) return;
+    const cur = lineupSlots[selectedSlot] || [];
+    if (cur.includes(pid)) {
+      // Remove from slot
+      const updated = cur.filter(id => id!==pid);
+      if (updated.length) lineupSlots[selectedSlot] = updated;
+      else delete lineupSlots[selectedSlot];
+    } else {
+      // Remove from any other slot first (auto-move)
+      Object.keys(lineupSlots).forEach(k => {
+        if (k !== selectedSlot) {
+          lineupSlots[k] = lineupSlots[k].filter(id => id!==pid);
+          if (!lineupSlots[k].length) delete lineupSlots[k];
+        }
+      });
+      // Add to selected slot
+      lineupSlots[selectedSlot] = [...cur, pid];
+    }
+    saveLineup();
+    selectSlot(selectedSlot); // re-render with updated hint
+  }
+
+  function removeFromSlot(slotKey, pid) {
+    if (!lineupSlots[slotKey]) return;
+    lineupSlots[slotKey] = lineupSlots[slotKey].filter(id => id!==pid);
+    if (!lineupSlots[slotKey].length) delete lineupSlots[slotKey];
+    saveLineup();
+    renderPitch();
+    renderPlayerPool();
+  }
+
+  async function saveLineup() {
+    if (!currentLineupMatchId || !lineupFormation) return;
+    const ind = document.getElementById('save-indicator');
+    if (ind) ind.textContent = 'Sparar...';
+    try {
+      await setDoc(doc(db,'lineups',currentLineupMatchId), {
+        formation: lineupFormation,
+        slots:     lineupSlots,
+        updatedBy: currentUser?.email||'okänd',
+        updatedAt: serverTimestamp()
+      });
+      if (ind) { ind.textContent = 'Sparat ✓'; setTimeout(() => { if(ind) ind.textContent=''; }, 2000); }
+    } catch(err) {
+      console.error(err);
+      if (ind) ind.textContent = 'Fel vid sparning';
+    }
+  }
+
 </script>
 </body>
 </html>

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>v0.1 — Laguttagning</title>
+  <title>v0.2 — Laguttagning</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
@@ -14,346 +14,607 @@
     :root {
       --bg:        #0e1110;
       --surface:   #161c18;
+      --surface2:  #1d2520;
       --border:    #2a332c;
       --green:     #4caf6e;
       --green-dim: #2e7d4a;
       --text:      #e8ede9;
       --muted:     #6b7a6e;
       --danger:    #e05c5c;
+      --warn:      #e0a85c;
+      --info:      #5c9ee0;
       --font-display: 'Bebas Neue', sans-serif;
       --font-body:    'DM Sans', sans-serif;
     }
 
-    html, body {
-      height: 100%;
-      background: var(--bg);
-      color: var(--text);
-      font-family: var(--font-body);
-    }
+    html, body { height: 100%; background: var(--bg); color: var(--text); font-family: var(--font-body); }
 
-    /* ── VIEWS ─────────────────────────────────────── */
-    .view { display: none; height: 100%; }
-    .view.active { display: flex; }
+    /* ── VIEWS ───────────────────────────────────────── */
+    .view { display: none; min-height: 100vh; }
+    .view.active { display: flex; flex-direction: column; }
 
-    /* ── LOGIN PAGE ─────────────────────────────────── */
+    /* ── LOGIN ───────────────────────────────────────── */
     #view-login {
-      align-items: center;
-      justify-content: center;
-      flex-direction: column;
-      min-height: 100vh;
-      padding: 2rem;
-      position: relative;
-      overflow: hidden;
+      align-items: center; justify-content: center;
+      padding: 2rem; position: relative; overflow: hidden;
     }
-
-    /* subtle pitch-lines background */
     #view-login::before {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background:
-        repeating-linear-gradient(
-          to bottom,
-          transparent 0px,
-          transparent 58px,
-          rgba(76,175,110,.04) 58px,
-          rgba(76,175,110,.04) 60px
-        );
+      content: ''; position: absolute; inset: 0;
+      background: repeating-linear-gradient(to bottom, transparent 0px, transparent 58px, rgba(76,175,110,.04) 58px, rgba(76,175,110,.04) 60px);
       pointer-events: none;
     }
-
     .login-card {
-      position: relative;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 2.5rem 3rem;
-      width: 100%;
-      max-width: 420px;
+      position: relative; background: var(--surface);
+      border: 1px solid var(--border); border-radius: 16px;
+      padding: 2.5rem 3rem; width: 100%; max-width: 420px;
       box-shadow: 0 32px 64px rgba(0,0,0,.5);
     }
+    .login-logo { font-family: var(--font-display); font-size: 2.8rem; letter-spacing: .08em; color: var(--green); line-height: 1; margin-bottom: .25rem; }
+    .login-sub  { font-size: .85rem; color: var(--muted); margin-bottom: 2rem; }
 
-    .login-logo {
-      font-family: var(--font-display);
-      font-size: 2.8rem;
-      letter-spacing: .08em;
-      color: var(--green);
-      line-height: 1;
-      margin-bottom: .25rem;
+    /* ── SHARED FORM ─────────────────────────────────── */
+    .field { display: flex; flex-direction: column; gap: .4rem; margin-bottom: 1.2rem; }
+    .field label { font-size: .78rem; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+    .field input, .field select {
+      background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
+      color: var(--text); font-family: var(--font-body); font-size: .95rem;
+      padding: .75rem 1rem; transition: border-color .2s; outline: none;
     }
-
-    .login-sub {
-      font-size: .85rem;
-      color: var(--muted);
-      margin-bottom: 2rem;
-    }
-
-    .field {
-      display: flex;
-      flex-direction: column;
-      gap: .4rem;
-      margin-bottom: 1.2rem;
-    }
-
-    .field label {
-      font-size: .78rem;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: .06em;
-      color: var(--muted);
-    }
-
-    .field input {
-      background: var(--bg);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      color: var(--text);
-      font-family: var(--font-body);
-      font-size: .95rem;
-      padding: .75rem 1rem;
-      transition: border-color .2s;
-      outline: none;
-    }
-
-    .field input:focus {
-      border-color: var(--green);
-    }
+    .field input:focus, .field select:focus { border-color: var(--green); }
+    .field select option { background: var(--surface); }
 
     .btn-primary {
-      width: 100%;
-      background: var(--green);
-      color: #0e1110;
-      border: none;
-      border-radius: 8px;
-      font-family: var(--font-display);
-      font-size: 1.2rem;
-      letter-spacing: .08em;
-      padding: .85rem;
-      cursor: pointer;
-      margin-top: .5rem;
-      transition: background .2s, transform .1s;
+      background: var(--green); color: #0e1110; border: none; border-radius: 8px;
+      font-family: var(--font-display); font-size: 1.2rem; letter-spacing: .08em;
+      padding: .85rem 1.5rem; cursor: pointer; transition: background .2s, transform .1s;
     }
-
     .btn-primary:hover  { background: #5dc97f; }
     .btn-primary:active { transform: scale(.98); }
     .btn-primary:disabled { background: var(--green-dim); cursor: not-allowed; }
+    .btn-primary.full { width: 100%; margin-top: .5rem; }
+
+    .btn-secondary {
+      background: transparent; border: 1px solid var(--border); border-radius: 8px;
+      color: var(--muted); font-family: var(--font-body); font-size: .9rem;
+      padding: .75rem 1.5rem; cursor: pointer; transition: border-color .2s, color .2s;
+    }
+    .btn-secondary:hover { border-color: var(--text); color: var(--text); }
+
+    .btn-danger {
+      background: transparent; border: 1px solid rgba(224,92,92,.3); border-radius: 8px;
+      color: var(--danger); font-family: var(--font-body); font-size: .9rem;
+      padding: .75rem 1.5rem; cursor: pointer; transition: background .2s;
+    }
+    .btn-danger:hover { background: rgba(224,92,92,.1); }
 
     .error-msg {
-      background: rgba(224,92,92,.12);
-      border: 1px solid rgba(224,92,92,.3);
-      border-radius: 8px;
-      color: var(--danger);
-      font-size: .85rem;
-      padding: .7rem 1rem;
-      margin-bottom: 1rem;
-      display: none;
+      background: rgba(224,92,92,.12); border: 1px solid rgba(224,92,92,.3);
+      border-radius: 8px; color: var(--danger); font-size: .85rem;
+      padding: .7rem 1rem; margin-bottom: 1rem; display: none;
     }
-
     .error-msg.visible { display: block; }
 
-    /* ── MAIN APP ───────────────────────────────────── */
-    #view-app {
-      flex-direction: column;
-      min-height: 100vh;
-    }
-
+    /* ── TOPBAR ──────────────────────────────────────── */
     .topbar {
-      background: var(--surface);
-      border-bottom: 1px solid var(--border);
-      padding: 0 2rem;
-      height: 56px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
+      background: var(--surface); border-bottom: 1px solid var(--border);
+      padding: 0 2rem; height: 56px; display: flex; align-items: center;
+      justify-content: space-between; flex-shrink: 0;
     }
-
-    .topbar-logo {
-      font-family: var(--font-display);
-      font-size: 1.6rem;
-      letter-spacing: .08em;
-      color: var(--green);
-    }
-
-    .topbar-user {
-      display: flex;
-      align-items: center;
-      gap: 1rem;
-      font-size: .85rem;
-      color: var(--muted);
-    }
-
+    .topbar-logo { font-family: var(--font-display); font-size: 1.6rem; letter-spacing: .08em; color: var(--green); }
+    .topbar-user { display: flex; align-items: center; gap: 1rem; font-size: .85rem; color: var(--muted); }
     .btn-logout {
-      background: transparent;
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      color: var(--muted);
-      font-family: var(--font-body);
-      font-size: .8rem;
-      padding: .35rem .8rem;
-      cursor: pointer;
-      transition: border-color .2s, color .2s;
+      background: transparent; border: 1px solid var(--border); border-radius: 6px;
+      color: var(--muted); font-family: var(--font-body); font-size: .8rem;
+      padding: .35rem .8rem; cursor: pointer; transition: border-color .2s, color .2s;
     }
-
     .btn-logout:hover { border-color: var(--danger); color: var(--danger); }
 
-    .app-body {
-      flex: 1;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-direction: column;
+    /* ── NAV TABS ────────────────────────────────────── */
+    .nav-tabs {
+      background: var(--surface); border-bottom: 1px solid var(--border);
+      padding: 0 2rem; display: flex; gap: 0; flex-shrink: 0;
+    }
+    .nav-tab {
+      font-family: var(--font-display); font-size: 1rem; letter-spacing: .08em;
+      color: var(--muted); padding: .9rem 1.5rem; cursor: pointer;
+      border-bottom: 2px solid transparent; transition: color .2s, border-color .2s;
+      background: none; border-top: none; border-left: none; border-right: none;
+    }
+    .nav-tab:hover  { color: var(--text); }
+    .nav-tab.active { color: var(--green); border-bottom-color: var(--green); }
+
+    /* ── PAGE SECTIONS ───────────────────────────────── */
+    .page { display: none; flex: 1; padding: 2rem; max-width: 1100px; width: 100%; margin: 0 auto; }
+    .page.active { display: block; }
+
+    /* ── PAGE HEADER ─────────────────────────────────── */
+    .page-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;
+    }
+    .page-title { font-family: var(--font-display); font-size: 2rem; letter-spacing: .06em; }
+    .page-title span { color: var(--muted); font-size: 1.2rem; margin-left: .5rem; }
+
+    /* ── FILTER BAR ──────────────────────────────────── */
+    .filter-bar { display: flex; gap: .5rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
+    .filter-btn {
+      background: var(--surface); border: 1px solid var(--border); border-radius: 20px;
+      color: var(--muted); font-family: var(--font-body); font-size: .82rem; font-weight: 500;
+      padding: .35rem .9rem; cursor: pointer; transition: all .2s;
+    }
+    .filter-btn:hover  { border-color: var(--text); color: var(--text); }
+    .filter-btn.active { background: var(--green); border-color: var(--green); color: #0e1110; }
+
+    /* ── PLAYER GRID ─────────────────────────────────── */
+    .player-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
       gap: 1rem;
-      color: var(--muted);
     }
 
-    .app-body h2 {
-      font-family: var(--font-display);
-      font-size: 2rem;
-      letter-spacing: .06em;
-      color: var(--text);
+    .player-card {
+      background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+      padding: 1rem 1.2rem; cursor: pointer; transition: border-color .2s, transform .15s;
+    }
+    .player-card:hover { border-color: var(--green); transform: translateY(-2px); }
+    .player-card-name { font-weight: 600; font-size: 1rem; margin-bottom: .5rem; }
+
+    .player-tags { display: flex; flex-wrap: wrap; gap: .3rem; margin-bottom: .7rem; }
+    .tag {
+      font-size: .72rem; font-weight: 600; letter-spacing: .04em;
+      padding: .2rem .5rem; border-radius: 4px;
+      background: rgba(76,175,110,.12); color: var(--green); border: 1px solid rgba(76,175,110,.2);
     }
 
-    .app-body p {
-      font-size: .9rem;
+    .status-badge {
+      display: inline-flex; align-items: center; gap: .35rem;
+      font-size: .75rem; font-weight: 500; padding: .25rem .6rem; border-radius: 20px;
     }
+    .status-badge::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+    .status-available   { color: var(--green);  background: rgba(76,175,110,.1); }
+    .status-injured     { color: var(--danger);  background: rgba(224,92,92,.1); }
+    .status-sick        { color: var(--warn);    background: rgba(224,168,92,.1); }
+    .status-unavailable { color: var(--info);    background: rgba(92,158,224,.1); }
+
+    .player-meta { font-size: .72rem; color: var(--muted); margin-top: .6rem; }
+
+    .empty-state {
+      text-align: center; padding: 4rem 2rem; color: var(--muted); grid-column: 1 / -1;
+    }
+    .empty-state p:first-child { font-family: var(--font-display); font-size: 1.4rem; color: var(--text); margin-bottom: .5rem; }
+
+    /* ── MODAL ───────────────────────────────────────── */
+    .modal-backdrop {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,.7); z-index: 100;
+      align-items: center; justify-content: center; padding: 1rem;
+    }
+    .modal-backdrop.open { display: flex; }
+    .modal {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 16px; padding: 2rem; width: 100%; max-width: 500px;
+      max-height: 90vh; overflow-y: auto;
+      box-shadow: 0 32px 64px rgba(0,0,0,.6);
+    }
+    .modal-title { font-family: var(--font-display); font-size: 1.6rem; letter-spacing: .06em; margin-bottom: 1.5rem; }
+
+    .tag-group { margin-bottom: 1rem; }
+    .tag-group-label { font-size: .78rem; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin-bottom: .5rem; }
+    .tag-options { display: flex; flex-wrap: wrap; gap: .4rem; }
+    .tag-option {
+      font-size: .8rem; font-weight: 600; padding: .3rem .7rem; border-radius: 6px;
+      background: var(--bg); border: 1px solid var(--border); color: var(--muted);
+      cursor: pointer; transition: all .15s; user-select: none;
+    }
+    .tag-option:hover    { border-color: var(--green); color: var(--green); }
+    .tag-option.selected { background: rgba(76,175,110,.15); border-color: var(--green); color: var(--green); }
+
+    .modal-actions { display: flex; gap: .75rem; justify-content: flex-end; margin-top: 1.5rem; flex-wrap: wrap; align-items: center; }
+    .modal-actions-left { margin-right: auto; }
+
+    /* ── CONFIRM ─────────────────────────────────────── */
+    #confirm-backdrop {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,.8); z-index: 200;
+      align-items: center; justify-content: center; padding: 1rem;
+    }
+    #confirm-backdrop.open { display: flex; }
+    .confirm-box {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 12px; padding: 1.5rem; max-width: 360px; width: 100%;
+    }
+    .confirm-box p { margin-bottom: 1.2rem; line-height: 1.5; }
+    .confirm-actions { display: flex; gap: .75rem; justify-content: flex-end; }
+
+    .last-edit { font-size: .75rem; color: var(--muted); margin-bottom: 1rem; min-height: 1.2em; }
   </style>
 </head>
 <body>
 
-  <!-- LOGIN VIEW -->
-  <div id="view-login" class="view active">
-    <div class="login-card">
-      <div class="login-logo">LAGUTTAGNING</div>
-      <div class="login-sub">Tränarverktyg — logga in för att fortsätta</div>
+<!-- ── LOGIN ─────────────────────────────────────────── -->
+<div id="view-login" class="view active">
+  <div class="login-card">
+    <div class="login-logo">LAGUTTAGNING</div>
+    <div class="login-sub">Tränarverktyg — logga in för att fortsätta</div>
+    <div id="login-error" class="error-msg"></div>
+    <div class="field">
+      <label for="email">E-post</label>
+      <input type="email" id="email" placeholder="tränare@klubb.se" autocomplete="email" />
+    </div>
+    <div class="field">
+      <label for="password">Lösenord</label>
+      <input type="password" id="password" placeholder="••••••••" autocomplete="current-password" />
+    </div>
+    <button class="btn-primary full" id="btn-login">LOGGA IN</button>
+  </div>
+</div>
 
-      <div id="login-error" class="error-msg"></div>
+<!-- ── APP ───────────────────────────────────────────── -->
+<div id="view-app" class="view">
 
-      <div class="field">
-        <label for="email">E-post</label>
-        <input type="email" id="email" placeholder="tränare@klubb.se" autocomplete="email" />
-      </div>
-
-      <div class="field">
-        <label for="password">Lösenord</label>
-        <input type="password" id="password" placeholder="••••••••" autocomplete="current-password" />
-      </div>
-
-      <button class="btn-primary" id="btn-login">LOGGA IN</button>
+  <div class="topbar">
+    <div class="topbar-logo">LAGUTTAGNING</div>
+    <div class="topbar-user">
+      <span id="user-email"></span>
+      <button class="btn-logout" id="btn-logout">Logga ut</button>
     </div>
   </div>
 
-  <!-- MAIN APP VIEW (placeholder) -->
-  <div id="view-app" class="view">
-    <div class="topbar">
-      <div class="topbar-logo">LAGUTTAGNING</div>
-      <div class="topbar-user">
-        <span id="user-email"></span>
-        <button class="btn-logout" id="btn-logout">Logga ut</button>
-      </div>
-    </div>
-    <div class="app-body">
-      <h2>VÄLKOMMEN!</h2>
-      <p>Inloggning fungerar. Nästa steg: spelarhantering.</p>
-    </div>
+  <div class="nav-tabs">
+    <button class="nav-tab active" data-page="players">SPELARE</button>
+    <button class="nav-tab" data-page="matches">MATCHER</button>
+    <button class="nav-tab" data-page="lineup">UTTAG</button>
   </div>
 
-  <!-- Firebase CDN -->
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-    import {
-      getAuth,
-      signInWithEmailAndPassword,
-      signOut,
-      onAuthStateChanged
-    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+  <!-- SPELARE -->
+  <div id="page-players" class="page active">
+    <div class="page-header">
+      <div class="page-title">SPELARE <span id="player-count"></span></div>
+      <button class="btn-primary" id="btn-add-player">+ LÄGG TILL</button>
+    </div>
+    <div id="players-last-edit" class="last-edit"></div>
+    <div class="filter-bar">
+      <button class="filter-btn active" data-filter="all">Alla</button>
+      <button class="filter-btn" data-filter="available">Tillgänglig</button>
+      <button class="filter-btn" data-filter="injured">Skadad</button>
+      <button class="filter-btn" data-filter="sick">Sjuk</button>
+      <button class="filter-btn" data-filter="unavailable">Förhinder</button>
+    </div>
+    <div class="player-grid" id="player-grid"></div>
+  </div>
 
-    // ── Firebase config ──────────────────────────────
-    const firebaseConfig = {
-      apiKey:            "AIzaSyDtWJUooasHwd3PKnx_vHvbE4rzU5iGS40",
-      authDomain:        "laguttagning.firebaseapp.com",
-      projectId:         "laguttagning",
-      storageBucket:     "laguttagning.firebasestorage.app",
-      messagingSenderId: "946370451262",
-      appId:             "1:946370451262:web:b2722c39a375a931183e6f"
-    };
+  <!-- MATCHER (placeholder) -->
+  <div id="page-matches" class="page">
+    <div class="page-header"><div class="page-title">MATCHER</div></div>
+    <p style="color:var(--muted)">Kommer i nästa steg.</p>
+  </div>
 
-    const app  = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
+  <!-- UTTAG (placeholder) -->
+  <div id="page-lineup" class="page">
+    <div class="page-header"><div class="page-title">UTTAG</div></div>
+    <p style="color:var(--muted)">Kommer senare.</p>
+  </div>
 
-    // ── DOM refs ─────────────────────────────────────
-    const viewLogin  = document.getElementById('view-login');
-    const viewApp    = document.getElementById('view-app');
-    const emailInput = document.getElementById('email');
-    const passInput  = document.getElementById('password');
-    const btnLogin   = document.getElementById('btn-login');
-    const btnLogout  = document.getElementById('btn-logout');
-    const errorBox   = document.getElementById('login-error');
-    const userEmail  = document.getElementById('user-email');
+</div>
 
-    // ── View switcher ────────────────────────────────
-    function showView(name) {
-      document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-      document.getElementById('view-' + name).classList.add('active');
+<!-- ── PLAYER MODAL ──────────────────────────────────── -->
+<div id="player-modal" class="modal-backdrop">
+  <div class="modal">
+    <div class="modal-title" id="modal-title">LÄGG TILL SPELARE</div>
+
+    <div class="field">
+      <label for="player-name">Namn</label>
+      <input type="text" id="player-name" placeholder="Förnamn Efternamn" />
+    </div>
+
+    <div class="field">
+      <label for="player-status">Status</label>
+      <select id="player-status">
+        <option value="available">Tillgänglig</option>
+        <option value="injured">Skadad</option>
+        <option value="sick">Sjuk</option>
+        <option value="unavailable">Förhinder</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label>Positioner</label>
+      <div class="tag-group">
+        <div class="tag-group-label">Back</div>
+        <div class="tag-options">
+          <span class="tag-option" data-pos="GK">GK</span>
+          <span class="tag-option" data-pos="CB">CB</span>
+          <span class="tag-option" data-pos="FB">FB</span>
+          <span class="tag-option" data-pos="WB">WB</span>
+        </div>
+      </div>
+      <div class="tag-group">
+        <div class="tag-group-label">Mitt</div>
+        <div class="tag-options">
+          <span class="tag-option" data-pos="DM">DM</span>
+          <span class="tag-option" data-pos="CM">CM</span>
+          <span class="tag-option" data-pos="AM">AM</span>
+          <span class="tag-option" data-pos="WM">WM</span>
+        </div>
+      </div>
+      <div class="tag-group">
+        <div class="tag-group-label">Anfall</div>
+        <div class="tag-options">
+          <span class="tag-option" data-pos="W">W</span>
+          <span class="tag-option" data-pos="ST">ST</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-actions">
+      <div class="modal-actions-left">
+        <button class="btn-danger" id="btn-delete-player" style="display:none">Ta bort</button>
+      </div>
+      <button class="btn-secondary" id="btn-modal-cancel">Avbryt</button>
+      <button class="btn-primary" id="btn-modal-save">SPARA</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── CONFIRM DIALOG ────────────────────────────────── -->
+<div id="confirm-backdrop">
+  <div class="confirm-box">
+    <p id="confirm-text"></p>
+    <div class="confirm-actions">
+      <button class="btn-secondary" id="confirm-cancel">Avbryt</button>
+      <button class="btn-danger" id="confirm-ok">Ta bort</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── FIREBASE ──────────────────────────────────────── -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import {
+    getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged
+  } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+  import {
+    getFirestore, collection, doc,
+    onSnapshot, addDoc, updateDoc, deleteDoc,
+    serverTimestamp
+  } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+  // ── Config ────────────────────────────────────────
+  const firebaseConfig = {
+    apiKey:            "AIzaSyDtWJUooasHwd3PKnx_vHvbE4rzU5iGS40",
+    authDomain:        "laguttagning.firebaseapp.com",
+    projectId:         "laguttagning",
+    storageBucket:     "laguttagning.firebasestorage.app",
+    messagingSenderId: "946370451262",
+    appId:             "1:946370451262:web:b2722c39a375a931183e6f"
+  };
+
+  const firebaseApp = initializeApp(firebaseConfig);
+  const auth        = getAuth(firebaseApp);
+  const db          = getFirestore(firebaseApp);
+
+  // ── State ─────────────────────────────────────────
+  let currentUser  = null;
+  let players      = [];
+  let activeFilter = 'all';
+  let editingId    = null;
+  let unsubPlayers = null;
+
+  // ── DOM ───────────────────────────────────────────
+  const emailInput     = document.getElementById('email');
+  const passInput      = document.getElementById('password');
+  const btnLogin       = document.getElementById('btn-login');
+  const loginError     = document.getElementById('login-error');
+  const userEmailEl    = document.getElementById('user-email');
+  const playerGrid     = document.getElementById('player-grid');
+  const playerCountEl  = document.getElementById('player-count');
+  const lastEditEl     = document.getElementById('players-last-edit');
+  const modal          = document.getElementById('player-modal');
+  const modalTitle     = document.getElementById('modal-title');
+  const playerNameIn   = document.getElementById('player-name');
+  const playerStatusIn = document.getElementById('player-status');
+  const btnAddPlayer   = document.getElementById('btn-add-player');
+  const btnModalCancel = document.getElementById('btn-modal-cancel');
+  const btnModalSave   = document.getElementById('btn-modal-save');
+  const btnDeletePlayer= document.getElementById('btn-delete-player');
+  const tagOptions     = document.querySelectorAll('.tag-option');
+  const confirmBackdrop= document.getElementById('confirm-backdrop');
+  const confirmText    = document.getElementById('confirm-text');
+  const confirmCancel  = document.getElementById('confirm-cancel');
+  const confirmOk      = document.getElementById('confirm-ok');
+
+  // ── View helper ───────────────────────────────────
+  function showView(name) {
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    document.getElementById('view-' + name).classList.add('active');
+  }
+
+  // ── Tab nav ───────────────────────────────────────
+  document.querySelectorAll('.nav-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      tab.classList.add('active');
+      document.getElementById('page-' + tab.dataset.page).classList.add('active');
+    });
+  });
+
+  // ── Auth ──────────────────────────────────────────
+  onAuthStateChanged(auth, user => {
+    currentUser = user;
+    if (user) {
+      userEmailEl.textContent = user.email;
+      showView('app');
+      startPlayerListener();
+    } else {
+      showView('login');
+      if (unsubPlayers) { unsubPlayers(); unsubPlayers = null; }
+      players = [];
+    }
+  });
+
+  btnLogin.addEventListener('click', async () => {
+    loginError.classList.remove('visible');
+    const email = emailInput.value.trim();
+    const pass  = passInput.value;
+    if (!email || !pass) { loginError.textContent = 'Fyll i e-post och lösenord.'; loginError.classList.add('visible'); return; }
+    btnLogin.disabled = true; btnLogin.textContent = 'LOGGAR IN...';
+    try {
+      await signInWithEmailAndPassword(auth, email, pass);
+    } catch (err) {
+      const msgs = {
+        'auth/invalid-credential': 'Fel e-post eller lösenord.',
+        'auth/user-not-found':     'Ingen användare med den e-posten.',
+        'auth/wrong-password':     'Fel lösenord.',
+        'auth/too-many-requests':  'För många försök. Försök igen senare.',
+        'auth/invalid-email':      'Ogiltig e-postadress.',
+      };
+      loginError.textContent = msgs[err.code] || 'Inloggning misslyckades.';
+      loginError.classList.add('visible');
+    } finally {
+      btnLogin.disabled = false; btnLogin.textContent = 'LOGGA IN';
+    }
+  });
+  passInput.addEventListener('keydown', e => { if (e.key === 'Enter') btnLogin.click(); });
+  document.getElementById('btn-logout').addEventListener('click', () => signOut(auth));
+
+  // ── Firestore listener ────────────────────────────
+  function startPlayerListener() {
+    unsubPlayers = onSnapshot(collection(db, 'players'), snap => {
+      players = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      players.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'sv'));
+      renderPlayers();
+    });
+  }
+
+  // ── Helpers ───────────────────────────────────────
+  const statusLabel = { available: 'Tillgänglig', injured: 'Skadad', sick: 'Sjuk', unavailable: 'Förhinder' };
+  const statusClass = { available: 'status-available', injured: 'status-injured', sick: 'status-sick', unavailable: 'status-unavailable' };
+
+  function formatDate(ts) {
+    if (!ts) return '';
+    const d = ts.toDate ? ts.toDate() : new Date(ts);
+    return d.toLocaleDateString('sv-SE', { day: 'numeric', month: 'short' }) + ' ' +
+           d.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' });
+  }
+
+  // ── Render ────────────────────────────────────────
+  function renderPlayers() {
+    const filtered = activeFilter === 'all' ? players : players.filter(p => p.status === activeFilter);
+    playerCountEl.textContent = `(${players.length})`;
+
+    // last edit
+    const latest = [...players].filter(p => p.updatedAt).sort((a, b) => {
+      return (b.updatedAt?.toDate?.() || 0) - (a.updatedAt?.toDate?.() || 0);
+    })[0];
+    lastEditEl.textContent = latest?.updatedBy
+      ? `Senast redigerat av ${latest.updatedBy} — ${formatDate(latest.updatedAt)}`
+      : '';
+
+    if (filtered.length === 0) {
+      playerGrid.innerHTML = `<div class="empty-state"><p>${activeFilter === 'all' ? 'Inga spelare ännu' : 'Inga spelare med den statusen'}</p><p>Lägg till spelare med knappen ovan.</p></div>`;
+      return;
     }
 
-    // ── Auth state listener ──────────────────────────
-    onAuthStateChanged(auth, user => {
-      if (user) {
-        userEmail.textContent = user.email;
-        showView('app');
-      } else {
-        showView('login');
-      }
+    playerGrid.innerHTML = filtered.map(p => `
+      <div class="player-card" data-id="${p.id}">
+        <div class="player-card-name">${escHtml(p.name || '—')}</div>
+        <div class="player-tags">${(p.positions || []).map(pos => `<span class="tag">${pos}</span>`).join('')}</div>
+        <span class="status-badge ${statusClass[p.status] || 'status-available'}">${statusLabel[p.status] || 'Tillgänglig'}</span>
+        ${p.updatedBy ? `<div class="player-meta">${escHtml(p.updatedBy)} · ${formatDate(p.updatedAt)}</div>` : ''}
+      </div>
+    `).join('');
+
+    playerGrid.querySelectorAll('.player-card').forEach(card => {
+      card.addEventListener('click', () => openEditModal(card.dataset.id));
     });
+  }
 
-    // ── Login ────────────────────────────────────────
-    function showError(msg) {
-      errorBox.textContent = msg;
-      errorBox.classList.add('visible');
-    }
+  function escHtml(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
 
-    function clearError() {
-      errorBox.classList.remove('visible');
-    }
-
-    btnLogin.addEventListener('click', async () => {
-      clearError();
-      const email = emailInput.value.trim();
-      const pass  = passInput.value;
-
-      if (!email || !pass) {
-        showError('Fyll i e-post och lösenord.');
-        return;
-      }
-
-      btnLogin.disabled = true;
-      btnLogin.textContent = 'LOGGAR IN...';
-
-      try {
-        await signInWithEmailAndPassword(auth, email, pass);
-      } catch (err) {
-        const msgs = {
-          'auth/invalid-credential':    'Fel e-post eller lösenord.',
-          'auth/user-not-found':        'Ingen användare med den e-posten.',
-          'auth/wrong-password':        'Fel lösenord.',
-          'auth/too-many-requests':     'För många försök. Försök igen senare.',
-          'auth/invalid-email':         'Ogiltig e-postadress.',
-        };
-        showError(msgs[err.code] || 'Inloggning misslyckades. Försök igen.');
-      } finally {
-        btnLogin.disabled = false;
-        btnLogin.textContent = 'LOGGA IN';
-      }
+  // ── Filter ────────────────────────────────────────
+  document.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      activeFilter = btn.dataset.filter;
+      renderPlayers();
     });
+  });
 
-    // Enter-tangent på lösenordsfältet
-    passInput.addEventListener('keydown', e => {
-      if (e.key === 'Enter') btnLogin.click();
-    });
+  // ── Modal open (add) ──────────────────────────────
+  btnAddPlayer.addEventListener('click', () => {
+    editingId = null;
+    modalTitle.textContent = 'LÄGG TILL SPELARE';
+    playerNameIn.value     = '';
+    playerStatusIn.value   = 'available';
+    tagOptions.forEach(t => t.classList.remove('selected'));
+    btnDeletePlayer.style.display = 'none';
+    modal.classList.add('open');
+    playerNameIn.focus();
+  });
 
-    // ── Logout ───────────────────────────────────────
-    btnLogout.addEventListener('click', () => signOut(auth));
-  </script>
+  // ── Modal open (edit) ─────────────────────────────
+  function openEditModal(id) {
+    const p = players.find(pl => pl.id === id);
+    if (!p) return;
+    editingId              = id;
+    modalTitle.textContent = 'REDIGERA SPELARE';
+    playerNameIn.value     = p.name || '';
+    playerStatusIn.value   = p.status || 'available';
+    tagOptions.forEach(t => t.classList.toggle('selected', (p.positions || []).includes(t.dataset.pos)));
+    btnDeletePlayer.style.display = 'inline-flex';
+    modal.classList.add('open');
+    playerNameIn.focus();
+  }
+
+  function closeModal() { modal.classList.remove('open'); }
+  btnModalCancel.addEventListener('click', closeModal);
+  modal.addEventListener('click', e => { if (e.target === modal) closeModal(); });
+
+  tagOptions.forEach(t => t.addEventListener('click', () => t.classList.toggle('selected')));
+
+  // ── Modal save ────────────────────────────────────
+  btnModalSave.addEventListener('click', async () => {
+    const name = playerNameIn.value.trim();
+    if (!name) { playerNameIn.focus(); return; }
+    const positions = [...tagOptions].filter(t => t.classList.contains('selected')).map(t => t.dataset.pos);
+    const data = { name, status: playerStatusIn.value, positions, updatedBy: currentUser?.email || 'okänd', updatedAt: serverTimestamp() };
+    btnModalSave.disabled = true;
+    try {
+      if (editingId) { await updateDoc(doc(db, 'players', editingId), data); }
+      else           { await addDoc(collection(db, 'players'), data); }
+      closeModal();
+    } catch (err) { console.error(err); alert('Något gick fel. Försök igen.'); }
+    finally { btnModalSave.disabled = false; }
+  });
+
+  // ── Delete ────────────────────────────────────────
+  let pendingDeleteId = null;
+
+  btnDeletePlayer.addEventListener('click', () => {
+    const p = players.find(pl => pl.id === editingId);
+    if (!p) return;
+    pendingDeleteId = editingId;
+    confirmText.textContent = `Vill du ta bort ${p.name}? Det går inte att ångra.`;
+    confirmBackdrop.classList.add('open');
+  });
+
+  confirmCancel.addEventListener('click', () => { confirmBackdrop.classList.remove('open'); pendingDeleteId = null; });
+
+  confirmOk.addEventListener('click', async () => {
+    if (!pendingDeleteId) return;
+    confirmOk.disabled = true;
+    try {
+      await deleteDoc(doc(db, 'players', pendingDeleteId));
+      confirmBackdrop.classList.remove('open');
+      closeModal();
+    } catch (err) { console.error(err); alert('Kunde inte ta bort spelaren.'); }
+    finally { confirmOk.disabled = false; pendingDeleteId = null; }
+  });
+</script>
 
 </body>
 </html>

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>v0.2 — Laguttagning</title>
+  <title>v0.3 — Laguttagning</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
@@ -23,30 +23,29 @@
       --danger:    #e05c5c;
       --warn:      #e0a85c;
       --info:      #5c9ee0;
+      --diff-green: #4caf6e;
+      --diff-blue:  #5c9ee0;
+      --diff-red:   #e05c5c;
+      --diff-black: #b0b8b3;
       --font-display: 'Bebas Neue', sans-serif;
       --font-body:    'DM Sans', sans-serif;
     }
 
     html, body { height: 100%; background: var(--bg); color: var(--text); font-family: var(--font-body); }
 
-    /* ── VIEWS ───────────────────────────────────────── */
     .view { display: none; min-height: 100vh; }
     .view.active { display: flex; flex-direction: column; }
 
     /* ── LOGIN ───────────────────────────────────────── */
-    #view-login {
-      align-items: center; justify-content: center;
-      padding: 2rem; position: relative; overflow: hidden;
-    }
+    #view-login { align-items: center; justify-content: center; padding: 2rem; position: relative; overflow: hidden; }
     #view-login::before {
       content: ''; position: absolute; inset: 0;
       background: repeating-linear-gradient(to bottom, transparent 0px, transparent 58px, rgba(76,175,110,.04) 58px, rgba(76,175,110,.04) 60px);
       pointer-events: none;
     }
     .login-card {
-      position: relative; background: var(--surface);
-      border: 1px solid var(--border); border-radius: 16px;
-      padding: 2.5rem 3rem; width: 100%; max-width: 420px;
+      position: relative; background: var(--surface); border: 1px solid var(--border);
+      border-radius: 16px; padding: 2.5rem 3rem; width: 100%; max-width: 420px;
       box-shadow: 0 32px 64px rgba(0,0,0,.5);
     }
     .login-logo { font-family: var(--font-display); font-size: 2.8rem; letter-spacing: .08em; color: var(--green); line-height: 1; margin-bottom: .25rem; }
@@ -62,6 +61,7 @@
     }
     .field input:focus, .field select:focus { border-color: var(--green); }
     .field select option { background: var(--surface); }
+    .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; }
 
     .btn-primary {
       background: var(--green); color: #0e1110; border: none; border-radius: 8px;
@@ -110,10 +110,7 @@
     .btn-logout:hover { border-color: var(--danger); color: var(--danger); }
 
     /* ── NAV TABS ────────────────────────────────────── */
-    .nav-tabs {
-      background: var(--surface); border-bottom: 1px solid var(--border);
-      padding: 0 2rem; display: flex; gap: 0; flex-shrink: 0;
-    }
+    .nav-tabs { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 2rem; display: flex; flex-shrink: 0; }
     .nav-tab {
       font-family: var(--font-display); font-size: 1rem; letter-spacing: .08em;
       color: var(--muted); padding: .9rem 1.5rem; cursor: pointer;
@@ -123,19 +120,14 @@
     .nav-tab:hover  { color: var(--text); }
     .nav-tab.active { color: var(--green); border-bottom-color: var(--green); }
 
-    /* ── PAGE SECTIONS ───────────────────────────────── */
+    /* ── PAGES ───────────────────────────────────────── */
     .page { display: none; flex: 1; padding: 2rem; max-width: 1100px; width: 100%; margin: 0 auto; }
     .page.active { display: block; }
 
-    /* ── PAGE HEADER ─────────────────────────────────── */
-    .page-header {
-      display: flex; align-items: center; justify-content: space-between;
-      margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;
-    }
-    .page-title { font-family: var(--font-display); font-size: 2rem; letter-spacing: .06em; }
+    .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem; }
+    .page-title  { font-family: var(--font-display); font-size: 2rem; letter-spacing: .06em; }
     .page-title span { color: var(--muted); font-size: 1.2rem; margin-left: .5rem; }
 
-    /* ── FILTER BAR ──────────────────────────────────── */
     .filter-bar { display: flex; gap: .5rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
     .filter-btn {
       background: var(--surface); border: 1px solid var(--border); border-radius: 20px;
@@ -145,59 +137,94 @@
     .filter-btn:hover  { border-color: var(--text); color: var(--text); }
     .filter-btn.active { background: var(--green); border-color: var(--green); color: #0e1110; }
 
-    /* ── PLAYER GRID ─────────────────────────────────── */
-    .player-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-      gap: 1rem;
-    }
+    .last-edit { font-size: .75rem; color: var(--muted); margin-bottom: 1rem; min-height: 1.2em; }
 
+    /* ── PLAYER GRID ─────────────────────────────────── */
+    .player-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1rem; }
     .player-card {
       background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
       padding: 1rem 1.2rem; cursor: pointer; transition: border-color .2s, transform .15s;
     }
     .player-card:hover { border-color: var(--green); transform: translateY(-2px); }
-    .player-card-name { font-weight: 600; font-size: 1rem; margin-bottom: .5rem; }
-
-    .player-tags { display: flex; flex-wrap: wrap; gap: .3rem; margin-bottom: .7rem; }
+    .player-card-name  { font-weight: 600; font-size: 1rem; margin-bottom: .5rem; }
+    .player-tags       { display: flex; flex-wrap: wrap; gap: .3rem; margin-bottom: .7rem; }
     .tag {
-      font-size: .72rem; font-weight: 600; letter-spacing: .04em;
-      padding: .2rem .5rem; border-radius: 4px;
+      font-size: .72rem; font-weight: 600; letter-spacing: .04em; padding: .2rem .5rem; border-radius: 4px;
       background: rgba(76,175,110,.12); color: var(--green); border: 1px solid rgba(76,175,110,.2);
     }
-
-    .status-badge {
-      display: inline-flex; align-items: center; gap: .35rem;
-      font-size: .75rem; font-weight: 500; padding: .25rem .6rem; border-radius: 20px;
-    }
+    .status-badge { display: inline-flex; align-items: center; gap: .35rem; font-size: .75rem; font-weight: 500; padding: .25rem .6rem; border-radius: 20px; }
     .status-badge::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
     .status-available   { color: var(--green);  background: rgba(76,175,110,.1); }
     .status-injured     { color: var(--danger);  background: rgba(224,92,92,.1); }
     .status-sick        { color: var(--warn);    background: rgba(224,168,92,.1); }
     .status-unavailable { color: var(--info);    background: rgba(92,158,224,.1); }
-
     .player-meta { font-size: .72rem; color: var(--muted); margin-top: .6rem; }
 
-    .empty-state {
-      text-align: center; padding: 4rem 2rem; color: var(--muted); grid-column: 1 / -1;
+    /* ── MATCH LIST ──────────────────────────────────── */
+    .match-list { display: flex; flex-direction: column; gap: .75rem; }
+
+    .date-group-header {
+      font-family: var(--font-display); font-size: 1rem; letter-spacing: .08em;
+      color: var(--muted); padding: .5rem 0 .25rem;
+      border-bottom: 1px solid var(--border); margin-top: 1rem;
     }
+    .date-group-header:first-child { margin-top: 0; }
+
+    .match-card {
+      background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+      display: flex; align-items: stretch; overflow: hidden;
+      cursor: pointer; transition: border-color .2s, transform .15s;
+    }
+    .match-card:hover { border-color: var(--green); transform: translateY(-1px); }
+
+    .match-diff-bar { width: 5px; flex-shrink: 0; }
+    .diff-green { background: var(--diff-green); }
+    .diff-blue  { background: var(--diff-blue); }
+    .diff-red   { background: var(--diff-red); }
+    .diff-black { background: var(--diff-black); }
+
+    .match-card-body { flex: 1; padding: .9rem 1.2rem; display: flex; align-items: center; gap: 1.5rem; flex-wrap: wrap; }
+
+    .match-time-block { min-width: 70px; }
+    .match-time { font-family: var(--font-display); font-size: 1.4rem; letter-spacing: .04em; line-height: 1; }
+    .match-weekday { font-size: .72rem; color: var(--muted); margin-top: .1rem; }
+
+    .match-main { flex: 1; min-width: 120px; }
+    .match-opponent { font-weight: 600; font-size: 1rem; }
+    .match-location { font-size: .8rem; color: var(--muted); margin-top: .15rem; }
+
+    .match-badges { display: flex; gap: .5rem; flex-wrap: wrap; align-items: center; }
+    .badge {
+      font-size: .72rem; font-weight: 600; letter-spacing: .04em; padding: .2rem .55rem;
+      border-radius: 4px; border: 1px solid;
+    }
+    .badge-format     { color: var(--text);   background: rgba(232,237,233,.06); border-color: var(--border); }
+    .badge-formation  { color: var(--muted);  background: transparent;           border-color: var(--border); }
+    .badge-diff-green { color: var(--diff-green); background: rgba(76,175,110,.1);  border-color: rgba(76,175,110,.25); }
+    .badge-diff-blue  { color: var(--diff-blue);  background: rgba(92,158,224,.1);  border-color: rgba(92,158,224,.25); }
+    .badge-diff-red   { color: var(--diff-red);   background: rgba(224,92,92,.1);   border-color: rgba(224,92,92,.25); }
+    .badge-diff-black { color: var(--diff-black); background: rgba(176,184,179,.08);border-color: rgba(176,184,179,.2); }
+
+    /* ── EMPTY STATE ─────────────────────────────────── */
+    .empty-state { text-align: center; padding: 4rem 2rem; color: var(--muted); grid-column: 1 / -1; }
     .empty-state p:first-child { font-family: var(--font-display); font-size: 1.4rem; color: var(--text); margin-bottom: .5rem; }
 
-    /* ── MODAL ───────────────────────────────────────── */
+    /* ── MODALS ──────────────────────────────────────── */
     .modal-backdrop {
-      display: none; position: fixed; inset: 0;
-      background: rgba(0,0,0,.7); z-index: 100;
+      display: none; position: fixed; inset: 0; background: rgba(0,0,0,.7); z-index: 100;
       align-items: center; justify-content: center; padding: 1rem;
     }
     .modal-backdrop.open { display: flex; }
     .modal {
-      background: var(--surface); border: 1px solid var(--border);
-      border-radius: 16px; padding: 2rem; width: 100%; max-width: 500px;
-      max-height: 90vh; overflow-y: auto;
+      background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
+      padding: 2rem; width: 100%; max-width: 500px; max-height: 90vh; overflow-y: auto;
       box-shadow: 0 32px 64px rgba(0,0,0,.6);
     }
     .modal-title { font-family: var(--font-display); font-size: 1.6rem; letter-spacing: .06em; margin-bottom: 1.5rem; }
+    .modal-actions { display: flex; gap: .75rem; justify-content: flex-end; margin-top: 1.5rem; flex-wrap: wrap; align-items: center; }
+    .modal-actions-left { margin-right: auto; }
 
+    /* position tag picker */
     .tag-group { margin-bottom: 1rem; }
     .tag-group-label { font-size: .78rem; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin-bottom: .5rem; }
     .tag-options { display: flex; flex-wrap: wrap; gap: .4rem; }
@@ -209,24 +236,15 @@
     .tag-option:hover    { border-color: var(--green); color: var(--green); }
     .tag-option.selected { background: rgba(76,175,110,.15); border-color: var(--green); color: var(--green); }
 
-    .modal-actions { display: flex; gap: .75rem; justify-content: flex-end; margin-top: 1.5rem; flex-wrap: wrap; align-items: center; }
-    .modal-actions-left { margin-right: auto; }
-
     /* ── CONFIRM ─────────────────────────────────────── */
     #confirm-backdrop {
-      display: none; position: fixed; inset: 0;
-      background: rgba(0,0,0,.8); z-index: 200;
+      display: none; position: fixed; inset: 0; background: rgba(0,0,0,.8); z-index: 200;
       align-items: center; justify-content: center; padding: 1rem;
     }
     #confirm-backdrop.open { display: flex; }
-    .confirm-box {
-      background: var(--surface); border: 1px solid var(--border);
-      border-radius: 12px; padding: 1.5rem; max-width: 360px; width: 100%;
-    }
+    .confirm-box { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; max-width: 360px; width: 100%; }
     .confirm-box p { margin-bottom: 1.2rem; line-height: 1.5; }
     .confirm-actions { display: flex; gap: .75rem; justify-content: flex-end; }
-
-    .last-edit { font-size: .75rem; color: var(--muted); margin-bottom: 1rem; min-height: 1.2em; }
   </style>
 </head>
 <body>
@@ -283,10 +301,14 @@
     <div class="player-grid" id="player-grid"></div>
   </div>
 
-  <!-- MATCHER (placeholder) -->
+  <!-- MATCHER -->
   <div id="page-matches" class="page">
-    <div class="page-header"><div class="page-title">MATCHER</div></div>
-    <p style="color:var(--muted)">Kommer i nästa steg.</p>
+    <div class="page-header">
+      <div class="page-title">MATCHER <span id="match-count"></span></div>
+      <button class="btn-primary" id="btn-add-match">+ LÄGG TILL</button>
+    </div>
+    <div id="matches-last-edit" class="last-edit"></div>
+    <div class="match-list" id="match-list"></div>
   </div>
 
   <!-- UTTAG (placeholder) -->
@@ -300,13 +322,11 @@
 <!-- ── PLAYER MODAL ──────────────────────────────────── -->
 <div id="player-modal" class="modal-backdrop">
   <div class="modal">
-    <div class="modal-title" id="modal-title">LÄGG TILL SPELARE</div>
-
+    <div class="modal-title" id="player-modal-title">LÄGG TILL SPELARE</div>
     <div class="field">
       <label for="player-name">Namn</label>
       <input type="text" id="player-name" placeholder="Förnamn Efternamn" />
     </div>
-
     <div class="field">
       <label for="player-status">Status</label>
       <select id="player-status">
@@ -316,7 +336,6 @@
         <option value="unavailable">Förhinder</option>
       </select>
     </div>
-
     <div class="field">
       <label>Positioner</label>
       <div class="tag-group">
@@ -345,24 +364,84 @@
         </div>
       </div>
     </div>
-
     <div class="modal-actions">
       <div class="modal-actions-left">
         <button class="btn-danger" id="btn-delete-player" style="display:none">Ta bort</button>
       </div>
-      <button class="btn-secondary" id="btn-modal-cancel">Avbryt</button>
-      <button class="btn-primary" id="btn-modal-save">SPARA</button>
+      <button class="btn-secondary" id="btn-player-cancel">Avbryt</button>
+      <button class="btn-primary" id="btn-player-save">SPARA</button>
     </div>
   </div>
 </div>
 
-<!-- ── CONFIRM DIALOG ────────────────────────────────── -->
+<!-- ── MATCH MODAL ───────────────────────────────────── -->
+<div id="match-modal" class="modal-backdrop">
+  <div class="modal">
+    <div class="modal-title" id="match-modal-title">LÄGG TILL MATCH</div>
+
+    <div class="field-row">
+      <div class="field">
+        <label for="match-date">Datum</label>
+        <input type="date" id="match-date" />
+      </div>
+      <div class="field">
+        <label for="match-time">Tid</label>
+        <input type="time" id="match-time" />
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="match-opponent">Motståndare</label>
+      <input type="text" id="match-opponent" placeholder="Motståndarlagets namn" />
+    </div>
+
+    <div class="field">
+      <label for="match-location">Plats</label>
+      <input type="text" id="match-location" placeholder="Hemma / Borta / Plannamn" />
+    </div>
+
+    <div class="field-row">
+      <div class="field">
+        <label for="match-format">Format</label>
+        <select id="match-format">
+          <option value="7v7">7v7</option>
+          <option value="9v9" selected>9v9</option>
+          <option value="11v11">11v11</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="match-difficulty">Svårighetsgrad</label>
+        <select id="match-difficulty">
+          <option value="green">🟢 Grön</option>
+          <option value="blue">🔵 Blå</option>
+          <option value="red">🔴 Röd</option>
+          <option value="black">⚫ Svart</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="match-formation">Formation</label>
+      <select id="match-formation"></select>
+    </div>
+
+    <div class="modal-actions">
+      <div class="modal-actions-left">
+        <button class="btn-danger" id="btn-delete-match" style="display:none">Ta bort</button>
+      </div>
+      <button class="btn-secondary" id="btn-match-cancel">Avbryt</button>
+      <button class="btn-primary" id="btn-match-save">SPARA</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── CONFIRM ───────────────────────────────────────── -->
 <div id="confirm-backdrop">
   <div class="confirm-box">
     <p id="confirm-text"></p>
     <div class="confirm-actions">
       <button class="btn-secondary" id="confirm-cancel">Avbryt</button>
-      <button class="btn-danger" id="confirm-ok">Ta bort</button>
+      <button class="btn-danger"    id="confirm-ok">Ta bort</button>
     </div>
   </div>
 </div>
@@ -375,11 +454,9 @@
   } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
   import {
     getFirestore, collection, doc,
-    onSnapshot, addDoc, updateDoc, deleteDoc,
-    serverTimestamp
+    onSnapshot, addDoc, updateDoc, deleteDoc, serverTimestamp
   } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-  // ── Config ────────────────────────────────────────
   const firebaseConfig = {
     apiKey:            "AIzaSyDtWJUooasHwd3PKnx_vHvbE4rzU5iGS40",
     authDomain:        "laguttagning.firebaseapp.com",
@@ -389,44 +466,97 @@
     appId:             "1:946370451262:web:b2722c39a375a931183e6f"
   };
 
-  const firebaseApp = initializeApp(firebaseConfig);
-  const auth        = getAuth(firebaseApp);
-  const db          = getFirestore(firebaseApp);
+  const fbApp = initializeApp(firebaseConfig);
+  const auth  = getAuth(fbApp);
+  const db    = getFirestore(fbApp);
+
+  // ── Formations data ───────────────────────────────
+  const FORMATIONS = {
+    '7v7':  ['2-3-1','3-2-1','2-2-2','3-1-2'],
+    '9v9':  ['3-2-2','3-3-1','2-3-2','3-1-3','4-2-1','1-3-3','4-1-2','2-4-1','3-2-1-1','2-1-4-1','2-1-3-2'],
+    '11v11':['4-4-2','4-3-3','4-2-3-1','3-5-2','3-4-3','4-1-4-1','4-3-2-1','5-3-2','5-4-1','4-5-1','3-4-2-1','4-1-2-1-2','4-2-2-2','3-3-3-1']
+  };
+
+  const DIFF_LABEL = { green: 'Grön', blue: 'Blå', red: 'Röd', black: 'Svart' };
+  const WEEKDAY    = ['Sön','Mån','Tis','Ons','Tor','Fre','Lör'];
 
   // ── State ─────────────────────────────────────────
   let currentUser  = null;
   let players      = [];
+  let matches      = [];
   let activeFilter = 'all';
-  let editingId    = null;
+  let editingPlayerId = null;
+  let editingMatchId  = null;
   let unsubPlayers = null;
+  let unsubMatches = null;
 
   // ── DOM ───────────────────────────────────────────
-  const emailInput     = document.getElementById('email');
-  const passInput      = document.getElementById('password');
-  const btnLogin       = document.getElementById('btn-login');
-  const loginError     = document.getElementById('login-error');
-  const userEmailEl    = document.getElementById('user-email');
-  const playerGrid     = document.getElementById('player-grid');
-  const playerCountEl  = document.getElementById('player-count');
-  const lastEditEl     = document.getElementById('players-last-edit');
-  const modal          = document.getElementById('player-modal');
-  const modalTitle     = document.getElementById('modal-title');
-  const playerNameIn   = document.getElementById('player-name');
-  const playerStatusIn = document.getElementById('player-status');
-  const btnAddPlayer   = document.getElementById('btn-add-player');
-  const btnModalCancel = document.getElementById('btn-modal-cancel');
-  const btnModalSave   = document.getElementById('btn-modal-save');
-  const btnDeletePlayer= document.getElementById('btn-delete-player');
-  const tagOptions     = document.querySelectorAll('.tag-option');
-  const confirmBackdrop= document.getElementById('confirm-backdrop');
-  const confirmText    = document.getElementById('confirm-text');
-  const confirmCancel  = document.getElementById('confirm-cancel');
-  const confirmOk      = document.getElementById('confirm-ok');
+  const emailInput      = document.getElementById('email');
+  const passInput       = document.getElementById('password');
+  const btnLogin        = document.getElementById('btn-login');
+  const loginError      = document.getElementById('login-error');
+  const userEmailEl     = document.getElementById('user-email');
+  const playerGrid      = document.getElementById('player-grid');
+  const playerCountEl   = document.getElementById('player-count');
+  const playersLastEdit = document.getElementById('players-last-edit');
+  const matchList       = document.getElementById('match-list');
+  const matchCountEl    = document.getElementById('match-count');
+  const matchesLastEdit = document.getElementById('matches-last-edit');
 
-  // ── View helper ───────────────────────────────────
+  // player modal
+  const playerModal     = document.getElementById('player-modal');
+  const playerModalTitle= document.getElementById('player-modal-title');
+  const playerNameIn    = document.getElementById('player-name');
+  const playerStatusIn  = document.getElementById('player-status');
+  const btnDeletePlayer = document.getElementById('btn-delete-player');
+  const btnPlayerCancel = document.getElementById('btn-player-cancel');
+  const btnPlayerSave   = document.getElementById('btn-player-save');
+  const tagOptions      = document.querySelectorAll('.tag-option');
+
+  // match modal
+  const matchModal      = document.getElementById('match-modal');
+  const matchModalTitle = document.getElementById('match-modal-title');
+  const matchDateIn     = document.getElementById('match-date');
+  const matchTimeIn     = document.getElementById('match-time');
+  const matchOpponentIn = document.getElementById('match-opponent');
+  const matchLocationIn = document.getElementById('match-location');
+  const matchFormatIn   = document.getElementById('match-format');
+  const matchDiffIn     = document.getElementById('match-difficulty');
+  const matchFormationIn= document.getElementById('match-formation');
+  const btnDeleteMatch  = document.getElementById('btn-delete-match');
+  const btnMatchCancel  = document.getElementById('btn-match-cancel');
+  const btnMatchSave    = document.getElementById('btn-match-save');
+
+  // confirm
+  const confirmBackdrop = document.getElementById('confirm-backdrop');
+  const confirmText     = document.getElementById('confirm-text');
+  const confirmCancel   = document.getElementById('confirm-cancel');
+  const confirmOk       = document.getElementById('confirm-ok');
+
+  // ── Helpers ───────────────────────────────────────
   function showView(name) {
     document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
     document.getElementById('view-' + name).classList.add('active');
+  }
+
+  function escHtml(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  function formatTs(ts) {
+    if (!ts) return '';
+    const d = ts.toDate ? ts.toDate() : new Date(ts);
+    return d.toLocaleDateString('sv-SE', { day: 'numeric', month: 'short' }) + ' ' +
+           d.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' });
+  }
+
+  function lastEditText(items, el) {
+    const latest = [...items].filter(i => i.updatedAt).sort((a,b) =>
+      (b.updatedAt?.toDate?.() || 0) - (a.updatedAt?.toDate?.() || 0)
+    )[0];
+    el.textContent = latest?.updatedBy
+      ? `Senast redigerat av ${latest.updatedBy} — ${formatTs(latest.updatedAt)}`
+      : '';
   }
 
   // ── Tab nav ───────────────────────────────────────
@@ -446,95 +576,61 @@
       userEmailEl.textContent = user.email;
       showView('app');
       startPlayerListener();
+      startMatchListener();
     } else {
       showView('login');
       if (unsubPlayers) { unsubPlayers(); unsubPlayers = null; }
-      players = [];
+      if (unsubMatches) { unsubMatches(); unsubMatches = null; }
+      players = []; matches = [];
     }
   });
 
   btnLogin.addEventListener('click', async () => {
     loginError.classList.remove('visible');
-    const email = emailInput.value.trim();
-    const pass  = passInput.value;
+    const email = emailInput.value.trim(), pass = passInput.value;
     if (!email || !pass) { loginError.textContent = 'Fyll i e-post och lösenord.'; loginError.classList.add('visible'); return; }
     btnLogin.disabled = true; btnLogin.textContent = 'LOGGAR IN...';
-    try {
-      await signInWithEmailAndPassword(auth, email, pass);
-    } catch (err) {
-      const msgs = {
-        'auth/invalid-credential': 'Fel e-post eller lösenord.',
-        'auth/user-not-found':     'Ingen användare med den e-posten.',
-        'auth/wrong-password':     'Fel lösenord.',
-        'auth/too-many-requests':  'För många försök. Försök igen senare.',
-        'auth/invalid-email':      'Ogiltig e-postadress.',
-      };
+    try { await signInWithEmailAndPassword(auth, email, pass); }
+    catch (err) {
+      const msgs = { 'auth/invalid-credential':'Fel e-post eller lösenord.','auth/user-not-found':'Ingen användare.','auth/wrong-password':'Fel lösenord.','auth/too-many-requests':'För många försök.','auth/invalid-email':'Ogiltig e-post.' };
       loginError.textContent = msgs[err.code] || 'Inloggning misslyckades.';
       loginError.classList.add('visible');
-    } finally {
-      btnLogin.disabled = false; btnLogin.textContent = 'LOGGA IN';
-    }
+    } finally { btnLogin.disabled = false; btnLogin.textContent = 'LOGGA IN'; }
   });
   passInput.addEventListener('keydown', e => { if (e.key === 'Enter') btnLogin.click(); });
   document.getElementById('btn-logout').addEventListener('click', () => signOut(auth));
 
-  // ── Firestore listener ────────────────────────────
+  // ── Players ───────────────────────────────────────
   function startPlayerListener() {
     unsubPlayers = onSnapshot(collection(db, 'players'), snap => {
       players = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      players.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'sv'));
+      players.sort((a,b) => (a.name||'').localeCompare(b.name||'','sv'));
       renderPlayers();
     });
   }
 
-  // ── Helpers ───────────────────────────────────────
-  const statusLabel = { available: 'Tillgänglig', injured: 'Skadad', sick: 'Sjuk', unavailable: 'Förhinder' };
-  const statusClass = { available: 'status-available', injured: 'status-injured', sick: 'status-sick', unavailable: 'status-unavailable' };
+  const statusLabel = { available:'Tillgänglig', injured:'Skadad', sick:'Sjuk', unavailable:'Förhinder' };
+  const statusClass = { available:'status-available', injured:'status-injured', sick:'status-sick', unavailable:'status-unavailable' };
 
-  function formatDate(ts) {
-    if (!ts) return '';
-    const d = ts.toDate ? ts.toDate() : new Date(ts);
-    return d.toLocaleDateString('sv-SE', { day: 'numeric', month: 'short' }) + ' ' +
-           d.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' });
-  }
-
-  // ── Render ────────────────────────────────────────
   function renderPlayers() {
     const filtered = activeFilter === 'all' ? players : players.filter(p => p.status === activeFilter);
     playerCountEl.textContent = `(${players.length})`;
-
-    // last edit
-    const latest = [...players].filter(p => p.updatedAt).sort((a, b) => {
-      return (b.updatedAt?.toDate?.() || 0) - (a.updatedAt?.toDate?.() || 0);
-    })[0];
-    lastEditEl.textContent = latest?.updatedBy
-      ? `Senast redigerat av ${latest.updatedBy} — ${formatDate(latest.updatedAt)}`
-      : '';
+    lastEditText(players, playersLastEdit);
 
     if (filtered.length === 0) {
-      playerGrid.innerHTML = `<div class="empty-state"><p>${activeFilter === 'all' ? 'Inga spelare ännu' : 'Inga spelare med den statusen'}</p><p>Lägg till spelare med knappen ovan.</p></div>`;
+      playerGrid.innerHTML = `<div class="empty-state"><p>${activeFilter==='all'?'Inga spelare ännu':'Inga spelare med den statusen'}</p><p>Lägg till spelare med knappen ovan.</p></div>`;
       return;
     }
-
     playerGrid.innerHTML = filtered.map(p => `
       <div class="player-card" data-id="${p.id}">
-        <div class="player-card-name">${escHtml(p.name || '—')}</div>
-        <div class="player-tags">${(p.positions || []).map(pos => `<span class="tag">${pos}</span>`).join('')}</div>
-        <span class="status-badge ${statusClass[p.status] || 'status-available'}">${statusLabel[p.status] || 'Tillgänglig'}</span>
-        ${p.updatedBy ? `<div class="player-meta">${escHtml(p.updatedBy)} · ${formatDate(p.updatedAt)}</div>` : ''}
-      </div>
-    `).join('');
-
-    playerGrid.querySelectorAll('.player-card').forEach(card => {
-      card.addEventListener('click', () => openEditModal(card.dataset.id));
-    });
+        <div class="player-card-name">${escHtml(p.name||'—')}</div>
+        <div class="player-tags">${(p.positions||[]).map(pos=>`<span class="tag">${pos}</span>`).join('')}</div>
+        <span class="status-badge ${statusClass[p.status]||'status-available'}">${statusLabel[p.status]||'Tillgänglig'}</span>
+        ${p.updatedBy?`<div class="player-meta">${escHtml(p.updatedBy)} · ${formatTs(p.updatedAt)}</div>`:''}
+      </div>`).join('');
+    playerGrid.querySelectorAll('.player-card').forEach(c => c.addEventListener('click', () => openPlayerEdit(c.dataset.id)));
   }
 
-  function escHtml(s) {
-    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  }
-
-  // ── Filter ────────────────────────────────────────
   document.querySelectorAll('.filter-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
@@ -544,77 +640,205 @@
     });
   });
 
-  // ── Modal open (add) ──────────────────────────────
-  btnAddPlayer.addEventListener('click', () => {
-    editingId = null;
-    modalTitle.textContent = 'LÄGG TILL SPELARE';
-    playerNameIn.value     = '';
-    playerStatusIn.value   = 'available';
+  // player modal
+  document.getElementById('btn-add-player').addEventListener('click', () => {
+    editingPlayerId = null;
+    playerModalTitle.textContent = 'LÄGG TILL SPELARE';
+    playerNameIn.value = ''; playerStatusIn.value = 'available';
     tagOptions.forEach(t => t.classList.remove('selected'));
     btnDeletePlayer.style.display = 'none';
-    modal.classList.add('open');
-    playerNameIn.focus();
+    playerModal.classList.add('open'); playerNameIn.focus();
   });
 
-  // ── Modal open (edit) ─────────────────────────────
-  function openEditModal(id) {
-    const p = players.find(pl => pl.id === id);
-    if (!p) return;
-    editingId              = id;
-    modalTitle.textContent = 'REDIGERA SPELARE';
-    playerNameIn.value     = p.name || '';
-    playerStatusIn.value   = p.status || 'available';
-    tagOptions.forEach(t => t.classList.toggle('selected', (p.positions || []).includes(t.dataset.pos)));
+  function openPlayerEdit(id) {
+    const p = players.find(pl => pl.id === id); if (!p) return;
+    editingPlayerId = id;
+    playerModalTitle.textContent = 'REDIGERA SPELARE';
+    playerNameIn.value   = p.name || '';
+    playerStatusIn.value = p.status || 'available';
+    tagOptions.forEach(t => t.classList.toggle('selected', (p.positions||[]).includes(t.dataset.pos)));
     btnDeletePlayer.style.display = 'inline-flex';
-    modal.classList.add('open');
-    playerNameIn.focus();
+    playerModal.classList.add('open'); playerNameIn.focus();
   }
 
-  function closeModal() { modal.classList.remove('open'); }
-  btnModalCancel.addEventListener('click', closeModal);
-  modal.addEventListener('click', e => { if (e.target === modal) closeModal(); });
-
+  function closePlayerModal() { playerModal.classList.remove('open'); }
+  btnPlayerCancel.addEventListener('click', closePlayerModal);
+  playerModal.addEventListener('click', e => { if (e.target === playerModal) closePlayerModal(); });
   tagOptions.forEach(t => t.addEventListener('click', () => t.classList.toggle('selected')));
 
-  // ── Modal save ────────────────────────────────────
-  btnModalSave.addEventListener('click', async () => {
-    const name = playerNameIn.value.trim();
-    if (!name) { playerNameIn.focus(); return; }
+  btnPlayerSave.addEventListener('click', async () => {
+    const name = playerNameIn.value.trim(); if (!name) { playerNameIn.focus(); return; }
     const positions = [...tagOptions].filter(t => t.classList.contains('selected')).map(t => t.dataset.pos);
-    const data = { name, status: playerStatusIn.value, positions, updatedBy: currentUser?.email || 'okänd', updatedAt: serverTimestamp() };
-    btnModalSave.disabled = true;
+    const data = { name, status: playerStatusIn.value, positions, updatedBy: currentUser?.email||'okänd', updatedAt: serverTimestamp() };
+    btnPlayerSave.disabled = true;
     try {
-      if (editingId) { await updateDoc(doc(db, 'players', editingId), data); }
-      else           { await addDoc(collection(db, 'players'), data); }
-      closeModal();
-    } catch (err) { console.error(err); alert('Något gick fel. Försök igen.'); }
-    finally { btnModalSave.disabled = false; }
+      if (editingPlayerId) await updateDoc(doc(db,'players',editingPlayerId), data);
+      else                 await addDoc(collection(db,'players'), data);
+      closePlayerModal();
+    } catch(err) { console.error(err); alert('Något gick fel.'); }
+    finally { btnPlayerSave.disabled = false; }
   });
 
-  // ── Delete ────────────────────────────────────────
-  let pendingDeleteId = null;
+  // ── Matches ───────────────────────────────────────
+  function startMatchListener() {
+    unsubMatches = onSnapshot(collection(db, 'matches'), snap => {
+      matches = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      matches.sort((a,b) => {
+        const da = `${a.date||''}T${a.time||'00:00'}`;
+        const db2= `${b.date||''}T${b.time||'00:00'}`;
+        return da.localeCompare(db2);
+      });
+      renderMatches();
+    });
+  }
+
+  function renderMatches() {
+    matchCountEl.textContent = `(${matches.length})`;
+    lastEditText(matches, matchesLastEdit);
+
+    if (matches.length === 0) {
+      matchList.innerHTML = `<div class="empty-state" style="grid-column:unset"><p>Inga matcher ännu</p><p>Lägg till en match med knappen ovan.</p></div>`;
+      return;
+    }
+
+    // group by date
+    const groups = {};
+    matches.forEach(m => {
+      const key = m.date || 'okänt';
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(m);
+    });
+
+    let html = '';
+    Object.keys(groups).sort().forEach(dateKey => {
+      const d = dateKey !== 'okänt' ? new Date(dateKey + 'T12:00:00') : null;
+      const label = d
+        ? `${WEEKDAY[d.getDay()]} ${d.toLocaleDateString('sv-SE', { day:'numeric', month:'long', year:'numeric' })}`
+        : 'Okänt datum';
+      html += `<div class="date-group-header">${label}</div>`;
+      groups[dateKey].forEach(m => {
+        html += `
+        <div class="match-card" data-id="${m.id}">
+          <div class="match-diff-bar diff-${m.difficulty||'green'}"></div>
+          <div class="match-card-body">
+            <div class="match-time-block">
+              <div class="match-time">${escHtml(m.time||'??:??')}</div>
+            </div>
+            <div class="match-main">
+              <div class="match-opponent">${escHtml(m.opponent||'—')}</div>
+              ${m.location?`<div class="match-location">${escHtml(m.location)}</div>`:''}
+            </div>
+            <div class="match-badges">
+              <span class="badge badge-format">${escHtml(m.format||'')}</span>
+              <span class="badge badge-formation">${escHtml(m.formation||'')}</span>
+              <span class="badge badge-diff-${m.difficulty||'green'}">${DIFF_LABEL[m.difficulty]||''}</span>
+            </div>
+          </div>
+        </div>`;
+      });
+    });
+    matchList.innerHTML = html;
+    matchList.querySelectorAll('.match-card').forEach(c => c.addEventListener('click', () => openMatchEdit(c.dataset.id)));
+  }
+
+  // formation select update
+  function updateFormationSelect(format, current) {
+    const options = FORMATIONS[format] || [];
+    matchFormationIn.innerHTML = options.map(f => `<option value="${f}"${f===current?' selected':''}>${f}</option>`).join('');
+  }
+
+  matchFormatIn.addEventListener('change', () => updateFormationSelect(matchFormatIn.value, ''));
+
+  // match modal open (add)
+  document.getElementById('btn-add-match').addEventListener('click', () => {
+    editingMatchId = null;
+    matchModalTitle.textContent = 'LÄGG TILL MATCH';
+    matchDateIn.value     = '';
+    matchTimeIn.value     = '';
+    matchOpponentIn.value = '';
+    matchLocationIn.value = '';
+    matchFormatIn.value   = '9v9';
+    matchDiffIn.value     = 'green';
+    updateFormationSelect('9v9', '');
+    btnDeleteMatch.style.display = 'none';
+    matchModal.classList.add('open'); matchOpponentIn.focus();
+  });
+
+  function openMatchEdit(id) {
+    const m = matches.find(x => x.id === id); if (!m) return;
+    editingMatchId = id;
+    matchModalTitle.textContent = 'REDIGERA MATCH';
+    matchDateIn.value     = m.date     || '';
+    matchTimeIn.value     = m.time     || '';
+    matchOpponentIn.value = m.opponent || '';
+    matchLocationIn.value = m.location || '';
+    matchFormatIn.value   = m.format   || '9v9';
+    matchDiffIn.value     = m.difficulty || 'green';
+    updateFormationSelect(m.format || '9v9', m.formation || '');
+    btnDeleteMatch.style.display = 'inline-flex';
+    matchModal.classList.add('open'); matchOpponentIn.focus();
+  }
+
+  function closeMatchModal() { matchModal.classList.remove('open'); }
+  btnMatchCancel.addEventListener('click', closeMatchModal);
+  matchModal.addEventListener('click', e => { if (e.target === matchModal) closeMatchModal(); });
+
+  btnMatchSave.addEventListener('click', async () => {
+    const date = matchDateIn.value;
+    if (!date) { matchDateIn.focus(); return; }
+    const data = {
+      date,
+      time:       matchTimeIn.value     || '',
+      opponent:   matchOpponentIn.value.trim() || '',
+      location:   matchLocationIn.value.trim() || '',
+      format:     matchFormatIn.value,
+      difficulty: matchDiffIn.value,
+      formation:  matchFormationIn.value,
+      updatedBy:  currentUser?.email || 'okänd',
+      updatedAt:  serverTimestamp()
+    };
+    btnMatchSave.disabled = true;
+    try {
+      if (editingMatchId) await updateDoc(doc(db,'matches',editingMatchId), data);
+      else                await addDoc(collection(db,'matches'), data);
+      closeMatchModal();
+    } catch(err) { console.error(err); alert('Något gick fel.'); }
+    finally { btnMatchSave.disabled = false; }
+  });
+
+  // ── Confirm / delete ──────────────────────────────
+  let pendingDelete = null;  // { type: 'player'|'match', id }
+
+  function openConfirm(type, id, name) {
+    pendingDelete = { type, id };
+    confirmText.textContent = `Vill du ta bort ${name}? Det går inte att ångra.`;
+    confirmBackdrop.classList.add('open');
+  }
 
   btnDeletePlayer.addEventListener('click', () => {
-    const p = players.find(pl => pl.id === editingId);
-    if (!p) return;
-    pendingDeleteId = editingId;
-    confirmText.textContent = `Vill du ta bort ${p.name}? Det går inte att ångra.`;
-    confirmBackdrop.classList.add('open');
+    const p = players.find(pl => pl.id === editingPlayerId); if (!p) return;
+    openConfirm('player', editingPlayerId, p.name);
   });
 
-  confirmCancel.addEventListener('click', () => { confirmBackdrop.classList.remove('open'); pendingDeleteId = null; });
+  btnDeleteMatch.addEventListener('click', () => {
+    const m = matches.find(x => x.id === editingMatchId); if (!m) return;
+    openConfirm('match', editingMatchId, m.opponent || 'matchen');
+  });
+
+  confirmCancel.addEventListener('click', () => { confirmBackdrop.classList.remove('open'); pendingDelete = null; });
 
   confirmOk.addEventListener('click', async () => {
-    if (!pendingDeleteId) return;
+    if (!pendingDelete) return;
     confirmOk.disabled = true;
+    const { type, id } = pendingDelete;
     try {
-      await deleteDoc(doc(db, 'players', pendingDeleteId));
+      await deleteDoc(doc(db, type === 'player' ? 'players' : 'matches', id));
       confirmBackdrop.classList.remove('open');
-      closeModal();
-    } catch (err) { console.error(err); alert('Kunde inte ta bort spelaren.'); }
-    finally { confirmOk.disabled = false; pendingDeleteId = null; }
+      if (type === 'player') closePlayerModal();
+      else                   closeMatchModal();
+    } catch(err) { console.error(err); alert('Kunde inte ta bort.'); }
+    finally { confirmOk.disabled = false; pendingDelete = null; }
   });
 </script>
-
 </body>
 </html>

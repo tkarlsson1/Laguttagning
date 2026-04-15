@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>v0.8 — Laguttagning</title>
+  <title>v0.9 — Laguttagning</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
@@ -257,6 +257,13 @@
     .formation-btn:hover  { border-color: var(--text); color: var(--text); }
     .formation-btn.active { background: var(--green); border-color: var(--green); color: #0e1110; font-weight: 700; }
     .save-indicator { font-size: .78rem; color: var(--muted); align-self: flex-end; white-space: nowrap; }
+    .formation-select {
+      background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
+      color: var(--text); font-family: var(--font-body); font-size: .95rem;
+      padding: .75rem 1rem; outline: none; cursor: pointer; min-width: 160px;
+      transition: border-color .2s;
+    }
+    .formation-select:focus { border-color: var(--green); }
     .lineup-placeholder { text-align: center; padding: 3rem 1rem; color: var(--muted); font-size: .95rem; }
 
     .lineup-main { display: grid; grid-template-columns: 360px 1fr; gap: 2rem; align-items: start; }
@@ -419,7 +426,7 @@
       </div>
       <div class="lineup-formation-group" id="formation-group" style="display:none">
         <div class="field-label">Formation</div>
-        <div class="formation-btns" id="formation-btns"></div>
+        <select id="formation-select" class="formation-select"></select>
       </div>
     </div>
     <div id="lineup-body"><div class="lineup-placeholder">Välj en match ovan för att sätta laget.</div></div>
@@ -431,6 +438,7 @@
   <div class="modal">
     <div class="modal-title" id="player-modal-title">LÄGG TILL SPELARE</div>
     <div class="field"><label for="player-name">Namn</label><input type="text" id="player-name" placeholder="Förnamn Efternamn" /></div>
+    <div class="field"><label for="player-display-name">Visningsnamn <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--muted)">(valfritt — används på planen)</span></label><input type="text" id="player-display-name" placeholder="T.ex. Andersson" /></div>
     <div class="field">
       <label>Positioner</label>
       <div class="tag-group">
@@ -566,7 +574,9 @@
     const latest = [...items].filter(i=>i.updatedAt).sort((a,b)=>(b.updatedAt?.toDate?.()|| 0)-(a.updatedAt?.toDate?.()|| 0))[0];
     el.textContent = latest?.updatedBy ? `Senast redigerat av ${latest.updatedBy} — ${formatTs(latest.updatedAt)}` : '';
   }
-  function shortName(name) {
+  function shortName(player) {
+    if (player.displayName) return player.displayName;
+    const name = player.name || '';
     if (!name) return '?';
     const p = name.trim().split(/\s+/);
     return p.length===1 ? p[0] : p[0]+' '+p[p.length-1][0]+'.';
@@ -736,7 +746,7 @@
       ].join('');
 
       return `<div class="player-card" data-id="${p.id}">
-        <div class="player-card-name">${escHtml(p.name||'—')}</div>
+        <div class="player-card-name">${escHtml(p.name||'—')}${p.displayName?` <span style="color:var(--muted);font-weight:400;font-size:.85rem">(${escHtml(p.displayName)})</span>`:''}</div>
         <div class="player-tags">${(p.positions||[]).map(pos=>`<span class="tag">${pos}</span>`).join('')}</div>
         <span class="status-badge ${statusClass[dispStatus]||'status-available'}">${statusLabel[dispStatus]||'Tillgänglig'}</span>
         ${pillsHtml?`<div class="absence-pills">${pillsHtml}</div>`:''}
@@ -795,6 +805,7 @@
     editingPlayerId=null; modalAbsences=[];
     document.getElementById('player-modal-title').textContent='LÄGG TILL SPELARE';
     document.getElementById('player-name').value='';
+    document.getElementById('player-display-name').value='';
     tagOptions.forEach(t=>t.classList.remove('selected'));
     document.getElementById('btn-delete-player').style.display='none';
     renderModalAbsences();
@@ -807,6 +818,7 @@
     editingPlayerId=id; modalAbsences=JSON.parse(JSON.stringify(p.absences||[]));
     document.getElementById('player-modal-title').textContent='REDIGERA SPELARE';
     document.getElementById('player-name').value=p.name||'';
+    document.getElementById('player-display-name').value=p.displayName||'';
     tagOptions.forEach(t=>t.classList.toggle('selected',(p.positions||[]).includes(t.dataset.pos)));
     document.getElementById('btn-delete-player').style.display='inline-flex';
     renderModalAbsences();
@@ -830,7 +842,7 @@
     // Compute status from absences (open-ended absence = static status)
     const openEnded = cleanAbsences.find(a => !a.to && absenceActiveOnDate(a, todayStr()));
     const status = openEnded ? openEnded.type : 'available';
-    const data = { name, status, positions, absences: cleanAbsences, updatedBy:currentUser?.email||'okänd', updatedAt:serverTimestamp() };
+    const data = { name, displayName: document.getElementById('player-display-name').value.trim()||'', status, positions, absences: cleanAbsences, updatedBy:currentUser?.email||'okänd', updatedAt:serverTimestamp() };
     const btn=document.getElementById('btn-player-save'); btn.disabled=true;
     try {
       if (editingPlayerId) await updateDoc(doc(db,'players',editingPlayerId),data);
@@ -969,10 +981,14 @@
   function currentMatch() { return matches.find(m=>m.id===currentLineupMatchId)||null; }
 
   function renderFormationPicker(format) {
-    const group=document.getElementById('formation-group'), btns=document.getElementById('formation-btns');
-    group.style.display='flex';
-    btns.innerHTML=(FORMATIONS[format]||[]).map(f=>`<button class="formation-btn${f===lineupFormation?' active':''}" data-f="${f}">${f}</button>`).join('');
-    btns.querySelectorAll('.formation-btn').forEach(btn=>btn.addEventListener('click',()=>selectFormation(btn.dataset.f)));
+    const group  = document.getElementById('formation-group');
+    const sel    = document.getElementById('formation-select');
+    group.style.display = 'flex';
+    sel.innerHTML = '<option value="">— Välj formation —</option>' +
+      (FORMATIONS[format]||[]).map(f =>
+        `<option value="${f}"${f===lineupFormation?' selected':''}>${f}</option>`
+      ).join('');
+    sel.onchange = () => selectFormation(sel.value);
   }
 
   function selectFormation(f) {
@@ -1001,7 +1017,7 @@
       return `<div class="pitch-row">${Array.from({length:row.count},(_,pi)=>{
         const key=`r${row.rowIdx}-${pi}`, label=row.labels[pi]||'', pids=lineupSlots[key]||[], sel=selectedSlot===key;
         const chips=pids.map((pid,ci)=>{
-          const pl=players.find(p=>p.id===pid), name=pl?escHtml(shortName(pl.name)):'?';
+          const pl=players.find(p=>p.id===pid), name=pl?escHtml(shortName(pl)):'?';
           return `<div class="${ci===0?'chip-starter':'chip-sub'}"><span class="chip-name">${name}</span><button class="chip-rm" data-slot="${key}" data-pid="${pid}">×</button></div>`;
         }).join('');
         return `<div class="pos-slot${sel?' selected':''}" data-slot="${key}"><div class="pos-label">${label}</div><div class="pos-players">${chips}</div>${pids.length===0?'<div class="pos-empty">+</div>':''}</div>`;

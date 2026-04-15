@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>v2.3 — Laguttagning</title>
+  <title>v2.4 — Laguttagning</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
@@ -491,7 +491,10 @@
   <div id="page-lineup" class="page">
     <div class="page-header">
       <div class="page-title">UTTAGNING</div>
-      <div class="save-indicator" id="save-indicator"></div>
+      <div style="display:flex;align-items:center;gap:1rem">
+        <button class="btn-secondary" id="btn-copy-lineup" style="display:none">Kopiera lista</button>
+        <div class="save-indicator" id="save-indicator"></div>
+      </div>
     </div>
     <div class="lineup-top">
       <div class="field lineup-match-field" style="margin-bottom:0">
@@ -1084,6 +1087,7 @@
       } else { lineupFormation=''; lineupSlots={}; }
       renderFormationPicker(match.format||'9v9');
       renderLineupBody();
+      updateCopyButton();
     });
   }
 
@@ -1244,6 +1248,37 @@
     saveLineup(); renderPitch(); renderPlayerPool();
   }
 
+  document.getElementById('btn-copy-lineup').addEventListener('click', () => {
+    const match = currentMatch();
+    const allPids = [...new Set(Object.values(lineupSlots).flat())];
+    if (!allPids.length) { alert('Inga spelare uttagna ännu.'); return; }
+
+    const names = allPids
+      .map(pid => players.find(p => p.id === pid))
+      .filter(Boolean)
+      .map(p => p.name || '')
+      .sort((a, b) => a.localeCompare(b, 'sv'));
+
+    const d = match?.date ? new Date(match.date + 'T12:00:00') : null;
+    const dateStr = d ? `${WEEKDAY[d.getDay()]} ${d.toLocaleDateString('sv-SE', {day:'numeric', month:'long'})}` : '';
+    const header = [match?.opponent, dateStr, match?.time].filter(Boolean).join(' · ');
+
+    const text = (header ? header + '\n\n' : '') + names.join('\n');
+
+    navigator.clipboard.writeText(text).then(() => {
+      const btn = document.getElementById('btn-copy-lineup');
+      btn.textContent = 'Kopierat ✓';
+      setTimeout(() => { btn.textContent = 'Kopiera lista'; }, 2000);
+    }).catch(() => alert('Kunde inte kopiera. Försök igen.'));
+  });
+
+  function updateCopyButton() {
+    const btn = document.getElementById('btn-copy-lineup');
+    if (!btn) return;
+    const hasLineup = currentLineupMatchId && lineupFormation && Object.keys(lineupSlots).length > 0;
+    btn.style.display = hasLineup ? 'inline-flex' : 'none';
+  }
+
   async function saveLineup() {
     if (!currentLineupMatchId||!lineupFormation) return;
     const ind=document.getElementById('save-indicator');
@@ -1252,6 +1287,7 @@
       await setDoc(doc(db,'lineups',currentLineupMatchId),{formation:lineupFormation,slots:lineupSlots,updatedBy:currentUser?.email||'okänd',updatedAt:serverTimestamp()});
       if (ind) { ind.textContent='Sparat ✓'; setTimeout(()=>{if(ind)ind.textContent='';},2000); }
     } catch(err) { console.error(err); if(ind) ind.textContent='Fel vid sparning'; }
+    updateCopyButton();
   }
 </script>
 </body>

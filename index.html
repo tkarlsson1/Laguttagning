@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>v1.2 — Laguttagning</title>
+  <title>v1.3 — Laguttagning</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
@@ -1073,8 +1073,8 @@
       </div>`;
     }
 
-    const avail   = players.filter(p=>!isPlayerUnavailableOnDate(p, matchDate||todayStr()));
-    const unavail = players.filter(p=> isPlayerUnavailableOnDate(p, matchDate||todayStr()));
+    const avail   = players.filter(p=>!isPlayerUnavailableOnDate(p, matchDate||todayStr())).sort((a,b)=>shortName(a).localeCompare(shortName(b),'sv'));
+    const unavail = players.filter(p=> isPlayerUnavailableOnDate(p, matchDate||todayStr())).sort((a,b)=>shortName(a).localeCompare(shortName(b),'sv'));
 
     let html='';
     if (avail.length)   { html+='<div class="pool-section-label">Tillgängliga</div>'+avail.map(renderPoolItem).join(''); }

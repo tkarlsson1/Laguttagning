@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>v2.6 — Laguttagning</title>
+  <title>v2.7 — Laguttagning</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
@@ -264,6 +264,22 @@
       transition: border-color .2s;
     }
     .formation-select:focus { border-color: var(--green); }
+    .custom-formation-row {
+      display: none; align-items: center; gap: .5rem; flex-wrap: wrap; margin-top: .4rem;
+    }
+    .custom-formation-row.visible { display: flex; }
+    .custom-formation-row input {
+      background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
+      color: var(--text); font-family: var(--font-body); font-size: .95rem;
+      padding: .6rem .9rem; outline: none; width: 130px; transition: border-color .2s;
+    }
+    .custom-formation-row input:focus { border-color: var(--green); }
+    .custom-formation-error { font-size: .78rem; color: var(--danger); margin-top: .3rem; width: 100%; }
+    .btn-delete-custom {
+      font-size: .75rem; color: var(--danger); background: none; border: none;
+      cursor: pointer; padding: 0; text-decoration: underline; margin-top: .3rem; display: none;
+    }
+    .btn-delete-custom.visible { display: inline; }
     .lineup-placeholder { text-align: center; padding: 3rem 1rem; color: var(--muted); font-size: .95rem; }
 
     .lineup-main { display: grid; grid-template-columns: 2.3fr 1fr; gap: 2rem; align-items: start; }
@@ -504,6 +520,13 @@
       <div class="lineup-formation-group" id="formation-group" style="display:none">
         <div class="field-label">Formation</div>
         <select id="formation-select" class="formation-select"></select>
+        <div class="custom-formation-row" id="custom-formation-row">
+          <input type="text" id="custom-formation-input" placeholder="t.ex. 3-2-3" maxlength="15" />
+          <button class="btn-primary" id="btn-save-custom-formation" style="font-size:.9rem;padding:.6rem 1rem">Lägg till</button>
+          <button class="btn-secondary" id="btn-cancel-custom-formation" style="font-size:.9rem;padding:.6rem 1rem">Avbryt</button>
+          <div class="custom-formation-error" id="custom-formation-error"></div>
+        </div>
+        <button class="btn-delete-custom" id="btn-delete-custom-formation">Ta bort denna formation</button>
       </div>
     </div>
     <div id="lineup-body"><div class="lineup-placeholder">Välj en match ovan för att sätta laget.</div></div>
@@ -642,6 +665,8 @@
   let unsubPlayers = null, unsubMatches = null, unsubLineup = null, unsubAllLineups = null;
   let currentLineupMatchId = null, lineupFormation = '', lineupSlots = {}, selectedSlot = null;
   let allLineups = {};
+  let customFormations = [];   // [{ id, format, formation, createdBy }]
+  let unsubCustomFormations = null;
   let modalAbsences = []; // local copy while editing player modal
 
   // ── Helpers ───────────────────────────────────────
@@ -754,7 +779,7 @@
     if (user) {
       document.getElementById('user-email').textContent = user.email;
       showView('app');
-      startPlayerListener(); startMatchListener(); startAllLineupsListener();
+      startPlayerListener(); startMatchListener(); startAllLineupsListener(); startCustomFormationsListener();
       // Default to lineup tab
       document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
       document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
@@ -763,9 +788,9 @@
       refreshMatchSelector();
     } else {
       showView('login');
-      [unsubPlayers,unsubMatches,unsubLineup,unsubAllLineups].forEach(f=>f&&f());
-      unsubPlayers=unsubMatches=unsubLineup=unsubAllLineups=null;
-      players=[]; matches=[]; allLineups={};
+      [unsubPlayers,unsubMatches,unsubLineup,unsubAllLineups,unsubCustomFormations].forEach(f=>f&&f());
+      unsubPlayers=unsubMatches=unsubLineup=unsubAllLineups=unsubCustomFormations=null;
+      players=[]; matches=[]; allLineups={}; customFormations=[];
     }
   });
 
@@ -1068,7 +1093,36 @@
     });
   }
 
-  // ── LINEUP ────────────────────────────────────────
+  function startCustomFormationsListener() {
+    if (unsubCustomFormations) unsubCustomFormations();
+    unsubCustomFormations = onSnapshot(collection(db,'customFormations'), snap => {
+      customFormations = snap.docs.map(d => ({ id:d.id, ...d.data() }));
+      // Re-render picker if open
+      const match = currentMatch();
+      if (match) renderFormationPicker(match.format || '9v9');
+    });
+  }
+
+  function allFormationsForFormat(format) {
+    const custom = customFormations.filter(c => c.format === format).map(c => ({ f: c.formation, custom: true, id: c.id }));
+    const builtin = (FORMATIONS[format]||[]).map(f => ({ f, custom: false }));
+    return [...builtin, ...custom];
+  }
+
+  function validateCustomFormation(input, format) {
+    const f = input.trim();
+    if (!f || !/^\d+(-\d+)+$/.test(f)) return 'Skriv t.ex. 3-2-3';
+    const parts = f.split('-').map(Number);
+    const required = { '7v7':6, '9v9':8, '11v11':10 }[format];
+    const sum = parts.reduce((a,b) => a+b, 0);
+    if (sum !== required) return `Summerar till ${sum} — ska vara ${required} för ${format}`;
+    if (parts.length > 5) return 'Max 5 rader (4 bindestreck)';
+    if (parts.some(p => p < 1)) return 'Minst 1 spelare per rad';
+    if (parts.some(p => p > 5)) return 'Max 5 spelare per rad';
+    const all = allFormationsForFormat(format).map(x => x.f);
+    if (all.includes(f)) return 'Den formationen finns redan';
+    return null;
+  }
   function refreshMatchSelector() {
     const sel=document.getElementById('lineup-match-select'); if (!sel) return;
     const cur=currentLineupMatchId||'';
@@ -1093,7 +1147,8 @@
     renderFormationPicker(match.format||'9v9');
     unsubLineup=onSnapshot(doc(db,'lineups',matchId), snap=>{
       if (snap.exists()) {
-        const data=snap.data(), valid=FORMATIONS[match.format||'9v9']||[];
+        const data=snap.data();
+        const valid=[...(FORMATIONS[match.format||'9v9']||[]), ...customFormations.filter(c=>c.format===(match.format||'9v9')).map(c=>c.formation)];
         if (valid.includes(data.formation)) { lineupFormation=data.formation; lineupSlots=data.slots||{}; }
         else { lineupFormation=''; lineupSlots={}; }
       } else { lineupFormation=''; lineupSlots={}; }
@@ -1109,11 +1164,37 @@
     const group  = document.getElementById('formation-group');
     const sel    = document.getElementById('formation-select');
     group.style.display = 'flex';
-    sel.innerHTML = '<option value="">— Välj formation —</option>' +
-      (FORMATIONS[format]||[]).map(f =>
-        `<option value="${f}"${f===lineupFormation?' selected':''}>${f}</option>`
-      ).join('');
-    sel.onchange = () => selectFormation(sel.value);
+
+    const all = allFormationsForFormat(format);
+    const customForFormat = all.filter(x => x.custom);
+    const isCustomSelected = customForFormat.some(x => x.f === lineupFormation);
+
+    sel.innerHTML =
+      '<option value="">— Välj formation —</option>' +
+      all.map(x => `<option value="${x.f}"${x.f===lineupFormation?' selected':''}>${x.custom?'★ ':''}${x.f}</option>`).join('') +
+      '<option value="__custom__">＋ Lägg till egen...</option>';
+
+    sel.onchange = () => {
+      if (sel.value === '__custom__') {
+        sel.value = lineupFormation || '';
+        document.getElementById('custom-formation-row').classList.add('visible');
+        document.getElementById('custom-formation-input').focus();
+      } else {
+        document.getElementById('custom-formation-row').classList.remove('visible');
+        document.getElementById('custom-formation-error').textContent = '';
+        selectFormation(sel.value);
+      }
+    };
+
+    // Show/hide delete button for custom formations
+    const delBtn = document.getElementById('btn-delete-custom-formation');
+    const selectedCustom = customForFormat.find(x => x.f === lineupFormation);
+    if (selectedCustom) {
+      delBtn.classList.add('visible');
+      delBtn.dataset.id = selectedCustom.id;
+    } else {
+      delBtn.classList.remove('visible');
+    }
   }
 
   function selectFormation(f) {
@@ -1282,6 +1363,49 @@
       btn.textContent = 'Kopierat ✓';
       setTimeout(() => { btn.textContent = 'Kopiera lista'; }, 2000);
     }).catch(() => alert('Kunde inte kopiera. Försök igen.'));
+  });
+
+  // ── Custom formation handlers ─────────────────────
+  document.getElementById('btn-save-custom-formation').addEventListener('click', async () => {
+    const match  = currentMatch(); if (!match) return;
+    const input  = document.getElementById('custom-formation-input');
+    const errEl  = document.getElementById('custom-formation-error');
+    const f      = input.value.trim();
+    const error  = validateCustomFormation(f, match.format||'9v9');
+    if (error) { errEl.textContent = error; return; }
+    errEl.textContent = '';
+    try {
+      await addDoc(collection(db,'customFormations'), { format: match.format||'9v9', formation: f, createdBy: currentUser?.email||'okänd' });
+      input.value = '';
+      document.getElementById('custom-formation-row').classList.remove('visible');
+      lineupFormation = f;
+      lineupSlots = {};
+      saveLineup();
+    } catch(err) { console.error(err); errEl.textContent = 'Kunde inte spara. Försök igen.'; }
+  });
+
+  document.getElementById('btn-cancel-custom-formation').addEventListener('click', () => {
+    document.getElementById('custom-formation-row').classList.remove('visible');
+    document.getElementById('custom-formation-error').textContent = '';
+    document.getElementById('custom-formation-input').value = '';
+  });
+
+  document.getElementById('custom-formation-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') document.getElementById('btn-save-custom-formation').click();
+    if (e.key === 'Escape') document.getElementById('btn-cancel-custom-formation').click();
+  });
+
+  document.getElementById('btn-delete-custom-formation').addEventListener('click', async () => {
+    const btn = document.getElementById('btn-delete-custom-formation');
+    if (!btn.dataset.id) return;
+    if (!confirm(`Ta bort formationen ${lineupFormation}?`)) return;
+    try {
+      await deleteDoc(doc(db,'customFormations', btn.dataset.id));
+      lineupFormation = '';
+      lineupSlots = {};
+      renderFormationPicker(currentMatch()?.format||'9v9');
+      renderLineupBody();
+    } catch(err) { console.error(err); alert('Kunde inte ta bort.'); }
   });
 
   function updateCopyButton() {

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>v1.4 — Laguttagning</title>
+  <title>v1.5 — Laguttagning</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
@@ -1006,7 +1006,27 @@
     catch(err) { console.error(err); alert('Kunde inte ta bort.'); } finally { btn.disabled=false; pendingDelete=null; }
   });
 
-  // ── ALL LINEUPS LISTENER ──────────────────────────
+  // Maps slot position labels to relevant player position tags
+  const SLOT_TO_TAGS = {
+    'GK':  ['GK'],
+    'CB':  ['CB'], 'LCB':['CB'], 'RCB':['CB'],
+    'LB':  ['FB','WB'], 'RB':['FB','WB'],
+    'WB':  ['WB','FB'],
+    'DM':  ['DM','CM'],
+    'CM':  ['CM','DM','AM'], 'LCM':['CM','DM'], 'RCM':['CM','DM'],
+    'LM':  ['WM','CM','AM'], 'RM':['WM','CM','AM'],
+    'AM':  ['AM','CM','WM'],
+    'LW':  ['W','WM'], 'RW':['W','WM'],
+    'ST':  ['ST'], 'CF':['ST'],
+  };
+
+  function posMatchScore(player) {
+    if (!selectedSlot) return 1;
+    const label    = getSlotLabel(selectedSlot);
+    const relevant = SLOT_TO_TAGS[label] || [];
+    if (!relevant.length) return 1;
+    return (player.positions||[]).some(t => relevant.includes(t)) ? 0 : 1;
+  }
   function startAllLineupsListener() {
     if (unsubAllLineups) unsubAllLineups();
     unsubAllLineups = onSnapshot(collection(db,'lineups'), snap=>{
@@ -1142,7 +1162,7 @@
       </div>`;
     }
 
-    const avail   = players.filter(p=>!isPlayerUnavailableOnDate(p, matchDate||todayStr())).sort((a,b)=>shortName(a).localeCompare(shortName(b),'sv'));
+    const avail   = players.filter(p=>!isPlayerUnavailableOnDate(p, matchDate||todayStr())).sort((a,b)=> posMatchScore(a)-posMatchScore(b) || shortName(a).localeCompare(shortName(b),'sv'));
     const unavail = players.filter(p=> isPlayerUnavailableOnDate(p, matchDate||todayStr())).sort((a,b)=>shortName(a).localeCompare(shortName(b),'sv'));
 
     let html='';

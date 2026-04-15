@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>v0.1 — Laguttagning</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0e1110;
+      --surface:   #161c18;
+      --border:    #2a332c;
+      --green:     #4caf6e;
+      --green-dim: #2e7d4a;
+      --text:      #e8ede9;
+      --muted:     #6b7a6e;
+      --danger:    #e05c5c;
+      --font-display: 'Bebas Neue', sans-serif;
+      --font-body:    'DM Sans', sans-serif;
+    }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-body);
+    }
+
+    /* ── VIEWS ─────────────────────────────────────── */
+    .view { display: none; height: 100%; }
+    .view.active { display: flex; }
+
+    /* ── LOGIN PAGE ─────────────────────────────────── */
+    #view-login {
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      min-height: 100vh;
+      padding: 2rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* subtle pitch-lines background */
+    #view-login::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background:
+        repeating-linear-gradient(
+          to bottom,
+          transparent 0px,
+          transparent 58px,
+          rgba(76,175,110,.04) 58px,
+          rgba(76,175,110,.04) 60px
+        );
+      pointer-events: none;
+    }
+
+    .login-card {
+      position: relative;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 2.5rem 3rem;
+      width: 100%;
+      max-width: 420px;
+      box-shadow: 0 32px 64px rgba(0,0,0,.5);
+    }
+
+    .login-logo {
+      font-family: var(--font-display);
+      font-size: 2.8rem;
+      letter-spacing: .08em;
+      color: var(--green);
+      line-height: 1;
+      margin-bottom: .25rem;
+    }
+
+    .login-sub {
+      font-size: .85rem;
+      color: var(--muted);
+      margin-bottom: 2rem;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: .4rem;
+      margin-bottom: 1.2rem;
+    }
+
+    .field label {
+      font-size: .78rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: var(--muted);
+    }
+
+    .field input {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-family: var(--font-body);
+      font-size: .95rem;
+      padding: .75rem 1rem;
+      transition: border-color .2s;
+      outline: none;
+    }
+
+    .field input:focus {
+      border-color: var(--green);
+    }
+
+    .btn-primary {
+      width: 100%;
+      background: var(--green);
+      color: #0e1110;
+      border: none;
+      border-radius: 8px;
+      font-family: var(--font-display);
+      font-size: 1.2rem;
+      letter-spacing: .08em;
+      padding: .85rem;
+      cursor: pointer;
+      margin-top: .5rem;
+      transition: background .2s, transform .1s;
+    }
+
+    .btn-primary:hover  { background: #5dc97f; }
+    .btn-primary:active { transform: scale(.98); }
+    .btn-primary:disabled { background: var(--green-dim); cursor: not-allowed; }
+
+    .error-msg {
+      background: rgba(224,92,92,.12);
+      border: 1px solid rgba(224,92,92,.3);
+      border-radius: 8px;
+      color: var(--danger);
+      font-size: .85rem;
+      padding: .7rem 1rem;
+      margin-bottom: 1rem;
+      display: none;
+    }
+
+    .error-msg.visible { display: block; }
+
+    /* ── MAIN APP ───────────────────────────────────── */
+    #view-app {
+      flex-direction: column;
+      min-height: 100vh;
+    }
+
+    .topbar {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0 2rem;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .topbar-logo {
+      font-family: var(--font-display);
+      font-size: 1.6rem;
+      letter-spacing: .08em;
+      color: var(--green);
+    }
+
+    .topbar-user {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      font-size: .85rem;
+      color: var(--muted);
+    }
+
+    .btn-logout {
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--muted);
+      font-family: var(--font-body);
+      font-size: .8rem;
+      padding: .35rem .8rem;
+      cursor: pointer;
+      transition: border-color .2s, color .2s;
+    }
+
+    .btn-logout:hover { border-color: var(--danger); color: var(--danger); }
+
+    .app-body {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 1rem;
+      color: var(--muted);
+    }
+
+    .app-body h2 {
+      font-family: var(--font-display);
+      font-size: 2rem;
+      letter-spacing: .06em;
+      color: var(--text);
+    }
+
+    .app-body p {
+      font-size: .9rem;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- LOGIN VIEW -->
+  <div id="view-login" class="view active">
+    <div class="login-card">
+      <div class="login-logo">LAGUTTAGNING</div>
+      <div class="login-sub">Tränarverktyg — logga in för att fortsätta</div>
+
+      <div id="login-error" class="error-msg"></div>
+
+      <div class="field">
+        <label for="email">E-post</label>
+        <input type="email" id="email" placeholder="tränare@klubb.se" autocomplete="email" />
+      </div>
+
+      <div class="field">
+        <label for="password">Lösenord</label>
+        <input type="password" id="password" placeholder="••••••••" autocomplete="current-password" />
+      </div>
+
+      <button class="btn-primary" id="btn-login">LOGGA IN</button>
+    </div>
+  </div>
+
+  <!-- MAIN APP VIEW (placeholder) -->
+  <div id="view-app" class="view">
+    <div class="topbar">
+      <div class="topbar-logo">LAGUTTAGNING</div>
+      <div class="topbar-user">
+        <span id="user-email"></span>
+        <button class="btn-logout" id="btn-logout">Logga ut</button>
+      </div>
+    </div>
+    <div class="app-body">
+      <h2>VÄLKOMMEN!</h2>
+      <p>Inloggning fungerar. Nästa steg: spelarhantering.</p>
+    </div>
+  </div>
+
+  <!-- Firebase CDN -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import {
+      getAuth,
+      signInWithEmailAndPassword,
+      signOut,
+      onAuthStateChanged
+    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+    // ── Firebase config ──────────────────────────────
+    const firebaseConfig = {
+      apiKey:            "AIzaSyDtWJUooasHwd3PKnx_vHvbE4rzU5iGS40",
+      authDomain:        "laguttagning.firebaseapp.com",
+      projectId:         "laguttagning",
+      storageBucket:     "laguttagning.firebasestorage.app",
+      messagingSenderId: "946370451262",
+      appId:             "1:946370451262:web:b2722c39a375a931183e6f"
+    };
+
+    const app  = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+
+    // ── DOM refs ─────────────────────────────────────
+    const viewLogin  = document.getElementById('view-login');
+    const viewApp    = document.getElementById('view-app');
+    const emailInput = document.getElementById('email');
+    const passInput  = document.getElementById('password');
+    const btnLogin   = document.getElementById('btn-login');
+    const btnLogout  = document.getElementById('btn-logout');
+    const errorBox   = document.getElementById('login-error');
+    const userEmail  = document.getElementById('user-email');
+
+    // ── View switcher ────────────────────────────────
+    function showView(name) {
+      document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+      document.getElementById('view-' + name).classList.add('active');
+    }
+
+    // ── Auth state listener ──────────────────────────
+    onAuthStateChanged(auth, user => {
+      if (user) {
+        userEmail.textContent = user.email;
+        showView('app');
+      } else {
+        showView('login');
+      }
+    });
+
+    // ── Login ────────────────────────────────────────
+    function showError(msg) {
+      errorBox.textContent = msg;
+      errorBox.classList.add('visible');
+    }
+
+    function clearError() {
+      errorBox.classList.remove('visible');
+    }
+
+    btnLogin.addEventListener('click', async () => {
+      clearError();
+      const email = emailInput.value.trim();
+      const pass  = passInput.value;
+
+      if (!email || !pass) {
+        showError('Fyll i e-post och lösenord.');
+        return;
+      }
+
+      btnLogin.disabled = true;
+      btnLogin.textContent = 'LOGGAR IN...';
+
+      try {
+        await signInWithEmailAndPassword(auth, email, pass);
+      } catch (err) {
+        const msgs = {
+          'auth/invalid-credential':    'Fel e-post eller lösenord.',
+          'auth/user-not-found':        'Ingen användare med den e-posten.',
+          'auth/wrong-password':        'Fel lösenord.',
+          'auth/too-many-requests':     'För många försök. Försök igen senare.',
+          'auth/invalid-email':         'Ogiltig e-postadress.',
+        };
+        showError(msgs[err.code] || 'Inloggning misslyckades. Försök igen.');
+      } finally {
+        btnLogin.disabled = false;
+        btnLogin.textContent = 'LOGGA IN';
+      }
+    });
+
+    // Enter-tangent på lösenordsfältet
+    passInput.addEventListener('keydown', e => {
+      if (e.key === 'Enter') btnLogin.click();
+    });
+
+    // ── Logout ───────────────────────────────────────
+    btnLogout.addEventListener('click', () => signOut(auth));
+  </script>
+
+</body>
+</html>

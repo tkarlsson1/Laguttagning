@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>v0.5 — Laguttagning</title>
+  <title>v0.6 — Laguttagning</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
@@ -322,6 +322,15 @@
     }
     .pool-section-label:first-child { border-top: none; margin-top: 0; padding-top: .3rem; }
 
+    /* conflict badges */
+    .pool-conflicts { display: flex; flex-direction: column; gap: 2px; flex-shrink: 0; align-items: flex-end; }
+    .conflict-badge {
+      font-size: .65rem; font-weight: 600; padding: .15rem .4rem; border-radius: 4px;
+      white-space: nowrap;
+    }
+    .conflict-week { color: var(--warn);   background: rgba(224,168,92,.12); border: 1px solid rgba(224,168,92,.25); }
+    .conflict-time { color: var(--danger); background: rgba(224,92,92,.12);  border: 1px solid rgba(224,92,92,.25); }
+
     /* ── MODALS ──────────────────────────────────────── */
     .modal-backdrop {
       display: none; position: fixed; inset: 0; background: rgba(0,0,0,.7); z-index: 100;
@@ -616,6 +625,45 @@
     return rows; // index 0 = GK
   }
 
+  // ── Conflict helpers ──────────────────────────────
+  function isoWeekKey(dateStr) {
+    if (!dateStr) return null;
+    const d = new Date(dateStr + 'T12:00:00');
+    const isoDay = (d.getDay() + 6) % 7; // Mon=0 … Sun=6
+    const thu = new Date(d); thu.setDate(d.getDate() - isoDay + 3);
+    const yearStart = new Date(thu.getFullYear(), 0, 1);
+    const week = Math.ceil(((thu - yearStart) / 86400000 + 1) / 7);
+    return `${thu.getFullYear()}-W${String(week).padStart(2,'0')}`;
+  }
+
+  function timeConflict(m1, m2) {
+    // true if same date and times within 2 hours
+    if (!m1?.date || !m2?.date || m1.date !== m2.date) return false;
+    if (!m1?.time || !m2?.time) return false;
+    const toMin = t => { const [h,m] = t.split(':').map(Number); return h*60+m; };
+    return Math.abs(toMin(m1.time) - toMin(m2.time)) < 120;
+  }
+
+  function getConflicts(pid) {
+    // Returns array of { matchId, label, isTimeCrash } for other matches this week
+    if (!currentLineupMatchId) return [];
+    const curMatch = matches.find(m => m.id === currentLineupMatchId);
+    const curWeek  = isoWeekKey(curMatch?.date);
+    const result   = [];
+    Object.entries(allLineups).forEach(([mid, lu]) => {
+      if (mid === currentLineupMatchId) return;
+      const inLineup = Object.values(lu.slots||{}).some(arr => arr.includes(pid));
+      if (!inLineup) return;
+      const m = matches.find(x => x.id === mid);
+      if (!m || isoWeekKey(m.date) !== curWeek) return;
+      const d = m.date ? new Date(m.date+'T12:00:00') : null;
+      const dayLabel = d ? WEEKDAY[d.getDay()] : '?';
+      const label = `${dayLabel}${m.time?' '+m.time:''} ${m.opponent||''}`.trim();
+      result.push({ matchId: mid, label, isTimeCrash: timeConflict(curMatch, m) });
+    });
+    return result;
+  }
+
   function getSlotLabel(slotKey) {
     if (!lineupFormation) return slotKey;
     const m = slotKey.match(/r(\d+)-(\d+)/);
@@ -644,6 +692,8 @@
   let lineupFormation      = '';
   let lineupSlots          = {};   // { 'r1-0': ['pid', ...], ... }
   let selectedSlot         = null;
+  let allLineups           = {};   // { matchId: { formation, slots } } — all lineups for conflict detection
+  let unsubAllLineups      = null;
 
   // ── Helpers ───────────────────────────────────────
   function showView(name) {
@@ -694,10 +744,11 @@
       showView('app');
       startPlayerListener();
       startMatchListener();
+      startAllLineupsListener();
     } else {
       showView('login');
-      [unsubPlayers, unsubMatches, unsubLineup].forEach(fn => fn && fn());
-      unsubPlayers = unsubMatches = unsubLineup = null;
+      [unsubPlayers, unsubMatches, unsubLineup, unsubAllLineups].forEach(fn => fn && fn());
+      unsubPlayers = unsubMatches = unsubLineup = unsubAllLineups = null;
       players = []; matches = [];
     }
   });
@@ -815,6 +866,15 @@
       matches.sort((a,b) => (`${a.date||''}T${a.time||'00:00'}`).localeCompare(`${b.date||''}T${b.time||'00:00'}`));
       renderMatches();
       refreshMatchSelector();
+    });
+  }
+
+  function startAllLineupsListener() {
+    if (unsubAllLineups) unsubAllLineups();
+    unsubAllLineups = onSnapshot(collection(db,'lineups'), snap => {
+      allLineups = {};
+      snap.docs.forEach(d => { allLineups[d.id] = d.data(); });
+      renderPlayerPool(); // refresh conflict indicators if pool is open
     });
   }
 
@@ -1104,10 +1164,22 @@
       const assignedSlot   = assignedMap[p.id];
       const isUnavailable  = p.status && p.status !== 'available';
       const inSelected     = selectedSlot && (lineupSlots[selectedSlot]||[]).includes(p.id);
+      const conflicts      = getConflicts(p.id);
+      const hasTimeCrash   = conflicts.some(c => c.isTimeCrash);
+
       let dotCls = isUnavailable ? 'dot-unavailable' : (assignedSlot ? 'dot-assigned' : 'dot-available');
-      let cls    = 'pool-item' + (inSelected?' in-selected':'') + (isUnavailable?' pool-unavailable':'');
-      const slotLabel = assignedSlot ? getSlotLabel(assignedSlot) : '';
-      const tags = (p.positions||[]).join(' ');
+      if (conflicts.length && !assignedSlot) dotCls = 'dot-assigned'; // reuse yellow dot for weekend conflict
+      let cls = 'pool-item' + (inSelected?' in-selected':'') + (isUnavailable?' pool-unavailable':'');
+
+      const slotLabel  = assignedSlot ? getSlotLabel(assignedSlot) : '';
+      const tags       = (p.positions||[]).join(' ');
+
+      const conflictBadgesHtml = conflicts.length
+        ? `<div class="pool-conflicts">${conflicts.map(c =>
+            `<span class="conflict-badge ${c.isTimeCrash?'conflict-time':'conflict-week'}">${c.isTimeCrash?'⚡ ':''}${escHtml(c.label)}</span>`
+          ).join('')}</div>`
+        : '';
+
       return `<div class="${cls}" data-pid="${p.id}">
         <div class="pool-dot ${dotCls}"></div>
         <div class="pool-info">
@@ -1116,6 +1188,7 @@
         </div>
         ${assignedSlot&&!inSelected?`<div class="pool-badge">${escHtml(slotLabel)}</div>`:''}
         ${inSelected?'<div class="pool-check">✓</div>':''}
+        ${conflictBadgesHtml}
       </div>`;
     }
 

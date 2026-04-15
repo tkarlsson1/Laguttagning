@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>v0.3 — Laguttagning</title>
+  <title>v0.4 — Laguttagning</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
@@ -420,11 +420,6 @@
       </div>
     </div>
 
-    <div class="field">
-      <label for="match-formation">Formation</label>
-      <select id="match-formation"></select>
-    </div>
-
     <div class="modal-actions">
       <div class="modal-actions-left">
         <button class="btn-danger" id="btn-delete-match" style="display:none">Ta bort</button>
@@ -473,7 +468,7 @@
   // ── Formations data ───────────────────────────────
   const FORMATIONS = {
     '7v7':  ['2-3-1','3-2-1','2-2-2','3-1-2'],
-    '9v9':  ['3-2-2','3-3-1','2-3-2','3-1-3','4-2-1','1-3-3','4-1-2','2-4-1','3-2-1-1','2-1-4-1','2-1-3-2'],
+    '9v9':  ['3-3-2','3-2-3','4-2-2','4-3-1','3-4-1','2-4-2','4-1-3','2-3-3','1-4-3','2-1-4-1','2-1-3-2'],
     '11v11':['4-4-2','4-3-3','4-2-3-1','3-5-2','3-4-3','4-1-4-1','4-3-2-1','5-3-2','5-4-1','4-5-1','3-4-2-1','4-1-2-1-2','4-2-2-2','3-3-3-1']
   };
 
@@ -730,7 +725,6 @@
             </div>
             <div class="match-badges">
               <span class="badge badge-format">${escHtml(m.format||'')}</span>
-              <span class="badge badge-formation">${escHtml(m.formation||'')}</span>
               <span class="badge badge-diff-${m.difficulty||'green'}">${DIFF_LABEL[m.difficulty]||''}</span>
             </div>
           </div>
@@ -740,14 +734,6 @@
     matchList.innerHTML = html;
     matchList.querySelectorAll('.match-card').forEach(c => c.addEventListener('click', () => openMatchEdit(c.dataset.id)));
   }
-
-  // formation select update
-  function updateFormationSelect(format, current) {
-    const options = FORMATIONS[format] || [];
-    matchFormationIn.innerHTML = options.map(f => `<option value="${f}"${f===current?' selected':''}>${f}</option>`).join('');
-  }
-
-  matchFormatIn.addEventListener('change', () => updateFormationSelect(matchFormatIn.value, ''));
 
   // match modal open (add)
   document.getElementById('btn-add-match').addEventListener('click', () => {
@@ -759,7 +745,6 @@
     matchLocationIn.value = '';
     matchFormatIn.value   = '9v9';
     matchDiffIn.value     = 'green';
-    updateFormationSelect('9v9', '');
     btnDeleteMatch.style.display = 'none';
     matchModal.classList.add('open'); matchOpponentIn.focus();
   });
@@ -774,7 +759,6 @@
     matchLocationIn.value = m.location || '';
     matchFormatIn.value   = m.format   || '9v9';
     matchDiffIn.value     = m.difficulty || 'green';
-    updateFormationSelect(m.format || '9v9', m.formation || '');
     btnDeleteMatch.style.display = 'inline-flex';
     matchModal.classList.add('open'); matchOpponentIn.focus();
   }
@@ -793,7 +777,6 @@
       location:   matchLocationIn.value.trim() || '',
       format:     matchFormatIn.value,
       difficulty: matchDiffIn.value,
-      formation:  matchFormationIn.value,
       updatedBy:  currentUser?.email || 'okänd',
       updatedAt:  serverTimestamp()
     };

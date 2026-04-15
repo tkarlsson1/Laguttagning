@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>v0.6 — Laguttagning</title>
+  <title>v0.7 — Laguttagning</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
@@ -637,11 +637,9 @@
   }
 
   function timeConflict(m1, m2) {
-    // true if same date and times within 2 hours
-    if (!m1?.date || !m2?.date || m1.date !== m2.date) return false;
-    if (!m1?.time || !m2?.time) return false;
-    const toMin = t => { const [h,m] = t.split(':').map(Number); return h*60+m; };
-    return Math.abs(toMin(m1.time) - toMin(m2.time)) < 120;
+    // true if same date
+    if (!m1?.date || !m2?.date) return false;
+    return m1.date === m2.date;
   }
 
   function getConflicts(pid) {

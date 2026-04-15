@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>v0.7 — Laguttagning</title>
+  <title>v0.8 — Laguttagning</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
@@ -137,7 +137,7 @@
     .filter-btn.active { background: var(--green); border-color: var(--green); color: #0e1110; }
 
     /* ── PLAYER GRID ─────────────────────────────────── */
-    .player-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1rem; }
+    .player-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 1rem; }
     .player-card {
       background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
       padding: 1rem 1.2rem; cursor: pointer; transition: border-color .2s, transform .15s;
@@ -156,6 +156,56 @@
     .status-sick        { color: var(--warn);    background: rgba(224,168,92,.1); }
     .status-unavailable { color: var(--info);    background: rgba(92,158,224,.1); }
     .player-meta { font-size: .72rem; color: var(--muted); margin-top: .6rem; }
+
+    /* absence display on player cards */
+    .absence-pills { display: flex; flex-direction: column; gap: 3px; margin-top: .6rem; }
+    .absence-pill {
+      font-size: .7rem; padding: .2rem .5rem; border-radius: 4px;
+      display: inline-flex; align-items: center; gap: .3rem; width: fit-content;
+    }
+    .absence-pill-active   { background: rgba(224,92,92,.1);   color: var(--danger); border: 1px solid rgba(224,92,92,.2); }
+    .absence-pill-upcoming { background: rgba(224,168,92,.08); color: var(--warn);   border: 1px solid rgba(224,168,92,.18); }
+
+    /* ── ABSENCE ROWS IN MODAL ───────────────────────── */
+    .absence-section { margin-bottom: 1.2rem; }
+    .absence-section-label { font-size: .78rem; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin-bottom: .5rem; }
+    .absence-rows { display: flex; flex-direction: column; gap: .4rem; margin-bottom: .5rem; }
+
+    .absence-row {
+      display: grid;
+      grid-template-columns: auto 1fr 1fr 1fr auto;
+      gap: .4rem; align-items: center;
+      background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: .5rem .6rem;
+    }
+    @media (max-width: 500px) { .absence-row { grid-template-columns: 1fr 1fr; } }
+
+    .absence-row select {
+      background: var(--surface2); border: 1px solid var(--border); border-radius: 6px;
+      color: var(--text); font-family: var(--font-body); font-size: .8rem;
+      padding: .3rem .5rem; outline: none;
+    }
+    .absence-row input[type="date"] {
+      background: var(--surface2); border: 1px solid var(--border); border-radius: 6px;
+      color: var(--text); font-family: var(--font-body); font-size: .8rem;
+      padding: .3rem .5rem; outline: none; width: 100%;
+    }
+    .absence-row input[type="text"] {
+      background: var(--surface2); border: 1px solid var(--border); border-radius: 6px;
+      color: var(--text); font-family: var(--font-body); font-size: .8rem;
+      padding: .3rem .5rem; outline: none; width: 100%;
+    }
+    .absence-row input::placeholder { color: var(--muted); }
+    .abs-rm {
+      background: none; border: none; color: var(--muted); cursor: pointer;
+      font-size: 1.1rem; padding: 0 2px; transition: color .15s; line-height: 1;
+    }
+    .abs-rm:hover { color: var(--danger); }
+    .btn-add-absence {
+      background: transparent; border: 1px dashed var(--border); border-radius: 6px;
+      color: var(--muted); font-size: .82rem; padding: .35rem .75rem; cursor: pointer;
+      transition: all .15s; width: 100%;
+    }
+    .btn-add-absence:hover { border-color: var(--green); color: var(--green); }
 
     /* ── MATCH LIST ──────────────────────────────────── */
     .match-list { display: flex; flex-direction: column; gap: .75rem; }
@@ -194,9 +244,7 @@
     .empty-state p:first-child { font-family: var(--font-display); font-size: 1.4rem; color: var(--text); margin-bottom: .5rem; }
 
     /* ── LINEUP PAGE ─────────────────────────────────── */
-    .lineup-top {
-      display: flex; gap: 1.5rem; align-items: flex-end; flex-wrap: wrap; margin-bottom: 1.5rem;
-    }
+    .lineup-top { display: flex; gap: 1.5rem; align-items: flex-end; flex-wrap: wrap; margin-bottom: 1.5rem; }
     .lineup-match-field { min-width: 280px; max-width: 400px; margin-bottom: 0; flex: 1; }
     .lineup-formation-group { display: flex; flex-direction: column; gap: .4rem; flex: 2; }
     .field-label { font-size: .78rem; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
@@ -208,52 +256,23 @@
     }
     .formation-btn:hover  { border-color: var(--text); color: var(--text); }
     .formation-btn.active { background: var(--green); border-color: var(--green); color: #0e1110; font-weight: 700; }
-
     .save-indicator { font-size: .78rem; color: var(--muted); align-self: flex-end; white-space: nowrap; }
-
     .lineup-placeholder { text-align: center; padding: 3rem 1rem; color: var(--muted); font-size: .95rem; }
 
-    .lineup-main {
-      display: grid;
-      grid-template-columns: 360px 1fr;
-      gap: 2rem;
-      align-items: start;
-    }
-    @media (max-width: 780px) {
-      .lineup-main { grid-template-columns: 1fr; }
-    }
+    .lineup-main { display: grid; grid-template-columns: 360px 1fr; gap: 2rem; align-items: start; }
+    @media (max-width: 780px) { .lineup-main { grid-template-columns: 1fr; } }
 
     /* ── PITCH ───────────────────────────────────────── */
     .pitch {
       background: #1e5918;
-      background-image: repeating-linear-gradient(
-        to bottom, rgba(0,0,0,0) 0, rgba(0,0,0,0) 48px, rgba(0,0,0,.07) 48px, rgba(0,0,0,.07) 96px
-      );
-      border-radius: 10px;
-      position: relative;
-      width: 100%;
-      max-width: 360px;
-      padding: 10px;
-      box-shadow: 0 8px 32px rgba(0,0,0,.4);
+      background-image: repeating-linear-gradient(to bottom, rgba(0,0,0,0) 0, rgba(0,0,0,0) 48px, rgba(0,0,0,.07) 48px, rgba(0,0,0,.07) 96px);
+      border-radius: 10px; position: relative; width: 100%; max-width: 360px;
+      padding: 10px; box-shadow: 0 8px 32px rgba(0,0,0,.4);
     }
-    /* outer border line */
-    .pitch::before {
-      content: ''; position: absolute; inset: 8px;
-      border: 2px solid rgba(255,255,255,.15); border-radius: 2px; pointer-events: none; z-index: 0;
-    }
-    /* center line */
-    .pitch::after {
-      content: ''; position: absolute; left: 8px; right: 8px; top: 50%;
-      height: 2px; background: rgba(255,255,255,.1); pointer-events: none; z-index: 0;
-    }
-
-    .pitch-rows {
-      display: flex; flex-direction: column; gap: 8px;
-      position: relative; z-index: 1;
-      min-height: 460px;
-    }
-
-    .pitch-row { display: flex; justify-content: space-evenly; align-items: center; flex: 1; gap: 5px; }
+    .pitch::before { content: ''; position: absolute; inset: 8px; border: 2px solid rgba(255,255,255,.15); border-radius: 2px; pointer-events: none; z-index: 0; }
+    .pitch::after  { content: ''; position: absolute; left: 8px; right: 8px; top: 50%; height: 2px; background: rgba(255,255,255,.1); pointer-events: none; z-index: 0; }
+    .pitch-rows { display: flex; flex-direction: column; gap: 8px; position: relative; z-index: 1; min-height: 460px; }
+    .pitch-row  { display: flex; justify-content: space-evenly; align-items: center; flex: 1; gap: 5px; }
 
     .pos-slot {
       background: rgba(0,0,0,.3); border: 2px solid rgba(255,255,255,.12); border-radius: 8px;
@@ -262,86 +281,59 @@
     }
     .pos-slot:hover    { border-color: rgba(255,255,255,.3); background: rgba(0,0,0,.45); }
     .pos-slot.selected { border-color: var(--green); background: rgba(76,175,110,.18); box-shadow: 0 0 0 2px rgba(76,175,110,.2); }
-
     .pos-label  { font-size: .58rem; font-weight: 700; letter-spacing: .06em; color: rgba(255,255,255,.38); text-transform: uppercase; margin-bottom: 3px; }
     .pos-empty  { font-size: 1rem; color: rgba(255,255,255,.18); line-height: 1.4; }
     .pos-players { display: flex; flex-direction: column; gap: 2px; }
 
-    .chip-starter {
-      background: var(--green); color: #0e1110; font-size: .68rem; font-weight: 700;
-      padding: 2px 3px; border-radius: 4px;
-      display: flex; align-items: center; justify-content: space-between; gap: 1px;
-      overflow: hidden;
-    }
-    .chip-sub {
-      background: rgba(76,175,110,.2); color: rgba(255,255,255,.6); font-size: .62rem; font-weight: 500;
-      padding: 2px 3px; border-radius: 3px;
-      display: flex; align-items: center; justify-content: space-between; gap: 1px;
-      overflow: hidden;
-    }
+    .chip-starter { background: var(--green); color: #0e1110; font-size: .68rem; font-weight: 700; padding: 2px 3px; border-radius: 4px; display: flex; align-items: center; justify-content: space-between; gap: 1px; overflow: hidden; }
+    .chip-sub     { background: rgba(76,175,110,.2); color: rgba(255,255,255,.6); font-size: .62rem; font-weight: 500; padding: 2px 3px; border-radius: 3px; display: flex; align-items: center; justify-content: space-between; gap: 1px; overflow: hidden; }
     .chip-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
-    .chip-rm {
-      background: none; border: none; cursor: pointer; color: inherit; font-size: .75rem;
-      padding: 0 1px; opacity: .5; flex-shrink: 0; line-height: 1;
-    }
+    .chip-rm { background: none; border: none; cursor: pointer; color: inherit; font-size: .75rem; padding: 0 1px; opacity: .5; flex-shrink: 0; line-height: 1; }
     .chip-rm:hover { opacity: 1; color: var(--danger); }
 
     /* ── PLAYER POOL ─────────────────────────────────── */
     .pool-header { font-family: var(--font-display); font-size: 1.2rem; letter-spacing: .08em; margin-bottom: .4rem; }
     .pool-hint   { font-size: .8rem; color: var(--muted); margin-bottom: .75rem; min-height: 1.1em; }
-
     .player-pool { display: flex; flex-direction: column; gap: 2px; max-height: 520px; overflow-y: auto; }
 
     .pool-item {
-      display: flex; align-items: center; gap: .6rem;
+      display: flex; align-items: flex-start; gap: .6rem;
       padding: .45rem .75rem; border-radius: 8px; cursor: pointer;
       transition: background .12s; border: 1px solid transparent;
     }
     .pool-item:hover            { background: var(--surface2); }
     .pool-item.in-selected      { background: rgba(76,175,110,.08); border-color: rgba(76,175,110,.25); }
-    .pool-item.pool-unavailable { opacity: .38; pointer-events: none; }
+    .pool-item.pool-unavailable { opacity: .45; pointer-events: none; }
 
-    .pool-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .pool-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 5px; }
     .dot-available   { background: var(--green); }
     .dot-assigned    { background: var(--warn); }
     .dot-unavailable { background: var(--muted); }
+    .dot-absent      { background: var(--danger); }
 
     .pool-info  { flex: 1; min-width: 0; }
     .pool-name  { font-weight: 500; font-size: .9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .pool-tags  { font-size: .7rem; color: var(--muted); margin-top: 1px; }
+    .pool-absent-reason { font-size: .7rem; color: var(--danger); margin-top: 2px; }
 
-    .pool-badge {
-      font-size: .68rem; color: var(--warn); background: rgba(224,168,92,.1);
-      border: 1px solid rgba(224,168,92,.2); border-radius: 4px;
-      padding: .15rem .4rem; white-space: nowrap; flex-shrink: 0;
-    }
-    .pool-check { color: var(--green); font-size: .95rem; flex-shrink: 0; }
+    .pool-right { display: flex; flex-direction: column; gap: 2px; align-items: flex-end; flex-shrink: 0; }
+    .pool-badge { font-size: .68rem; color: var(--warn); background: rgba(224,168,92,.1); border: 1px solid rgba(224,168,92,.2); border-radius: 4px; padding: .15rem .4rem; white-space: nowrap; }
+    .pool-check { color: var(--green); font-size: .95rem; }
+
+    .conflict-badge { font-size: .65rem; font-weight: 600; padding: .15rem .4rem; border-radius: 4px; white-space: nowrap; }
+    .conflict-week  { color: var(--warn);   background: rgba(224,168,92,.12); border: 1px solid rgba(224,168,92,.25); }
+    .conflict-time  { color: var(--danger); background: rgba(224,92,92,.12);  border: 1px solid rgba(224,92,92,.25); }
+
     .pool-section-label {
       font-size: .72rem; font-weight: 600; text-transform: uppercase; letter-spacing: .06em;
       color: var(--muted); padding: .6rem .75rem .3rem; border-top: 1px solid var(--border); margin-top: .25rem;
     }
     .pool-section-label:first-child { border-top: none; margin-top: 0; padding-top: .3rem; }
 
-    /* conflict badges */
-    .pool-conflicts { display: flex; flex-direction: column; gap: 2px; flex-shrink: 0; align-items: flex-end; }
-    .conflict-badge {
-      font-size: .65rem; font-weight: 600; padding: .15rem .4rem; border-radius: 4px;
-      white-space: nowrap;
-    }
-    .conflict-week { color: var(--warn);   background: rgba(224,168,92,.12); border: 1px solid rgba(224,168,92,.25); }
-    .conflict-time { color: var(--danger); background: rgba(224,92,92,.12);  border: 1px solid rgba(224,92,92,.25); }
-
     /* ── MODALS ──────────────────────────────────────── */
-    .modal-backdrop {
-      display: none; position: fixed; inset: 0; background: rgba(0,0,0,.7); z-index: 100;
-      align-items: center; justify-content: center; padding: 1rem;
-    }
+    .modal-backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.7); z-index: 100; align-items: center; justify-content: center; padding: 1rem; }
     .modal-backdrop.open { display: flex; }
-    .modal {
-      background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
-      padding: 2rem; width: 100%; max-width: 500px; max-height: 90vh; overflow-y: auto;
-      box-shadow: 0 32px 64px rgba(0,0,0,.6);
-    }
+    .modal { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 2rem; width: 100%; max-width: 540px; max-height: 90vh; overflow-y: auto; box-shadow: 0 32px 64px rgba(0,0,0,.6); }
     .modal-title { font-family: var(--font-display); font-size: 1.6rem; letter-spacing: .06em; margin-bottom: 1.5rem; }
     .modal-actions { display: flex; gap: .75rem; justify-content: flex-end; margin-top: 1.5rem; flex-wrap: wrap; align-items: center; }
     .modal-actions-left { margin-right: auto; }
@@ -349,19 +341,12 @@
     .tag-group { margin-bottom: 1rem; }
     .tag-group-label { font-size: .78rem; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin-bottom: .5rem; }
     .tag-options { display: flex; flex-wrap: wrap; gap: .4rem; }
-    .tag-option {
-      font-size: .8rem; font-weight: 600; padding: .3rem .7rem; border-radius: 6px;
-      background: var(--bg); border: 1px solid var(--border); color: var(--muted);
-      cursor: pointer; transition: all .15s; user-select: none;
-    }
+    .tag-option { font-size: .8rem; font-weight: 600; padding: .3rem .7rem; border-radius: 6px; background: var(--bg); border: 1px solid var(--border); color: var(--muted); cursor: pointer; transition: all .15s; user-select: none; }
     .tag-option:hover    { border-color: var(--green); color: var(--green); }
     .tag-option.selected { background: rgba(76,175,110,.15); border-color: var(--green); color: var(--green); }
 
     /* ── CONFIRM ─────────────────────────────────────── */
-    #confirm-backdrop {
-      display: none; position: fixed; inset: 0; background: rgba(0,0,0,.8); z-index: 200;
-      align-items: center; justify-content: center; padding: 1rem;
-    }
+    #confirm-backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.8); z-index: 200; align-items: center; justify-content: center; padding: 1rem; }
     #confirm-backdrop.open { display: flex; }
     .confirm-box { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; max-width: 360px; width: 100%; }
     .confirm-box p { margin-bottom: 1.2rem; line-height: 1.5; }
@@ -376,29 +361,18 @@
     <div class="login-logo">LAGUTTAGNING</div>
     <div class="login-sub">Tränarverktyg — logga in för att fortsätta</div>
     <div id="login-error" class="error-msg"></div>
-    <div class="field">
-      <label for="email">E-post</label>
-      <input type="email" id="email" placeholder="tränare@klubb.se" autocomplete="email" />
-    </div>
-    <div class="field">
-      <label for="password">Lösenord</label>
-      <input type="password" id="password" placeholder="••••••••" autocomplete="current-password" />
-    </div>
+    <div class="field"><label for="email">E-post</label><input type="email" id="email" placeholder="tränare@klubb.se" autocomplete="email" /></div>
+    <div class="field"><label for="password">Lösenord</label><input type="password" id="password" placeholder="••••••••" autocomplete="current-password" /></div>
     <button class="btn-primary full" id="btn-login">LOGGA IN</button>
   </div>
 </div>
 
 <!-- ── APP ───────────────────────────────────────────── -->
 <div id="view-app" class="view">
-
   <div class="topbar">
     <div class="topbar-logo">LAGUTTAGNING</div>
-    <div class="topbar-user">
-      <span id="user-email"></span>
-      <button class="btn-logout" id="btn-logout">Logga ut</button>
-    </div>
+    <div class="topbar-user"><span id="user-email"></span><button class="btn-logout" id="btn-logout">Logga ut</button></div>
   </div>
-
   <div class="nav-tabs">
     <button class="nav-tab active" data-page="players">SPELARE</button>
     <button class="nav-tab" data-page="matches">MATCHER</button>
@@ -438,7 +412,6 @@
       <div class="page-title">UTTAG</div>
       <div class="save-indicator" id="save-indicator"></div>
     </div>
-
     <div class="lineup-top">
       <div class="field lineup-match-field" style="margin-bottom:0">
         <label for="lineup-match-select">Match</label>
@@ -449,63 +422,48 @@
         <div class="formation-btns" id="formation-btns"></div>
       </div>
     </div>
-
-    <div id="lineup-body">
-      <div class="lineup-placeholder">Välj en match ovan för att sätta laget.</div>
-    </div>
+    <div id="lineup-body"><div class="lineup-placeholder">Välj en match ovan för att sätta laget.</div></div>
   </div>
-
-</div><!-- /view-app -->
+</div>
 
 <!-- ── PLAYER MODAL ──────────────────────────────────── -->
 <div id="player-modal" class="modal-backdrop">
   <div class="modal">
     <div class="modal-title" id="player-modal-title">LÄGG TILL SPELARE</div>
-    <div class="field">
-      <label for="player-name">Namn</label>
-      <input type="text" id="player-name" placeholder="Förnamn Efternamn" />
-    </div>
-    <div class="field">
-      <label for="player-status">Status</label>
-      <select id="player-status">
-        <option value="available">Tillgänglig</option>
-        <option value="injured">Skadad</option>
-        <option value="sick">Sjuk</option>
-        <option value="unavailable">Förhinder</option>
-      </select>
-    </div>
+    <div class="field"><label for="player-name">Namn</label><input type="text" id="player-name" placeholder="Förnamn Efternamn" /></div>
     <div class="field">
       <label>Positioner</label>
       <div class="tag-group">
         <div class="tag-group-label">Back</div>
         <div class="tag-options">
-          <span class="tag-option" data-pos="GK">GK</span>
-          <span class="tag-option" data-pos="CB">CB</span>
-          <span class="tag-option" data-pos="FB">FB</span>
-          <span class="tag-option" data-pos="WB">WB</span>
+          <span class="tag-option" data-pos="GK">GK</span><span class="tag-option" data-pos="CB">CB</span>
+          <span class="tag-option" data-pos="FB">FB</span><span class="tag-option" data-pos="WB">WB</span>
         </div>
       </div>
       <div class="tag-group">
         <div class="tag-group-label">Mitt</div>
         <div class="tag-options">
-          <span class="tag-option" data-pos="DM">DM</span>
-          <span class="tag-option" data-pos="CM">CM</span>
-          <span class="tag-option" data-pos="AM">AM</span>
-          <span class="tag-option" data-pos="WM">WM</span>
+          <span class="tag-option" data-pos="DM">DM</span><span class="tag-option" data-pos="CM">CM</span>
+          <span class="tag-option" data-pos="AM">AM</span><span class="tag-option" data-pos="WM">WM</span>
         </div>
       </div>
       <div class="tag-group">
         <div class="tag-group-label">Anfall</div>
         <div class="tag-options">
-          <span class="tag-option" data-pos="W">W</span>
-          <span class="tag-option" data-pos="ST">ST</span>
+          <span class="tag-option" data-pos="W">W</span><span class="tag-option" data-pos="ST">ST</span>
         </div>
       </div>
     </div>
+
+    <!-- ABSENCE SECTION -->
+    <div class="absence-section">
+      <div class="absence-section-label">Frånvaro</div>
+      <div class="absence-rows" id="modal-absence-rows"></div>
+      <button type="button" class="btn-add-absence" id="btn-add-absence">+ Lägg till frånvaro</button>
+    </div>
+
     <div class="modal-actions">
-      <div class="modal-actions-left">
-        <button class="btn-danger" id="btn-delete-player" style="display:none">Ta bort</button>
-      </div>
+      <div class="modal-actions-left"><button class="btn-danger" id="btn-delete-player" style="display:none">Ta bort</button></div>
       <button class="btn-secondary" id="btn-player-cancel">Avbryt</button>
       <button class="btn-primary" id="btn-player-save">SPARA</button>
     </div>
@@ -517,46 +475,26 @@
   <div class="modal">
     <div class="modal-title" id="match-modal-title">LÄGG TILL MATCH</div>
     <div class="field-row">
-      <div class="field">
-        <label for="match-date">Datum</label>
-        <input type="date" id="match-date" />
-      </div>
-      <div class="field">
-        <label for="match-time">Tid</label>
-        <input type="time" id="match-time" />
-      </div>
+      <div class="field"><label for="match-date">Datum</label><input type="date" id="match-date" /></div>
+      <div class="field"><label for="match-time">Tid</label><input type="time" id="match-time" /></div>
     </div>
-    <div class="field">
-      <label for="match-opponent">Motståndare</label>
-      <input type="text" id="match-opponent" placeholder="Motståndarlagets namn" />
-    </div>
-    <div class="field">
-      <label for="match-location">Plats</label>
-      <input type="text" id="match-location" placeholder="Hemma / Borta / Plannamn" />
-    </div>
+    <div class="field"><label for="match-opponent">Motståndare</label><input type="text" id="match-opponent" placeholder="Motståndarlagets namn" /></div>
+    <div class="field"><label for="match-location">Plats</label><input type="text" id="match-location" placeholder="Hemma / Borta / Plannamn" /></div>
     <div class="field-row">
       <div class="field">
         <label for="match-format">Format</label>
-        <select id="match-format">
-          <option value="7v7">7v7</option>
-          <option value="9v9" selected>9v9</option>
-          <option value="11v11">11v11</option>
-        </select>
+        <select id="match-format"><option value="7v7">7v7</option><option value="9v9" selected>9v9</option><option value="11v11">11v11</option></select>
       </div>
       <div class="field">
         <label for="match-difficulty">Svårighetsgrad</label>
         <select id="match-difficulty">
-          <option value="green">🟢 Grön</option>
-          <option value="blue">🔵 Blå</option>
-          <option value="red">🔴 Röd</option>
-          <option value="black">⚫ Svart</option>
+          <option value="green">🟢 Grön</option><option value="blue">🔵 Blå</option>
+          <option value="red">🔴 Röd</option><option value="black">⚫ Svart</option>
         </select>
       </div>
     </div>
     <div class="modal-actions">
-      <div class="modal-actions-left">
-        <button class="btn-danger" id="btn-delete-match" style="display:none">Ta bort</button>
-      </div>
+      <div class="modal-actions-left"><button class="btn-danger" id="btn-delete-match" style="display:none">Ta bort</button></div>
       <button class="btn-secondary" id="btn-match-cancel">Avbryt</button>
       <button class="btn-primary" id="btn-match-save">SPARA</button>
     </div>
@@ -569,7 +507,7 @@
     <p id="confirm-text"></p>
     <div class="confirm-actions">
       <button class="btn-secondary" id="confirm-cancel">Avbryt</button>
-      <button class="btn-danger"    id="confirm-ok">Ta bort</button>
+      <button class="btn-danger" id="confirm-ok">Ta bort</button>
     </div>
   </div>
 </div>
@@ -577,160 +515,140 @@
 <!-- ── FIREBASE ──────────────────────────────────────── -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import {
-    getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged
-  } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-  import {
-    getFirestore, collection, doc,
-    onSnapshot, addDoc, updateDoc, deleteDoc, setDoc, serverTimestamp
-  } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+  import { getFirestore, collection, doc, onSnapshot, addDoc, updateDoc, deleteDoc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
   const firebaseConfig = {
-    apiKey:            "AIzaSyDtWJUooasHwd3PKnx_vHvbE4rzU5iGS40",
-    authDomain:        "laguttagning.firebaseapp.com",
-    projectId:         "laguttagning",
-    storageBucket:     "laguttagning.firebasestorage.app",
-    messagingSenderId: "946370451262",
-    appId:             "1:946370451262:web:b2722c39a375a931183e6f"
+    apiKey:"AIzaSyDtWJUooasHwd3PKnx_vHvbE4rzU5iGS40", authDomain:"laguttagning.firebaseapp.com",
+    projectId:"laguttagning", storageBucket:"laguttagning.firebasestorage.app",
+    messagingSenderId:"946370451262", appId:"1:946370451262:web:b2722c39a375a931183e6f"
   };
-
   const fbApp = initializeApp(firebaseConfig);
   const auth  = getAuth(fbApp);
   const db    = getFirestore(fbApp);
 
-  // ── Data ──────────────────────────────────────────
+  // ── Formations & position labels ──────────────────
   const FORMATIONS = {
     '7v7':  ['2-3-1','3-2-1','2-2-2','3-1-2'],
     '9v9':  ['3-3-2','3-2-3','4-2-2','4-3-1','3-4-1','2-4-2','4-1-3','2-3-3','1-4-3','2-1-4-1','2-1-3-2'],
     '11v11':['4-4-2','4-3-3','4-2-3-1','3-5-2','3-4-3','4-1-4-1','4-3-2-1','5-3-2','5-4-1','4-5-1','3-4-2-1','4-1-2-1-2','4-2-2-2','3-3-3-1']
   };
-
   const ROW_LABELS = {
-    def: { 1:['CB'],2:['LCB','RCB'],3:['LB','CB','RB'],4:['LB','CB','CB','RB'],5:['LB','CB','CB','CB','RB'] },
-    mid: { 1:['CM'],2:['LCM','RCM'],3:['LM','CM','RM'],4:['LM','CM','CM','RM'],5:['LM','CM','CM','CM','RM'] },
-    att: { 1:['ST'],2:['LW','RW'],3:['LW','ST','RW'],4:['LW','CF','CF','RW'] }
+    def:{1:['CB'],2:['LCB','RCB'],3:['LB','CB','RB'],4:['LB','CB','CB','RB'],5:['LB','CB','CB','CB','RB']},
+    mid:{1:['CM'],2:['LCM','RCM'],3:['LM','CM','RM'],4:['LM','CM','CM','RM'],5:['LM','CM','CM','CM','RM']},
+    att:{1:['ST'],2:['LW','RW'],3:['LW','ST','RW'],4:['LW','CF','CF','RW']}
   };
-
-  function parseFormationRows(formStr) {
-    const nums = formStr.split('-').map(Number);
-    const n = nums.length;
-    const rows = [{ rowIdx:0, count:1, labels:['GK'] }];
-    nums.forEach((count, i) => {
-      const rowIdx = i + 1;
-      const type = i === 0 ? 'def' : (i === n-1 ? 'att' : 'mid');
-      const lmap = ROW_LABELS[type];
-      const labels = lmap[count] || Array.from({length:count}, (_,j) => type.toUpperCase().slice(0,1)+(j+1));
-      rows.push({ rowIdx, count, labels });
-    });
-    return rows; // index 0 = GK
-  }
-
-  // ── Conflict helpers ──────────────────────────────
-  function isoWeekKey(dateStr) {
-    if (!dateStr) return null;
-    const d = new Date(dateStr + 'T12:00:00');
-    const isoDay = (d.getDay() + 6) % 7; // Mon=0 … Sun=6
-    const thu = new Date(d); thu.setDate(d.getDate() - isoDay + 3);
-    const yearStart = new Date(thu.getFullYear(), 0, 1);
-    const week = Math.ceil(((thu - yearStart) / 86400000 + 1) / 7);
-    return `${thu.getFullYear()}-W${String(week).padStart(2,'0')}`;
-  }
-
-  function timeConflict(m1, m2) {
-    // true if same date
-    if (!m1?.date || !m2?.date) return false;
-    return m1.date === m2.date;
-  }
-
-  function getConflicts(pid) {
-    // Returns array of { matchId, label, isTimeCrash } for other matches this week
-    if (!currentLineupMatchId) return [];
-    const curMatch = matches.find(m => m.id === currentLineupMatchId);
-    const curWeek  = isoWeekKey(curMatch?.date);
-    const result   = [];
-    Object.entries(allLineups).forEach(([mid, lu]) => {
-      if (mid === currentLineupMatchId) return;
-      const inLineup = Object.values(lu.slots||{}).some(arr => arr.includes(pid));
-      if (!inLineup) return;
-      const m = matches.find(x => x.id === mid);
-      if (!m || isoWeekKey(m.date) !== curWeek) return;
-      const d = m.date ? new Date(m.date+'T12:00:00') : null;
-      const dayLabel = d ? WEEKDAY[d.getDay()] : '?';
-      const label = `${dayLabel}${m.time?' '+m.time:''} ${m.opponent||''}`.trim();
-      result.push({ matchId: mid, label, isTimeCrash: timeConflict(curMatch, m) });
-    });
-    return result;
-  }
-
-  function getSlotLabel(slotKey) {
-    if (!lineupFormation) return slotKey;
-    const m = slotKey.match(/r(\d+)-(\d+)/);
-    if (!m) return slotKey;
-    const rows = parseFormationRows(lineupFormation);
-    const row  = rows[parseInt(m[1])];
-    return row ? (row.labels[parseInt(m[2])] || slotKey) : slotKey;
-  }
-
-  const DIFF_LABEL = { green:'Grön', blue:'Blå', red:'Röd', black:'Svart' };
   const WEEKDAY    = ['Sön','Mån','Tis','Ons','Tor','Fre','Lör'];
+  const DIFF_LABEL = { green:'Grön', blue:'Blå', red:'Röd', black:'Svart' };
+  const ABS_LABEL  = { injured:'Skadad', sick:'Sjuk', unavailable:'Förhinder' };
 
   // ── App state ─────────────────────────────────────
-  let currentUser        = null;
-  let players            = [];
-  let matches            = [];
-  let activeFilter       = 'all';
-  let editingPlayerId    = null;
-  let editingMatchId     = null;
-  let unsubPlayers       = null;
-  let unsubMatches       = null;
-  let unsubLineup        = null;
-
-  // Lineup state
-  let currentLineupMatchId = null;
-  let lineupFormation      = '';
-  let lineupSlots          = {};   // { 'r1-0': ['pid', ...], ... }
-  let selectedSlot         = null;
-  let allLineups           = {};   // { matchId: { formation, slots } } — all lineups for conflict detection
-  let unsubAllLineups      = null;
+  let currentUser = null, players = [], matches = [], activeFilter = 'all';
+  let editingPlayerId = null, editingMatchId = null;
+  let unsubPlayers = null, unsubMatches = null, unsubLineup = null, unsubAllLineups = null;
+  let currentLineupMatchId = null, lineupFormation = '', lineupSlots = {}, selectedSlot = null;
+  let allLineups = {};
+  let modalAbsences = []; // local copy while editing player modal
 
   // ── Helpers ───────────────────────────────────────
-  function showView(name) {
-    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-    document.getElementById('view-' + name).classList.add('active');
-  }
-
-  function escHtml(s) {
-    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  }
-
+  function showView(n) { document.querySelectorAll('.view').forEach(v=>v.classList.remove('active')); document.getElementById('view-'+n).classList.add('active'); }
+  function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
   function formatTs(ts) {
     if (!ts) return '';
     const d = ts.toDate ? ts.toDate() : new Date(ts);
-    return d.toLocaleDateString('sv-SE', {day:'numeric',month:'short'}) + ' ' +
-           d.toLocaleTimeString('sv-SE', {hour:'2-digit',minute:'2-digit'});
+    return d.toLocaleDateString('sv-SE',{day:'numeric',month:'short'})+' '+d.toLocaleTimeString('sv-SE',{hour:'2-digit',minute:'2-digit'});
   }
-
+  function formatDate(ds) {
+    if (!ds) return '';
+    return new Date(ds+'T12:00:00').toLocaleDateString('sv-SE',{day:'numeric',month:'short'});
+  }
   function lastEditText(items, el) {
-    const latest = [...items].filter(i => i.updatedAt).sort((a,b) =>
-      (b.updatedAt?.toDate?.() || 0) - (a.updatedAt?.toDate?.() || 0)
-    )[0];
+    const latest = [...items].filter(i=>i.updatedAt).sort((a,b)=>(b.updatedAt?.toDate?.()|| 0)-(a.updatedAt?.toDate?.()|| 0))[0];
     el.textContent = latest?.updatedBy ? `Senast redigerat av ${latest.updatedBy} — ${formatTs(latest.updatedAt)}` : '';
   }
-
   function shortName(name) {
     if (!name) return '?';
     const p = name.trim().split(/\s+/);
-    return p.length === 1 ? p[0] : p[0] + ' ' + p[p.length-1][0] + '.';
+    return p.length===1 ? p[0] : p[0]+' '+p[p.length-1][0]+'.';
+  }
+  function todayStr() { return new Date().toISOString().slice(0,10); }
+
+  // ── Absence helpers ───────────────────────────────
+  function absenceActiveOnDate(abs, dateStr) {
+    if (!abs.from || !dateStr) return false;
+    if (dateStr < abs.from) return false;
+    if (abs.to && dateStr > abs.to) return false;
+    return true;
+  }
+
+  function getAbsenceOnDate(player, dateStr) {
+    return (player.absences || []).find(a => absenceActiveOnDate(a, dateStr)) || null;
+  }
+
+  function isPlayerUnavailableOnDate(player, dateStr) {
+    // General status override (no end date set)
+    if (player.status && player.status !== 'available') return true;
+    // Date-specific absence
+    return !!getAbsenceOnDate(player, dateStr);
+  }
+
+  function absencePillHtml(abs, cls) {
+    const toLabel = abs.to ? ` t.o.m ${formatDate(abs.to)}` : ' (tills vidare)';
+    const note    = abs.note ? ` · ${abs.note}` : '';
+    return `<span class="absence-pill ${cls}">${ABS_LABEL[abs.type]||abs.type}${toLabel}${note}</span>`;
+  }
+
+  // ── Conflict helpers ──────────────────────────────
+  function isoWeekKey(ds) {
+    if (!ds) return null;
+    const d = new Date(ds+'T12:00:00'), isoDay=(d.getDay()+6)%7;
+    const thu=new Date(d); thu.setDate(d.getDate()-isoDay+3);
+    const ys=new Date(thu.getFullYear(),0,1), wk=Math.ceil(((thu-ys)/86400000+1)/7);
+    return `${thu.getFullYear()}-W${String(wk).padStart(2,'0')}`;
+  }
+  function getConflicts(pid) {
+    if (!currentLineupMatchId) return [];
+    const cur = matches.find(m=>m.id===currentLineupMatchId);
+    const curWeek = isoWeekKey(cur?.date);
+    return Object.entries(allLineups)
+      .filter(([mid]) => mid !== currentLineupMatchId)
+      .filter(([, lu]) => Object.values(lu.slots||{}).some(arr=>arr.includes(pid)))
+      .map(([mid, lu]) => { const m=matches.find(x=>x.id===mid); return { m, isTimeCrash: m&&cur&&m.date===cur.date }; })
+      .filter(({m}) => m && isoWeekKey(m.date)===curWeek)
+      .map(({m, isTimeCrash}) => {
+        const d=m.date?new Date(m.date+'T12:00:00'):null;
+        const label=`${d?WEEKDAY[d.getDay()]:'?'}${m.time?' '+m.time:''} ${m.opponent||''}`.trim();
+        return { label, isTimeCrash };
+      });
+  }
+
+  function parseFormationRows(formStr) {
+    const nums=formStr.split('-').map(Number), n=nums.length;
+    const rows=[{rowIdx:0,count:1,labels:['GK']}];
+    nums.forEach((count,i) => {
+      const type=i===0?'def':(i===n-1?'att':'mid');
+      const lmap=ROW_LABELS[type];
+      const labels=lmap[count]||Array.from({length:count},(_,j)=>type[0].toUpperCase()+(j+1));
+      rows.push({rowIdx:i+1,count,labels});
+    });
+    return rows;
+  }
+
+  function getSlotLabel(key) {
+    if (!lineupFormation) return key;
+    const m=key.match(/r(\d+)-(\d+)/); if (!m) return key;
+    const rows=parseFormationRows(lineupFormation), row=rows[parseInt(m[1])];
+    return row ? (row.labels[parseInt(m[2])]||key) : key;
   }
 
   // ── Tab nav ───────────────────────────────────────
   document.querySelectorAll('.nav-tab').forEach(tab => {
     tab.addEventListener('click', () => {
-      document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
-      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+      document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
       tab.classList.add('active');
-      document.getElementById('page-' + tab.dataset.page).classList.add('active');
-      if (tab.dataset.page === 'lineup') refreshMatchSelector();
+      document.getElementById('page-'+tab.dataset.page).classList.add('active');
+      if (tab.dataset.page==='lineup') refreshMatchSelector();
     });
   });
 
@@ -740,50 +658,55 @@
     if (user) {
       document.getElementById('user-email').textContent = user.email;
       showView('app');
-      startPlayerListener();
-      startMatchListener();
-      startAllLineupsListener();
+      startPlayerListener(); startMatchListener(); startAllLineupsListener();
     } else {
       showView('login');
-      [unsubPlayers, unsubMatches, unsubLineup, unsubAllLineups].forEach(fn => fn && fn());
-      unsubPlayers = unsubMatches = unsubLineup = unsubAllLineups = null;
-      players = []; matches = [];
+      [unsubPlayers,unsubMatches,unsubLineup,unsubAllLineups].forEach(f=>f&&f());
+      unsubPlayers=unsubMatches=unsubLineup=unsubAllLineups=null;
+      players=[]; matches=[]; allLineups={};
     }
   });
 
   const loginError = document.getElementById('login-error');
   document.getElementById('btn-login').addEventListener('click', async () => {
     loginError.classList.remove('visible');
-    const email = document.getElementById('email').value.trim();
-    const pass  = document.getElementById('password').value;
-    if (!email || !pass) { loginError.textContent = 'Fyll i e-post och lösenord.'; loginError.classList.add('visible'); return; }
-    const btn = document.getElementById('btn-login');
-    btn.disabled = true; btn.textContent = 'LOGGAR IN...';
-    try { await signInWithEmailAndPassword(auth, email, pass); }
-    catch (err) {
-      const msgs = { 'auth/invalid-credential':'Fel e-post eller lösenord.','auth/user-not-found':'Ingen användare.','auth/wrong-password':'Fel lösenord.','auth/too-many-requests':'För många försök.','auth/invalid-email':'Ogiltig e-post.' };
-      loginError.textContent = msgs[err.code] || 'Inloggning misslyckades.';
-      loginError.classList.add('visible');
-    } finally { btn.disabled = false; btn.textContent = 'LOGGA IN'; }
+    const email=document.getElementById('email').value.trim(), pass=document.getElementById('password').value;
+    if (!email||!pass) { loginError.textContent='Fyll i e-post och lösenord.'; loginError.classList.add('visible'); return; }
+    const btn=document.getElementById('btn-login'); btn.disabled=true; btn.textContent='LOGGAR IN...';
+    try { await signInWithEmailAndPassword(auth,email,pass); }
+    catch(err) {
+      const msgs={'auth/invalid-credential':'Fel e-post eller lösenord.','auth/user-not-found':'Ingen användare.','auth/wrong-password':'Fel lösenord.','auth/too-many-requests':'För många försök.','auth/invalid-email':'Ogiltig e-post.'};
+      loginError.textContent=msgs[err.code]||'Inloggning misslyckades.'; loginError.classList.add('visible');
+    } finally { btn.disabled=false; btn.textContent='LOGGA IN'; }
   });
-  document.getElementById('password').addEventListener('keydown', e => { if (e.key==='Enter') document.getElementById('btn-login').click(); });
-  document.getElementById('btn-logout').addEventListener('click', () => signOut(auth));
+  document.getElementById('password').addEventListener('keydown', e=>{ if(e.key==='Enter') document.getElementById('btn-login').click(); });
+  document.getElementById('btn-logout').addEventListener('click', ()=>signOut(auth));
 
   // ── PLAYERS ───────────────────────────────────────
   function startPlayerListener() {
     unsubPlayers = onSnapshot(collection(db,'players'), snap => {
-      players = snap.docs.map(d => ({id:d.id,...d.data()}));
-      players.sort((a,b) => (a.name||'').localeCompare(b.name||'','sv'));
-      renderPlayers();
-      renderPlayerPool(); // refresh pool if lineup open
+      players = snap.docs.map(d=>({id:d.id,...d.data()}));
+      players.sort((a,b)=>(a.name||'').localeCompare(b.name||'','sv'));
+      renderPlayers(); renderPlayerPool();
     });
   }
 
-  const statusLabel = { available:'Tillgänglig', injured:'Skadad', sick:'Sjuk', unavailable:'Förhinder' };
-  const statusClass = { available:'status-available', injured:'status-injured', sick:'status-sick', unavailable:'status-unavailable' };
+  const statusLabel = {available:'Tillgänglig',injured:'Skadad',sick:'Sjuk',unavailable:'Förhinder'};
+  const statusClass = {available:'status-available',injured:'status-injured',sick:'status-sick',unavailable:'status-unavailable'};
 
   function renderPlayers() {
-    const filtered = activeFilter === 'all' ? players : players.filter(p => p.status === activeFilter);
+    const today = todayStr();
+    let filtered = players;
+    if (activeFilter !== 'all') {
+      filtered = players.filter(p => {
+        if (activeFilter === 'available') return !isPlayerUnavailableOnDate(p, today);
+        // For status filters, check static status OR active absence of that type
+        if (p.status === activeFilter) return true;
+        const abs = getAbsenceOnDate(p, today);
+        return abs?.type === activeFilter;
+      });
+    }
+
     document.getElementById('player-count').textContent = `(${players.length})`;
     lastEditText(players, document.getElementById('players-last-edit'));
 
@@ -792,483 +715,398 @@
       grid.innerHTML = `<div class="empty-state"><p>${activeFilter==='all'?'Inga spelare ännu':'Inga spelare med den statusen'}</p><p>Lägg till spelare med knappen ovan.</p></div>`;
       return;
     }
-    grid.innerHTML = filtered.map(p => `
-      <div class="player-card" data-id="${p.id}">
+
+    grid.innerHTML = filtered.map(p => {
+      // Compute displayed status: absence today overrides static status
+      const todayAbs = getAbsenceOnDate(p, today);
+      const dispStatus = todayAbs ? todayAbs.type : (p.status || 'available');
+
+      // Active and upcoming absences for display
+      const activeAbs   = (p.absences||[]).filter(a => absenceActiveOnDate(a, today));
+      const upcomingAbs = (p.absences||[]).filter(a => a.from > today).slice(0,2);
+
+      const pillsHtml = [
+        ...activeAbs.map(a => absencePillHtml(a, 'absence-pill-active')),
+        ...upcomingAbs.map(a => {
+          const fromLabel = formatDate(a.from);
+          const toLabel   = a.to ? ` – ${formatDate(a.to)}` : '';
+          const note      = a.note ? ` · ${a.note}` : '';
+          return `<span class="absence-pill absence-pill-upcoming">Från ${fromLabel}${toLabel}: ${ABS_LABEL[a.type]||a.type}${note}</span>`;
+        })
+      ].join('');
+
+      return `<div class="player-card" data-id="${p.id}">
         <div class="player-card-name">${escHtml(p.name||'—')}</div>
         <div class="player-tags">${(p.positions||[]).map(pos=>`<span class="tag">${pos}</span>`).join('')}</div>
-        <span class="status-badge ${statusClass[p.status]||'status-available'}">${statusLabel[p.status]||'Tillgänglig'}</span>
+        <span class="status-badge ${statusClass[dispStatus]||'status-available'}">${statusLabel[dispStatus]||'Tillgänglig'}</span>
+        ${pillsHtml?`<div class="absence-pills">${pillsHtml}</div>`:''}
         ${p.updatedBy?`<div class="player-meta">${escHtml(p.updatedBy)} · ${formatTs(p.updatedAt)}</div>`:''}
-      </div>`).join('');
-    grid.querySelectorAll('.player-card').forEach(c => c.addEventListener('click', () => openPlayerEdit(c.dataset.id)));
+      </div>`;
+    }).join('');
+
+    grid.querySelectorAll('.player-card').forEach(c=>c.addEventListener('click',()=>openPlayerEdit(c.dataset.id)));
   }
 
   document.querySelectorAll('.filter-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      activeFilter = btn.dataset.filter;
-      renderPlayers();
+    btn.addEventListener('click',()=>{
+      document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active'); activeFilter=btn.dataset.filter; renderPlayers();
     });
   });
 
-  // Player modal
+  // ── Player Modal ──────────────────────────────────
   const playerModal = document.getElementById('player-modal');
   const tagOptions  = document.querySelectorAll('.tag-option');
 
+  function renderModalAbsences() {
+    const container = document.getElementById('modal-absence-rows');
+    if (!container) return;
+    container.innerHTML = modalAbsences.map((a,i) => `
+      <div class="absence-row" data-idx="${i}">
+        <select class="abs-type">
+          <option value="injured"${a.type==='injured'?' selected':''}>Skadad</option>
+          <option value="sick"${a.type==='sick'?' selected':''}>Sjuk</option>
+          <option value="unavailable"${a.type==='unavailable'?' selected':''}>Förhinder</option>
+        </select>
+        <input type="date" class="abs-from" value="${escHtml(a.from||'')}" placeholder="Från" />
+        <input type="date" class="abs-to"   value="${escHtml(a.to||'')}"   placeholder="Tills vidare" />
+        <input type="text" class="abs-note" value="${escHtml(a.note||'')}" placeholder="Notering (valfritt)" />
+        <button class="abs-rm" data-idx="${i}">×</button>
+      </div>`).join('');
+
+    container.querySelectorAll('.abs-rm').forEach(btn => {
+      btn.addEventListener('click', () => { modalAbsences.splice(parseInt(btn.dataset.idx),1); renderModalAbsences(); });
+    });
+    container.querySelectorAll('.absence-row').forEach(row => {
+      const i = parseInt(row.dataset.idx);
+      row.querySelector('.abs-type').addEventListener('change', e => { modalAbsences[i].type = e.target.value; });
+      row.querySelector('.abs-from').addEventListener('change', e => { modalAbsences[i].from = e.target.value; });
+      row.querySelector('.abs-to').addEventListener('change',   e => { modalAbsences[i].to   = e.target.value; });
+      row.querySelector('.abs-note').addEventListener('input',  e => { modalAbsences[i].note = e.target.value; });
+    });
+  }
+
+  document.getElementById('btn-add-absence').addEventListener('click', () => {
+    modalAbsences.push({ type:'unavailable', from:'', to:'', note:'' });
+    renderModalAbsences();
+  });
+
   document.getElementById('btn-add-player').addEventListener('click', () => {
-    editingPlayerId = null;
-    document.getElementById('player-modal-title').textContent = 'LÄGG TILL SPELARE';
-    document.getElementById('player-name').value = '';
-    document.getElementById('player-status').value = 'available';
-    tagOptions.forEach(t => t.classList.remove('selected'));
-    document.getElementById('btn-delete-player').style.display = 'none';
+    editingPlayerId=null; modalAbsences=[];
+    document.getElementById('player-modal-title').textContent='LÄGG TILL SPELARE';
+    document.getElementById('player-name').value='';
+    tagOptions.forEach(t=>t.classList.remove('selected'));
+    document.getElementById('btn-delete-player').style.display='none';
+    renderModalAbsences();
     playerModal.classList.add('open');
     document.getElementById('player-name').focus();
   });
 
   function openPlayerEdit(id) {
-    const p = players.find(pl => pl.id===id); if (!p) return;
-    editingPlayerId = id;
-    document.getElementById('player-modal-title').textContent = 'REDIGERA SPELARE';
-    document.getElementById('player-name').value   = p.name || '';
-    document.getElementById('player-status').value = p.status || 'available';
-    tagOptions.forEach(t => t.classList.toggle('selected', (p.positions||[]).includes(t.dataset.pos)));
-    document.getElementById('btn-delete-player').style.display = 'inline-flex';
+    const p=players.find(pl=>pl.id===id); if (!p) return;
+    editingPlayerId=id; modalAbsences=JSON.parse(JSON.stringify(p.absences||[]));
+    document.getElementById('player-modal-title').textContent='REDIGERA SPELARE';
+    document.getElementById('player-name').value=p.name||'';
+    tagOptions.forEach(t=>t.classList.toggle('selected',(p.positions||[]).includes(t.dataset.pos)));
+    document.getElementById('btn-delete-player').style.display='inline-flex';
+    renderModalAbsences();
     playerModal.classList.add('open');
     document.getElementById('player-name').focus();
   }
 
   function closePlayerModal() { playerModal.classList.remove('open'); }
   document.getElementById('btn-player-cancel').addEventListener('click', closePlayerModal);
-  playerModal.addEventListener('click', e => { if (e.target===playerModal) closePlayerModal(); });
-  tagOptions.forEach(t => t.addEventListener('click', () => t.classList.toggle('selected')));
+  playerModal.addEventListener('click', e=>{ if(e.target===playerModal) closePlayerModal(); });
+  tagOptions.forEach(t=>t.addEventListener('click',()=>t.classList.toggle('selected')));
 
   document.getElementById('btn-player-save').addEventListener('click', async () => {
-    const name = document.getElementById('player-name').value.trim();
+    const name=document.getElementById('player-name').value.trim();
     if (!name) { document.getElementById('player-name').focus(); return; }
-    const positions = [...tagOptions].filter(t => t.classList.contains('selected')).map(t => t.dataset.pos);
-    const data = { name, status: document.getElementById('player-status').value, positions, updatedBy: currentUser?.email||'okänd', updatedAt: serverTimestamp() };
-    const btn = document.getElementById('btn-player-save'); btn.disabled = true;
+    const positions=[...tagOptions].filter(t=>t.classList.contains('selected')).map(t=>t.dataset.pos);
+    // Clean absences (remove entries without from date)
+    const cleanAbsences = modalAbsences.filter(a => a.from).map(a => ({
+      type: a.type||'unavailable', from: a.from, to: a.to||'', note: a.note||''
+    }));
+    // Compute status from absences (open-ended absence = static status)
+    const openEnded = cleanAbsences.find(a => !a.to && absenceActiveOnDate(a, todayStr()));
+    const status = openEnded ? openEnded.type : 'available';
+    const data = { name, status, positions, absences: cleanAbsences, updatedBy:currentUser?.email||'okänd', updatedAt:serverTimestamp() };
+    const btn=document.getElementById('btn-player-save'); btn.disabled=true;
     try {
-      if (editingPlayerId) await updateDoc(doc(db,'players',editingPlayerId), data);
-      else                 await addDoc(collection(db,'players'), data);
+      if (editingPlayerId) await updateDoc(doc(db,'players',editingPlayerId),data);
+      else                 await addDoc(collection(db,'players'),data);
       closePlayerModal();
     } catch(err) { console.error(err); alert('Något gick fel.'); }
-    finally { btn.disabled = false; }
+    finally { btn.disabled=false; }
   });
 
   // ── MATCHES ───────────────────────────────────────
   function startMatchListener() {
     unsubMatches = onSnapshot(collection(db,'matches'), snap => {
-      matches = snap.docs.map(d => ({id:d.id,...d.data()}));
-      matches.sort((a,b) => (`${a.date||''}T${a.time||'00:00'}`).localeCompare(`${b.date||''}T${b.time||'00:00'}`));
-      renderMatches();
-      refreshMatchSelector();
-    });
-  }
-
-  function startAllLineupsListener() {
-    if (unsubAllLineups) unsubAllLineups();
-    unsubAllLineups = onSnapshot(collection(db,'lineups'), snap => {
-      allLineups = {};
-      snap.docs.forEach(d => { allLineups[d.id] = d.data(); });
-      renderPlayerPool(); // refresh conflict indicators if pool is open
+      matches = snap.docs.map(d=>({id:d.id,...d.data()}));
+      matches.sort((a,b)=>(`${a.date||''}T${a.time||'00:00'}`).localeCompare(`${b.date||''}T${b.time||'00:00'}`));
+      renderMatches(); refreshMatchSelector();
     });
   }
 
   function renderMatches() {
-    document.getElementById('match-count').textContent = `(${matches.length})`;
+    document.getElementById('match-count').textContent=`(${matches.length})`;
     lastEditText(matches, document.getElementById('matches-last-edit'));
-    const list = document.getElementById('match-list');
-    if (matches.length === 0) {
-      list.innerHTML = `<div class="empty-state" style="grid-column:unset"><p>Inga matcher ännu</p><p>Lägg till en match med knappen ovan.</p></div>`;
-      return;
-    }
-    const groups = {};
-    matches.forEach(m => { const k=m.date||'okänt'; if(!groups[k]) groups[k]=[]; groups[k].push(m); });
-    let html = '';
-    Object.keys(groups).sort().forEach(dk => {
-      const d = dk!=='okänt' ? new Date(dk+'T12:00:00') : null;
-      const label = d ? `${WEEKDAY[d.getDay()]} ${d.toLocaleDateString('sv-SE',{day:'numeric',month:'long',year:'numeric'})}` : 'Okänt datum';
-      html += `<div class="date-group-header">${label}</div>`;
-      groups[dk].forEach(m => {
-        html += `<div class="match-card" data-id="${m.id}">
-          <div class="match-diff-bar diff-${m.difficulty||'green'}"></div>
+    const list=document.getElementById('match-list');
+    if (matches.length===0) { list.innerHTML=`<div class="empty-state" style="grid-column:unset"><p>Inga matcher ännu</p><p>Lägg till en match med knappen ovan.</p></div>`; return; }
+    const groups={};
+    matches.forEach(m=>{ const k=m.date||'okänt'; if(!groups[k]) groups[k]=[]; groups[k].push(m); });
+    let html='';
+    Object.keys(groups).sort().forEach(dk=>{
+      const d=dk!=='okänt'?new Date(dk+'T12:00:00'):null;
+      html+=`<div class="date-group-header">${d?`${WEEKDAY[d.getDay()]} ${d.toLocaleDateString('sv-SE',{day:'numeric',month:'long',year:'numeric'})}` :'Okänt datum'}</div>`;
+      groups[dk].forEach(m=>{
+        html+=`<div class="match-card" data-id="${m.id}"><div class="match-diff-bar diff-${m.difficulty||'green'}"></div>
           <div class="match-card-body">
             <div class="match-time-block"><div class="match-time">${escHtml(m.time||'??:??')}</div></div>
-            <div class="match-main">
-              <div class="match-opponent">${escHtml(m.opponent||'—')}</div>
-              ${m.location?`<div class="match-location">${escHtml(m.location)}</div>`:''}
-            </div>
-            <div class="match-badges">
-              <span class="badge badge-format">${escHtml(m.format||'')}</span>
-              <span class="badge badge-diff-${m.difficulty||'green'}">${DIFF_LABEL[m.difficulty]||''}</span>
-            </div>
-          </div>
-        </div>`;
+            <div class="match-main"><div class="match-opponent">${escHtml(m.opponent||'—')}</div>${m.location?`<div class="match-location">${escHtml(m.location)}</div>`:''}</div>
+            <div class="match-badges"><span class="badge badge-format">${escHtml(m.format||'')}</span><span class="badge badge-diff-${m.difficulty||'green'}">${DIFF_LABEL[m.difficulty]||''}</span></div>
+          </div></div>`;
       });
     });
-    list.innerHTML = html;
-    list.querySelectorAll('.match-card').forEach(c => c.addEventListener('click', () => openMatchEdit(c.dataset.id)));
+    list.innerHTML=html;
+    list.querySelectorAll('.match-card').forEach(c=>c.addEventListener('click',()=>openMatchEdit(c.dataset.id)));
   }
 
-  const matchModal = document.getElementById('match-modal');
-
-  document.getElementById('btn-add-match').addEventListener('click', () => {
-    editingMatchId = null;
-    document.getElementById('match-modal-title').textContent = 'LÄGG TILL MATCH';
-    document.getElementById('match-date').value     = '';
-    document.getElementById('match-time').value     = '';
-    document.getElementById('match-opponent').value = '';
-    document.getElementById('match-location').value = '';
-    document.getElementById('match-format').value   = '9v9';
-    document.getElementById('match-difficulty').value = 'green';
-    document.getElementById('btn-delete-match').style.display = 'none';
-    matchModal.classList.add('open');
-    document.getElementById('match-opponent').focus();
+  const matchModal=document.getElementById('match-modal');
+  document.getElementById('btn-add-match').addEventListener('click',()=>{
+    editingMatchId=null;
+    document.getElementById('match-modal-title').textContent='LÄGG TILL MATCH';
+    ['match-date','match-time','match-opponent','match-location'].forEach(id=>document.getElementById(id).value='');
+    document.getElementById('match-format').value='9v9';
+    document.getElementById('match-difficulty').value='green';
+    document.getElementById('btn-delete-match').style.display='none';
+    matchModal.classList.add('open'); document.getElementById('match-opponent').focus();
   });
 
   function openMatchEdit(id) {
-    const m = matches.find(x => x.id===id); if (!m) return;
-    editingMatchId = id;
-    document.getElementById('match-modal-title').textContent = 'REDIGERA MATCH';
-    document.getElementById('match-date').value       = m.date     || '';
-    document.getElementById('match-time').value       = m.time     || '';
-    document.getElementById('match-opponent').value   = m.opponent || '';
-    document.getElementById('match-location').value   = m.location || '';
-    document.getElementById('match-format').value     = m.format   || '9v9';
-    document.getElementById('match-difficulty').value = m.difficulty || 'green';
-    document.getElementById('btn-delete-match').style.display = 'inline-flex';
-    matchModal.classList.add('open');
-    document.getElementById('match-opponent').focus();
+    const m=matches.find(x=>x.id===id); if (!m) return;
+    editingMatchId=id;
+    document.getElementById('match-modal-title').textContent='REDIGERA MATCH';
+    document.getElementById('match-date').value=m.date||'';
+    document.getElementById('match-time').value=m.time||'';
+    document.getElementById('match-opponent').value=m.opponent||'';
+    document.getElementById('match-location').value=m.location||'';
+    document.getElementById('match-format').value=m.format||'9v9';
+    document.getElementById('match-difficulty').value=m.difficulty||'green';
+    document.getElementById('btn-delete-match').style.display='inline-flex';
+    matchModal.classList.add('open'); document.getElementById('match-opponent').focus();
   }
 
   function closeMatchModal() { matchModal.classList.remove('open'); }
   document.getElementById('btn-match-cancel').addEventListener('click', closeMatchModal);
-  matchModal.addEventListener('click', e => { if (e.target===matchModal) closeMatchModal(); });
+  matchModal.addEventListener('click', e=>{ if(e.target===matchModal) closeMatchModal(); });
 
-  document.getElementById('btn-match-save').addEventListener('click', async () => {
-    const date = document.getElementById('match-date').value;
-    if (!date) { document.getElementById('match-date').focus(); return; }
-    const data = {
-      date, time: document.getElementById('match-time').value||'',
-      opponent: document.getElementById('match-opponent').value.trim()||'',
-      location: document.getElementById('match-location').value.trim()||'',
-      format: document.getElementById('match-format').value,
-      difficulty: document.getElementById('match-difficulty').value,
-      updatedBy: currentUser?.email||'okänd', updatedAt: serverTimestamp()
-    };
-    const btn = document.getElementById('btn-match-save'); btn.disabled = true;
-    try {
-      if (editingMatchId) await updateDoc(doc(db,'matches',editingMatchId), data);
-      else                await addDoc(collection(db,'matches'), data);
-      closeMatchModal();
-    } catch(err) { console.error(err); alert('Något gick fel.'); }
-    finally { btn.disabled = false; }
+  document.getElementById('btn-match-save').addEventListener('click', async ()=>{
+    const date=document.getElementById('match-date').value; if (!date) { document.getElementById('match-date').focus(); return; }
+    const data={ date, time:document.getElementById('match-time').value||'', opponent:document.getElementById('match-opponent').value.trim()||'', location:document.getElementById('match-location').value.trim()||'', format:document.getElementById('match-format').value, difficulty:document.getElementById('match-difficulty').value, updatedBy:currentUser?.email||'okänd', updatedAt:serverTimestamp() };
+    const btn=document.getElementById('btn-match-save'); btn.disabled=true;
+    try { if(editingMatchId) await updateDoc(doc(db,'matches',editingMatchId),data); else await addDoc(collection(db,'matches'),data); closeMatchModal(); }
+    catch(err) { console.error(err); alert('Något gick fel.'); } finally { btn.disabled=false; }
   });
 
-  // ── CONFIRM / DELETE ──────────────────────────────
-  let pendingDelete = null;
-  const confirmBackdrop = document.getElementById('confirm-backdrop');
-
-  function openConfirm(type, id, name) {
-    pendingDelete = { type, id };
-    document.getElementById('confirm-text').textContent = `Vill du ta bort ${name}? Det går inte att ångra.`;
-    confirmBackdrop.classList.add('open');
-  }
-
-  document.getElementById('btn-delete-player').addEventListener('click', () => {
-    const p = players.find(pl => pl.id===editingPlayerId); if (p) openConfirm('player', editingPlayerId, p.name);
-  });
-  document.getElementById('btn-delete-match').addEventListener('click', () => {
-    const m = matches.find(x => x.id===editingMatchId); if (m) openConfirm('match', editingMatchId, m.opponent||'matchen');
-  });
-  document.getElementById('confirm-cancel').addEventListener('click', () => { confirmBackdrop.classList.remove('open'); pendingDelete = null; });
-  document.getElementById('confirm-ok').addEventListener('click', async () => {
+  // ── Confirm / Delete ──────────────────────────────
+  let pendingDelete=null;
+  const confirmBackdrop=document.getElementById('confirm-backdrop');
+  function openConfirm(type,id,name) { pendingDelete={type,id}; document.getElementById('confirm-text').textContent=`Vill du ta bort ${name}? Det går inte att ångra.`; confirmBackdrop.classList.add('open'); }
+  document.getElementById('btn-delete-player').addEventListener('click',()=>{ const p=players.find(pl=>pl.id===editingPlayerId); if(p) openConfirm('player',editingPlayerId,p.name); });
+  document.getElementById('btn-delete-match').addEventListener('click',()=>{ const m=matches.find(x=>x.id===editingMatchId); if(m) openConfirm('match',editingMatchId,m.opponent||'matchen'); });
+  document.getElementById('confirm-cancel').addEventListener('click',()=>{ confirmBackdrop.classList.remove('open'); pendingDelete=null; });
+  document.getElementById('confirm-ok').addEventListener('click', async ()=>{
     if (!pendingDelete) return;
-    const btn = document.getElementById('confirm-ok'); btn.disabled = true;
-    const { type, id } = pendingDelete;
-    try {
-      await deleteDoc(doc(db, type==='player'?'players':'matches', id));
-      confirmBackdrop.classList.remove('open');
-      if (type==='player') closePlayerModal(); else closeMatchModal();
-    } catch(err) { console.error(err); alert('Kunde inte ta bort.'); }
-    finally { btn.disabled = false; pendingDelete = null; }
+    const btn=document.getElementById('confirm-ok'); btn.disabled=true;
+    const {type,id}=pendingDelete;
+    try { await deleteDoc(doc(db,type==='player'?'players':'matches',id)); confirmBackdrop.classList.remove('open'); if(type==='player') closePlayerModal(); else closeMatchModal(); }
+    catch(err) { console.error(err); alert('Kunde inte ta bort.'); } finally { btn.disabled=false; pendingDelete=null; }
   });
+
+  // ── ALL LINEUPS LISTENER ──────────────────────────
+  function startAllLineupsListener() {
+    if (unsubAllLineups) unsubAllLineups();
+    unsubAllLineups = onSnapshot(collection(db,'lineups'), snap=>{
+      allLineups={};
+      snap.docs.forEach(d=>{ allLineups[d.id]=d.data(); });
+      renderPlayerPool();
+    });
+  }
 
   // ── LINEUP ────────────────────────────────────────
-
   function refreshMatchSelector() {
-    const sel = document.getElementById('lineup-match-select');
-    if (!sel) return;
-    const cur = currentLineupMatchId || '';
-    sel.innerHTML = '<option value="">— Välj match —</option>' +
-      matches.map(m => {
-        const d = m.date ? new Date(m.date+'T12:00:00') : null;
-        const ds = d ? d.toLocaleDateString('sv-SE',{weekday:'short',day:'numeric',month:'short'}) : '?';
-        const emoji = {green:'🟢',blue:'🔵',red:'🔴',black:'⚫'}[m.difficulty]||'';
-        return `<option value="${m.id}"${m.id===cur?' selected':''}>${emoji} ${ds}${m.time?' '+m.time:''} · ${m.opponent||'Okänd'} (${m.format||''})</option>`;
-      }).join('');
+    const sel=document.getElementById('lineup-match-select'); if (!sel) return;
+    const cur=currentLineupMatchId||'';
+    sel.innerHTML='<option value="">— Välj match —</option>'+matches.map(m=>{
+      const d=m.date?new Date(m.date+'T12:00:00'):null;
+      const ds=d?d.toLocaleDateString('sv-SE',{weekday:'short',day:'numeric',month:'short'}):'?';
+      const em={green:'🟢',blue:'🔵',red:'🔴',black:'⚫'}[m.difficulty]||'';
+      return `<option value="${m.id}"${m.id===cur?' selected':''}>${em} ${ds}${m.time?' '+m.time:''} · ${m.opponent||'Okänd'} (${m.format||''})</option>`;
+    }).join('');
   }
 
-  document.getElementById('lineup-match-select').addEventListener('change', e => selectLineupMatch(e.target.value));
+  document.getElementById('lineup-match-select').addEventListener('change', e=>selectLineupMatch(e.target.value));
 
   function selectLineupMatch(matchId) {
-    if (unsubLineup) { unsubLineup(); unsubLineup = null; }
-    currentLineupMatchId = matchId || null;
-    selectedSlot = null;
-
-    if (!matchId) {
-      document.getElementById('formation-group').style.display = 'none';
-      document.getElementById('lineup-body').innerHTML = '<div class="lineup-placeholder">Välj en match ovan för att sätta laget.</div>';
-      return;
-    }
-
-    const match = matches.find(m => m.id===matchId);
-    if (!match) return;
-
-    // Show formation picker
-    renderFormationPicker(match.format || '9v9');
-
-    // Listen to lineup doc
-    unsubLineup = onSnapshot(doc(db,'lineups',matchId), snap => {
+    if (unsubLineup) { unsubLineup(); unsubLineup=null; }
+    currentLineupMatchId=matchId||null; selectedSlot=null;
+    if (!matchId) { document.getElementById('formation-group').style.display='none'; document.getElementById('lineup-body').innerHTML='<div class="lineup-placeholder">Välj en match ovan för att sätta laget.</div>'; return; }
+    const match=matches.find(m=>m.id===matchId); if (!match) return;
+    renderFormationPicker(match.format||'9v9');
+    unsubLineup=onSnapshot(doc(db,'lineups',matchId), snap=>{
       if (snap.exists()) {
-        const data = snap.data();
-        const valid = FORMATIONS[match.format||'9v9'] || [];
-        if (valid.includes(data.formation)) {
-          lineupFormation = data.formation;
-          lineupSlots     = data.slots || {};
-        } else {
-          lineupFormation = '';
-          lineupSlots     = {};
-        }
-      } else {
-        lineupFormation = '';
-        lineupSlots     = {};
-      }
-      renderFormationPicker(match.format || '9v9'); // update active button
+        const data=snap.data(), valid=FORMATIONS[match.format||'9v9']||[];
+        if (valid.includes(data.formation)) { lineupFormation=data.formation; lineupSlots=data.slots||{}; }
+        else { lineupFormation=''; lineupSlots={}; }
+      } else { lineupFormation=''; lineupSlots={}; }
+      renderFormationPicker(match.format||'9v9');
       renderLineupBody();
     });
   }
 
+  function currentMatch() { return matches.find(m=>m.id===currentLineupMatchId)||null; }
+
   function renderFormationPicker(format) {
-    const group = document.getElementById('formation-group');
-    const btns  = document.getElementById('formation-btns');
-    group.style.display = 'flex';
-    const fmts = FORMATIONS[format] || [];
-    btns.innerHTML = fmts.map(f =>
-      `<button class="formation-btn${f===lineupFormation?' active':''}" data-f="${f}">${f}</button>`
-    ).join('');
-    btns.querySelectorAll('.formation-btn').forEach(btn => {
-      btn.addEventListener('click', () => selectFormation(btn.dataset.f));
-    });
+    const group=document.getElementById('formation-group'), btns=document.getElementById('formation-btns');
+    group.style.display='flex';
+    btns.innerHTML=(FORMATIONS[format]||[]).map(f=>`<button class="formation-btn${f===lineupFormation?' active':''}" data-f="${f}">${f}</button>`).join('');
+    btns.querySelectorAll('.formation-btn').forEach(btn=>btn.addEventListener('click',()=>selectFormation(btn.dataset.f)));
   }
 
   function selectFormation(f) {
-    if (f === lineupFormation) return;
-    const hasPlayers = Object.values(lineupSlots).some(arr => arr.length > 0);
+    if (f===lineupFormation) return;
+    const hasPlayers=Object.values(lineupSlots).some(arr=>arr.length>0);
     if (hasPlayers && !confirm('Byta formation raderar nuvarande uppställning. Fortsätt?')) return;
-    lineupFormation = f;
-    lineupSlots     = {};
-    selectedSlot    = null;
-    saveLineup();
-    renderFormationPicker(currentMatch()?.format || '9v9');
-    renderLineupBody();
+    lineupFormation=f; lineupSlots={}; selectedSlot=null;
+    saveLineup(); renderFormationPicker(currentMatch()?.format||'9v9'); renderLineupBody();
   }
 
-  function currentMatch() { return matches.find(m => m.id===currentLineupMatchId) || null; }
-
   function renderLineupBody() {
-    const body = document.getElementById('lineup-body');
-    if (!currentLineupMatchId) {
-      body.innerHTML = '<div class="lineup-placeholder">Välj en match ovan.</div>';
-      return;
-    }
-    if (!lineupFormation) {
-      body.innerHTML = '<div class="lineup-placeholder">Välj en formation ovan för att fortsätta.</div>';
-      return;
-    }
-    body.innerHTML = `
-      <div class="lineup-main">
-        <div class="pitch-col">
-          <div class="pitch" id="pitch">
-            <div class="pitch-rows" id="pitch-rows"></div>
-          </div>
-        </div>
-        <div class="pool-col">
-          <div class="pool-header">SPELARE</div>
-          <div class="pool-hint" id="pool-hint">Välj en position på planen för att lägga till spelare</div>
-          <div class="player-pool" id="player-pool"></div>
-        </div>
-      </div>`;
-    renderPitch();
-    renderPlayerPool();
+    const body=document.getElementById('lineup-body');
+    if (!currentLineupMatchId) { body.innerHTML='<div class="lineup-placeholder">Välj en match ovan.</div>'; return; }
+    if (!lineupFormation) { body.innerHTML='<div class="lineup-placeholder">Välj en formation ovan för att fortsätta.</div>'; return; }
+    body.innerHTML=`<div class="lineup-main">
+      <div class="pitch-col"><div class="pitch" id="pitch"><div class="pitch-rows" id="pitch-rows"></div></div></div>
+      <div class="pool-col"><div class="pool-header">SPELARE</div><div class="pool-hint" id="pool-hint">Välj en position på planen för att lägga till spelare</div><div class="player-pool" id="player-pool"></div></div>
+    </div>`;
+    renderPitch(); renderPlayerPool();
   }
 
   function renderPitch() {
-    const pitchRows = document.getElementById('pitch-rows');
-    if (!pitchRows) return;
-    const rows = parseFormationRows(lineupFormation);
-    // Render attack-to-GK (top to bottom visually = reverse of rows array)
-    pitchRows.innerHTML = [...rows].reverse().map(row => {
-      const slotsHtml = Array.from({length: row.count}, (_, pi) => {
-        const key      = `r${row.rowIdx}-${pi}`;
-        const label    = row.labels[pi] || '';
-        const pids     = lineupSlots[key] || [];
-        const selected = selectedSlot === key;
-
-        const chips = pids.map((pid, ci) => {
-          const pl   = players.find(p => p.id===pid);
-          const name = pl ? escHtml(shortName(pl.name)) : '?';
-          const cls  = ci === 0 ? 'chip-starter' : 'chip-sub';
-          return `<div class="${cls}"><span class="chip-name">${name}</span><button class="chip-rm" data-slot="${key}" data-pid="${pid}">×</button></div>`;
+    const pitchRows=document.getElementById('pitch-rows'); if (!pitchRows) return;
+    const rows=parseFormationRows(lineupFormation);
+    pitchRows.innerHTML=[...rows].reverse().map(row=>{
+      return `<div class="pitch-row">${Array.from({length:row.count},(_,pi)=>{
+        const key=`r${row.rowIdx}-${pi}`, label=row.labels[pi]||'', pids=lineupSlots[key]||[], sel=selectedSlot===key;
+        const chips=pids.map((pid,ci)=>{
+          const pl=players.find(p=>p.id===pid), name=pl?escHtml(shortName(pl.name)):'?';
+          return `<div class="${ci===0?'chip-starter':'chip-sub'}"><span class="chip-name">${name}</span><button class="chip-rm" data-slot="${key}" data-pid="${pid}">×</button></div>`;
         }).join('');
-
-        return `<div class="pos-slot${selected?' selected':''}" data-slot="${key}">
-          <div class="pos-label">${label}</div>
-          <div class="pos-players">${chips}</div>
-          ${pids.length===0?'<div class="pos-empty">+</div>':''}
-        </div>`;
-      }).join('');
-      return `<div class="pitch-row">${slotsHtml}</div>`;
+        return `<div class="pos-slot${sel?' selected':''}" data-slot="${key}"><div class="pos-label">${label}</div><div class="pos-players">${chips}</div>${pids.length===0?'<div class="pos-empty">+</div>':''}</div>`;
+      }).join('')}</div>`;
     }).join('');
 
-    pitchRows.querySelectorAll('.pos-slot').forEach(el => {
-      el.addEventListener('click', e => {
-        if (e.target.classList.contains('chip-rm')) return;
-        selectSlot(el.dataset.slot);
-      });
-    });
-    pitchRows.querySelectorAll('.chip-rm').forEach(btn => {
-      btn.addEventListener('click', e => {
-        e.stopPropagation();
-        removeFromSlot(btn.dataset.slot, btn.dataset.pid);
-      });
-    });
+    pitchRows.querySelectorAll('.pos-slot').forEach(el=>el.addEventListener('click',e=>{if(!e.target.classList.contains('chip-rm')) selectSlot(el.dataset.slot);}));
+    pitchRows.querySelectorAll('.chip-rm').forEach(btn=>btn.addEventListener('click',e=>{e.stopPropagation(); removeFromSlot(btn.dataset.slot,btn.dataset.pid);}));
   }
 
   function renderPlayerPool() {
-    const pool = document.getElementById('player-pool');
-    if (!pool) return;
+    const pool=document.getElementById('player-pool'); if (!pool) return;
+    const match=currentMatch();
+    const matchDate=match?.date||null;
 
-    // Build assigned map: pid -> slotKey
-    const assignedMap = {};
-    Object.entries(lineupSlots).forEach(([key, pids]) => pids.forEach(pid => { assignedMap[pid] = key; }));
-
-    const available   = players.filter(p => !p.status || p.status==='available');
-    const unavailable = players.filter(p => p.status && p.status!=='available');
+    const assignedMap={};
+    Object.entries(lineupSlots).forEach(([k,pids])=>pids.forEach(pid=>{assignedMap[pid]=k;}));
 
     function renderPoolItem(p) {
-      const assignedSlot   = assignedMap[p.id];
-      const isUnavailable  = p.status && p.status !== 'available';
-      const inSelected     = selectedSlot && (lineupSlots[selectedSlot]||[]).includes(p.id);
-      const conflicts      = getConflicts(p.id);
-      const hasTimeCrash   = conflicts.some(c => c.isTimeCrash);
+      const assignedSlot=assignedMap[p.id];
+      const unavailableToday=isPlayerUnavailableOnDate(p, matchDate||todayStr());
+      const absOnMatchDate = matchDate ? getAbsenceOnDate(p,matchDate) : null;
+      const staticUnavail  = p.status && p.status !== 'available';
+      const isUnavail = matchDate ? isPlayerUnavailableOnDate(p,matchDate) : (p.status&&p.status!=='available');
+      const inSelected=selectedSlot&&(lineupSlots[selectedSlot]||[]).includes(p.id);
+      const conflicts=getConflicts(p.id);
 
-      let dotCls = isUnavailable ? 'dot-unavailable' : (assignedSlot ? 'dot-assigned' : 'dot-available');
-      if (conflicts.length && !assignedSlot) dotCls = 'dot-assigned'; // reuse yellow dot for weekend conflict
-      let cls = 'pool-item' + (inSelected?' in-selected':'') + (isUnavailable?' pool-unavailable':'');
+      let dotCls = isUnavail ? 'dot-absent' : (assignedSlot?'dot-assigned':'dot-available');
+      if (conflicts.length && !isUnavail && !assignedSlot) dotCls='dot-assigned';
 
-      const slotLabel  = assignedSlot ? getSlotLabel(assignedSlot) : '';
-      const tags       = (p.positions||[]).join(' ');
+      let cls='pool-item'+(inSelected?' in-selected':'')+(isUnavail?' pool-unavailable':'');
 
-      const conflictBadgesHtml = conflicts.length
-        ? `<div class="pool-conflicts">${conflicts.map(c =>
-            `<span class="conflict-badge ${c.isTimeCrash?'conflict-time':'conflict-week'}">${c.isTimeCrash?'⚡ ':''}${escHtml(c.label)}</span>`
-          ).join('')}</div>`
-        : '';
+      const slotLabel=assignedSlot?getSlotLabel(assignedSlot):'';
+      const tags=(p.positions||[]).join(' ');
+
+      let absReasonHtml='';
+      if (isUnavail) {
+        if (absOnMatchDate) absReasonHtml=`<div class="pool-absent-reason">${ABS_LABEL[absOnMatchDate.type]||absOnMatchDate.type}${absOnMatchDate.to?` t.o.m ${formatDate(absOnMatchDate.to)}`:' (tills vidare)'}${absOnMatchDate.note?' · '+absOnMatchDate.note:''}</div>`;
+        else if (staticUnavail) absReasonHtml=`<div class="pool-absent-reason">${statusLabel[p.status]||p.status}</div>`;
+      }
+
+      const conflictBadgesHtml=conflicts.length
+        ?`<div style="display:flex;flex-direction:column;gap:2px">${conflicts.map(c=>`<span class="conflict-badge ${c.isTimeCrash?'conflict-time':'conflict-week'}">${c.isTimeCrash?'⚡ ':''}${escHtml(c.label)}</span>`).join('')}</div>`:'';
 
       return `<div class="${cls}" data-pid="${p.id}">
         <div class="pool-dot ${dotCls}"></div>
-        <div class="pool-info">
-          <div class="pool-name">${escHtml(p.name||'—')}</div>
-          ${tags?`<div class="pool-tags">${escHtml(tags)}</div>`:''}
+        <div class="pool-info"><div class="pool-name">${escHtml(p.name||'—')}</div>${tags?`<div class="pool-tags">${escHtml(tags)}</div>`:''}${absReasonHtml}</div>
+        <div class="pool-right">
+          ${assignedSlot&&!inSelected?`<span class="pool-badge">${escHtml(slotLabel)}</span>`:''}
+          ${inSelected?'<span class="pool-check">✓</span>':''}
+          ${conflictBadgesHtml}
         </div>
-        ${assignedSlot&&!inSelected?`<div class="pool-badge">${escHtml(slotLabel)}</div>`:''}
-        ${inSelected?'<div class="pool-check">✓</div>':''}
-        ${conflictBadgesHtml}
       </div>`;
     }
 
-    let html = '';
-    if (available.length) {
-      html += '<div class="pool-section-label">Tillgängliga</div>';
-      html += available.map(renderPoolItem).join('');
-    }
-    if (unavailable.length) {
-      html += '<div class="pool-section-label">Ej tillgängliga</div>';
-      html += unavailable.map(renderPoolItem).join('');
-    }
-    pool.innerHTML = html;
+    const avail   = players.filter(p=>!isPlayerUnavailableOnDate(p, matchDate||todayStr()));
+    const unavail = players.filter(p=> isPlayerUnavailableOnDate(p, matchDate||todayStr()));
 
-    pool.querySelectorAll('.pool-item:not(.pool-unavailable)').forEach(el => {
-      el.addEventListener('click', () => {
-        if (!selectedSlot) return;
-        toggleInSlot(el.dataset.pid);
-      });
+    let html='';
+    if (avail.length)   { html+='<div class="pool-section-label">Tillgängliga</div>'+avail.map(renderPoolItem).join(''); }
+    if (unavail.length) { html+='<div class="pool-section-label">Ej tillgängliga</div>'+unavail.map(renderPoolItem).join(''); }
+    pool.innerHTML=html;
+
+    pool.querySelectorAll('.pool-item:not(.pool-unavailable)').forEach(el=>{
+      el.addEventListener('click',()=>{ if(selectedSlot) toggleInSlot(el.dataset.pid); });
     });
   }
 
   function selectSlot(key) {
-    selectedSlot = key;
-    const label  = getSlotLabel(key);
-    const n      = (lineupSlots[key]||[]).length;
-    const hint   = document.getElementById('pool-hint');
-    if (hint) hint.textContent = `Lägger till i: ${label} · ${n===0?'Ingen ännu':(n===1?'1 spelare':n+' spelare')}`;
-    renderPitch();
-    renderPlayerPool();
+    selectedSlot=key;
+    const n=(lineupSlots[key]||[]).length, label=getSlotLabel(key);
+    const hint=document.getElementById('pool-hint');
+    if (hint) hint.textContent=`Lägger till i: ${label} · ${n===0?'Ingen ännu':(n===1?'1 spelare':n+' spelare')}`;
+    renderPitch(); renderPlayerPool();
   }
 
   function toggleInSlot(pid) {
     if (!selectedSlot) return;
-    const cur = lineupSlots[selectedSlot] || [];
+    const cur=lineupSlots[selectedSlot]||[];
     if (cur.includes(pid)) {
-      // Remove from slot
-      const updated = cur.filter(id => id!==pid);
-      if (updated.length) lineupSlots[selectedSlot] = updated;
-      else delete lineupSlots[selectedSlot];
+      const updated=cur.filter(id=>id!==pid);
+      if (updated.length) lineupSlots[selectedSlot]=updated; else delete lineupSlots[selectedSlot];
     } else {
-      // Remove from any other slot first (auto-move)
-      Object.keys(lineupSlots).forEach(k => {
-        if (k !== selectedSlot) {
-          lineupSlots[k] = lineupSlots[k].filter(id => id!==pid);
-          if (!lineupSlots[k].length) delete lineupSlots[k];
-        }
-      });
-      // Add to selected slot
-      lineupSlots[selectedSlot] = [...cur, pid];
+      Object.keys(lineupSlots).forEach(k=>{ if(k!==selectedSlot){ lineupSlots[k]=lineupSlots[k].filter(id=>id!==pid); if(!lineupSlots[k].length) delete lineupSlots[k]; }});
+      lineupSlots[selectedSlot]=[...cur,pid];
     }
-    saveLineup();
-    selectSlot(selectedSlot); // re-render with updated hint
+    saveLineup(); selectSlot(selectedSlot);
   }
 
-  function removeFromSlot(slotKey, pid) {
+  function removeFromSlot(slotKey,pid) {
     if (!lineupSlots[slotKey]) return;
-    lineupSlots[slotKey] = lineupSlots[slotKey].filter(id => id!==pid);
+    lineupSlots[slotKey]=lineupSlots[slotKey].filter(id=>id!==pid);
     if (!lineupSlots[slotKey].length) delete lineupSlots[slotKey];
-    saveLineup();
-    renderPitch();
-    renderPlayerPool();
+    saveLineup(); renderPitch(); renderPlayerPool();
   }
 
   async function saveLineup() {
-    if (!currentLineupMatchId || !lineupFormation) return;
-    const ind = document.getElementById('save-indicator');
-    if (ind) ind.textContent = 'Sparar...';
+    if (!currentLineupMatchId||!lineupFormation) return;
+    const ind=document.getElementById('save-indicator');
+    if (ind) ind.textContent='Sparar...';
     try {
-      await setDoc(doc(db,'lineups',currentLineupMatchId), {
-        formation: lineupFormation,
-        slots:     lineupSlots,
-        updatedBy: currentUser?.email||'okänd',
-        updatedAt: serverTimestamp()
-      });
-      if (ind) { ind.textContent = 'Sparat ✓'; setTimeout(() => { if(ind) ind.textContent=''; }, 2000); }
-    } catch(err) {
-      console.error(err);
-      if (ind) ind.textContent = 'Fel vid sparning';
-    }
+      await setDoc(doc(db,'lineups',currentLineupMatchId),{formation:lineupFormation,slots:lineupSlots,updatedBy:currentUser?.email||'okänd',updatedAt:serverTimestamp()});
+      if (ind) { ind.textContent='Sparat ✓'; setTimeout(()=>{if(ind)ind.textContent='';},2000); }
+    } catch(err) { console.error(err); if(ind) ind.textContent='Fel vid sparning'; }
   }
-
 </script>
 </body>
 </html>

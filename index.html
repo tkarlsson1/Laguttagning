@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>v3.0 — Laguttagning</title>
+  <title>v3.1 — Laguttagning</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
@@ -1048,18 +1048,47 @@
   });
 
   // ── Confirm / Delete ──────────────────────────────
-  let pendingDelete=null;
-  const confirmBackdrop=document.getElementById('confirm-backdrop');
-  function openConfirm(type,id,name) { pendingDelete={type,id}; document.getElementById('confirm-text').textContent=`Vill du ta bort ${name}? Det går inte att ångra.`; confirmBackdrop.classList.add('open'); }
-  document.getElementById('btn-delete-player').addEventListener('click',()=>{ const p=players.find(pl=>pl.id===editingPlayerId); if(p) openConfirm('player',editingPlayerId,p.name); });
-  document.getElementById('btn-delete-match').addEventListener('click',()=>{ const m=matches.find(x=>x.id===editingMatchId); if(m) openConfirm('match',editingMatchId,m.opponent||'matchen'); });
-  document.getElementById('confirm-cancel').addEventListener('click',()=>{ confirmBackdrop.classList.remove('open'); pendingDelete=null; });
-  document.getElementById('confirm-ok').addEventListener('click', async ()=>{
-    if (!pendingDelete) return;
-    const btn=document.getElementById('confirm-ok'); btn.disabled=true;
-    const {type,id}=pendingDelete;
-    try { await deleteDoc(doc(db,type==='player'?'players':'matches',id)); confirmBackdrop.classList.remove('open'); if(type==='player') closePlayerModal(); else closeMatchModal(); }
-    catch(err) { console.error(err); alert('Kunde inte ta bort.'); } finally { btn.disabled=false; pendingDelete=null; }
+  let pendingDelete     = null;
+  let pendingConfirmCb  = null;
+  const confirmBackdrop = document.getElementById('confirm-backdrop');
+  const confirmOkBtn    = document.getElementById('confirm-ok');
+
+  function showConfirm(text, okLabel, okClass, callback) {
+    document.getElementById('confirm-text').textContent = text;
+    confirmOkBtn.textContent  = okLabel;
+    confirmOkBtn.className    = okClass;
+    pendingConfirmCb          = callback;
+    confirmBackdrop.classList.add('open');
+  }
+
+  function openConfirm(type, id, name) {
+    pendingDelete = { type, id };
+    showConfirm(
+      `Vill du ta bort ${name}? Det går inte att ångra.`,
+      'Ta bort', 'btn-danger',
+      async () => {
+        const { type, id } = pendingDelete;
+        await deleteDoc(doc(db, type==='player'?'players':'matches', id));
+        if (type==='player') closePlayerModal(); else closeMatchModal();
+        pendingDelete = null;
+      }
+    );
+  }
+
+  document.getElementById('btn-delete-player').addEventListener('click', () => { const p=players.find(pl=>pl.id===editingPlayerId); if(p) openConfirm('player',editingPlayerId,p.name); });
+  document.getElementById('btn-delete-match').addEventListener('click',  () => { const m=matches.find(x=>x.id===editingMatchId);    if(m) openConfirm('match',editingMatchId,m.opponent||'matchen'); });
+
+  document.getElementById('confirm-cancel').addEventListener('click', () => {
+    confirmBackdrop.classList.remove('open');
+    pendingDelete = null; pendingConfirmCb = null;
+  });
+
+  confirmOkBtn.addEventListener('click', async () => {
+    if (!pendingConfirmCb) return;
+    confirmOkBtn.disabled = true;
+    try { await pendingConfirmCb(); confirmBackdrop.classList.remove('open'); }
+    catch(err) { console.error(err); alert('Något gick fel.'); }
+    finally { confirmOkBtn.disabled = false; pendingConfirmCb = null; }
   });
 
   // Maps slot position labels to relevant player position tags
@@ -1198,11 +1227,24 @@
   }
 
   function selectFormation(f) {
-    if (f===lineupFormation) return;
-    const hasPlayers=Object.values(lineupSlots).some(arr=>arr.length>0);
-    if (hasPlayers && !confirm('Byta formation raderar nuvarande uppställning. Fortsätt?')) return;
+    if (!f || f===lineupFormation) return;
+    const hasPlayers = Object.values(lineupSlots).some(arr=>arr.length>0);
+    if (hasPlayers) {
+      showConfirm(
+        'Byta formation raderar nuvarande uppställning. Vill du fortsätta?',
+        'Byt formation', 'btn-primary',
+        () => { applyFormation(f); }
+      );
+    } else {
+      applyFormation(f);
+    }
+  }
+
+  function applyFormation(f) {
     lineupFormation=f; lineupSlots={}; selectedSlot=null;
-    saveLineup(); renderFormationPicker(currentMatch()?.format||'9v9'); renderLineupBody();
+    saveLineup();
+    renderFormationPicker(currentMatch()?.format||'9v9');
+    renderLineupBody();
   }
 
   function renderLineupBody() {
@@ -1395,17 +1437,20 @@
     if (e.key === 'Escape') document.getElementById('btn-cancel-custom-formation').click();
   });
 
-  document.getElementById('btn-delete-custom-formation').addEventListener('click', async () => {
+  document.getElementById('btn-delete-custom-formation').addEventListener('click', () => {
     const btn = document.getElementById('btn-delete-custom-formation');
     if (!btn.dataset.id) return;
-    if (!confirm(`Ta bort formationen ${lineupFormation}?`)) return;
-    try {
-      await deleteDoc(doc(db,'customFormations', btn.dataset.id));
-      lineupFormation = '';
-      lineupSlots = {};
-      renderFormationPicker(currentMatch()?.format||'9v9');
-      renderLineupBody();
-    } catch(err) { console.error(err); alert('Kunde inte ta bort.'); }
+    const fName = lineupFormation;
+    showConfirm(
+      `Ta bort formationen ${fName}? Den försvinner för alla tränare.`,
+      'Ta bort', 'btn-danger',
+      async () => {
+        await deleteDoc(doc(db,'customFormations', btn.dataset.id));
+        lineupFormation=''; lineupSlots={};
+        renderFormationPicker(currentMatch()?.format||'9v9');
+        renderLineupBody();
+      }
+    );
   });
 
   function updateCopyButton() {

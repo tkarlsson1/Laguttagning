@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>v1.6 — Laguttagning</title>
+  <title>v1.8 — Laguttagning</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
@@ -513,21 +513,24 @@
       <div class="tag-group">
         <div class="tag-group-label">Back</div>
         <div class="tag-options">
-          <span class="tag-option" data-pos="GK">GK</span><span class="tag-option" data-pos="CB">CB</span>
-          <span class="tag-option" data-pos="FB">FB</span><span class="tag-option" data-pos="WB">WB</span>
+          <span class="tag-option" data-pos="GK">GK</span><span class="tag-option" data-pos="LB">LB</span>
+          <span class="tag-option" data-pos="CB">CB</span><span class="tag-option" data-pos="RB">RB</span>
+          <span class="tag-option" data-pos="WB">WB</span>
         </div>
       </div>
       <div class="tag-group">
         <div class="tag-group-label">Mitt</div>
         <div class="tag-options">
-          <span class="tag-option" data-pos="DM">DM</span><span class="tag-option" data-pos="CM">CM</span>
-          <span class="tag-option" data-pos="AM">AM</span><span class="tag-option" data-pos="WM">WM</span>
+          <span class="tag-option" data-pos="DM">DM</span><span class="tag-option" data-pos="LM">LM</span>
+          <span class="tag-option" data-pos="CM">CM</span><span class="tag-option" data-pos="RM">RM</span>
+          <span class="tag-option" data-pos="AM">AM</span>
         </div>
       </div>
       <div class="tag-group">
         <div class="tag-group-label">Anfall</div>
         <div class="tag-options">
-          <span class="tag-option" data-pos="W">W</span><span class="tag-option" data-pos="ST">ST</span>
+          <span class="tag-option" data-pos="LW">LW</span><span class="tag-option" data-pos="RW">RW</span>
+          <span class="tag-option" data-pos="CF">CF</span><span class="tag-option" data-pos="ST">ST</span>
         </div>
       </div>
     </div>
@@ -1016,14 +1019,14 @@
   const SLOT_TO_TAGS = {
     'GK':  ['GK'],
     'CB':  ['CB'], 'LCB':['CB'], 'RCB':['CB'],
-    'LB':  ['FB','WB'], 'RB':['FB','WB'],
-    'WB':  ['WB','FB'],
+    'LB':  ['LB','WB'], 'RB':['RB','WB'],
+    'WB':  ['WB','LB','RB'],
     'DM':  ['DM','CM'],
-    'CM':  ['CM','DM','AM'], 'LCM':['CM','DM'], 'RCM':['CM','DM'],
-    'LM':  ['WM','CM','AM'], 'RM':['WM','CM','AM'],
-    'AM':  ['AM','CM','WM'],
-    'LW':  ['W','WM'], 'RW':['W','WM'],
-    'ST':  ['ST'], 'CF':['ST'],
+    'CM':  ['CM','DM'], 'LCM':['CM','LM'], 'RCM':['CM','RM'],
+    'LM':  ['LM','CM'], 'RM':['RM','CM'],
+    'AM':  ['AM','CM'],
+    'LW':  ['LW'], 'RW':['RW'],
+    'ST':  ['ST','CF'], 'CF':['CF','ST'],
   };
 
   function posMatchScore(player) {
@@ -1175,7 +1178,6 @@
 
     let html='';
     if (availMatch.length && availRest.length) {
-      // position-matched group + divider + rest
       html += availMatch.map(renderPoolItem).join('');
       html += '<div style="border-top:1px solid var(--border);margin:.4rem 0"></div>';
       html += availRest.map(renderPoolItem).join('');

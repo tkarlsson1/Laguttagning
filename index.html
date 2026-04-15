@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>v2.2 — Laguttagning</title>
+  <title>v2.3 — Laguttagning</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
@@ -1212,9 +1212,16 @@
     // Scroll player pool to top so position-sorted players are visible
     const pool = document.getElementById('player-pool');
     if (pool) pool.scrollTop = 0;
-    // On mobile: scroll the pool section into view
-    const poolCol = pool?.closest('.pool-col');
-    if (poolCol && window.innerWidth <= 640) poolCol.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    // On mobile: scroll so pool-col top appears just below the sticky pitch
+    if (window.innerWidth <= 640) {
+      const pitchEl = document.querySelector('.pitch');
+      const poolCol = document.querySelector('.pool-col');
+      if (pitchEl && poolCol) {
+        const pitchHeight = pitchEl.getBoundingClientRect().height;
+        const poolTop     = poolCol.getBoundingClientRect().top + window.scrollY;
+        window.scrollTo({ top: poolTop - pitchHeight - 8, behavior: 'smooth' });
+      }
+    }
   }
 
   function toggleInSlot(pid) {

@@ -1030,6 +1030,7 @@
       matches = snap.docs.map(d=>({id:d.id,...d.data()}));
       matches.sort((a,b)=>(`${a.date||''}T${a.time||'00:00'}`).localeCompare(`${b.date||''}T${b.time||'00:00'}`));
       renderMatches(); refreshMatchSelector();
+      if (document.getElementById('page-overview')?.classList.contains('active')) renderOverview();
     });
   }
 
@@ -1164,8 +1165,8 @@
     unsubAllLineups = onSnapshot(collection(db,'lineups'), snap=>{
       allLineups={};
       snap.docs.forEach(d=>{ allLineups[d.id]=d.data(); });
-      // Only re-render pool if a lineup is actively being viewed
       if (currentLineupMatchId && lineupFormation) renderPlayerPool();
+      if (document.getElementById('page-overview')?.classList.contains('active')) renderOverview();
     });
   }
 

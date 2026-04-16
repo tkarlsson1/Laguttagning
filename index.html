@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>v6.5 — Laguttagning</title>
+  <title>v6.6 — Laguttagning</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
@@ -730,8 +730,8 @@
       <div class="field-row">
         <div class="field" style="margin-bottom:0"><label for="new-team-name">Lagnamn</label><input type="text" id="new-team-name" placeholder="T.ex. Irsta P13" /></div>
         <div class="field" style="margin-bottom:0">
-          <label for="new-team-format">Format</label>
-          <select id="new-team-format"><option value="7v7">7v7</option><option value="9v9" selected>9v9</option><option value="11v11">11v11</option></select>
+          <label for="new-team-birth-year">Födelseår</label>
+          <input type="number" id="new-team-birth-year" placeholder="T.ex. 2013" min="2000" max="2030" style="width:100%" />
         </div>
       </div>
       <div style="margin-top:.75rem"><button class="btn-primary" id="btn-create-team" style="font-size:1rem;padding:.7rem 1.2rem">Skapa lag</button></div>
@@ -1027,7 +1027,7 @@
       <div class="team-item" data-id="${t.id}" style="${t.id===lastTeam?'border-color:var(--green)':''}">
         <div>
           <div class="team-item-name">${escHtml(t.name)}${t.id===lastTeam?' <span style="font-size:.72rem;color:var(--green)">(senaste)</span>':''}</div>
-          <div class="team-item-format">${t.format||''}</div>
+          <div class="team-item-format">${t.birthYear?`${t.birthYear} · ${svffFormat(t.birthYear)}`:(t.format||'')}</div>
         </div>
         <span class="team-item-arrow">→</span>
       </div>`).join('');
@@ -1270,7 +1270,9 @@
     editingMatchId=null;
     document.getElementById('match-modal-title').textContent='LÄGG TILL MATCH';
     ['match-date','match-time','match-opponent','match-location'].forEach(id=>document.getElementById(id).value='');
-    document.getElementById('match-format').value='9v9';
+    const currentTeam=userTeams.find(t=>t.id===currentTeamId);
+    const defaultFormat=currentTeam?.birthYear?svffFormat(currentTeam.birthYear):(currentTeam?.format||'9v9');
+    document.getElementById('match-format').value=defaultFormat;
     document.getElementById('match-difficulty').value='green';
     document.getElementById('match-homeway').value='';
     document.getElementById('btn-delete-match').style.display='none';
@@ -1775,7 +1777,14 @@
     listEl.innerHTML=allTeams.map(t=>`
       <div class="admin-team-item">
         <div class="admin-team-item-name">${escHtml(t.name)}</div>
-        <div class="admin-team-item-meta">${t.format||''}</div>
+        <div class="admin-team-item-meta">
+          ${t.birthYear?`Födelseår: ${t.birthYear} · `:''}Format: ${t.format||'?'}
+          ${!t.birthYear?` <button class="btn-readme" data-teamid="${t.id}" style="font-size:.72rem" onclick="document.getElementById('edit-year-${t.id}').style.display='flex'">Lägg till födelseår</button>`:''}
+        </div>
+        <div id="edit-year-${t.id}" style="display:none;align-items:center;gap:.5rem;margin-top:.4rem">
+          <input type="number" placeholder="Födelseår" min="2000" max="2030" style="width:100px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--font-body);font-size:.8rem;padding:.3rem .5rem;outline:none" id="year-input-${t.id}" />
+          <button class="btn-primary" style="font-size:.8rem;padding:.3rem .7rem" onclick="saveBirthYear('${t.id}')">Spara</button>
+        </div>
         <div class="admin-member-list">${(membersByTeam[t.id]||[]).map(e=>`<span class="admin-member-chip">${escHtml(e)}</span>`).join('')||'<span style="font-size:.75rem;color:var(--muted)">Inga tränare</span>'}</div>
       </div>`).join('');
   }
@@ -1784,19 +1793,43 @@
   document.getElementById('btn-admin-close').addEventListener('click',()=>adminModal.classList.remove('open'));
   adminModal.addEventListener('click',e=>{if(e.target===adminModal)adminModal.classList.remove('open');});
 
+  // ── SvFF format calculation ───────────────────────
+  function svffFormat(birthYear) {
+    const age = new Date().getFullYear() - birthYear;
+    if (age <= 9)  return '5v5';
+    if (age <= 12) return '7v7';
+    if (age <= 14) return '9v9';
+    return '11v11';
+  }
+
   document.getElementById('btn-create-team').addEventListener('click', async()=>{
     const name=document.getElementById('new-team-name').value.trim();
-    const format=document.getElementById('new-team-format').value;
+    const birthYear=parseInt(document.getElementById('new-team-birth-year').value);
     const msgEl=document.getElementById('create-team-msg');
     if(!name){msgEl.style.color='var(--danger)';msgEl.textContent='Ange ett lagnamn.';return;}
+    if(!birthYear||birthYear<2000||birthYear>2030){msgEl.style.color='var(--danger)';msgEl.textContent='Ange ett giltigt födelseår.';return;}
+    const format=svffFormat(birthYear);
     try{
-      const teamRef=await addDoc(collection(db,'teams'),{name,format,createdBy:currentUser.uid,createdAt:serverTimestamp()});
+      await addDoc(collection(db,'teams'),{name,birthYear,format,createdBy:currentUser.uid,createdAt:serverTimestamp()});
       document.getElementById('new-team-name').value='';
-      msgEl.style.color='var(--green)'; msgEl.textContent=`Laget "${name}" skapades!`;
+      document.getElementById('new-team-birth-year').value='';
+      msgEl.style.color='var(--green)'; msgEl.textContent=`Laget "${name}" skapades! (${format} baserat på födelseår ${birthYear})`;
       await refreshAdminTeamList();
-      setTimeout(()=>{msgEl.textContent='';},3000);
+      setTimeout(()=>{msgEl.textContent='';},4000);
     }catch(err){console.error(err);msgEl.style.color='var(--danger)';msgEl.textContent='Något gick fel.';}
   });
+
+  // ── Save birth year for existing teams ───────────
+  window.saveBirthYear = async function(teamId) {
+    const input=document.getElementById(`year-input-${teamId}`);
+    const birthYear=parseInt(input?.value);
+    if(!birthYear||birthYear<2000||birthYear>2030){alert('Ange ett giltigt födelseår.');return;}
+    const format=svffFormat(birthYear);
+    try{
+      await updateDoc(doc(db,'teams',teamId),{birthYear,format});
+      await refreshAdminTeamList();
+    }catch(err){console.error(err);alert('Något gick fel.');}
+  };
 
   document.getElementById('btn-add-user-to-team').addEventListener('click', async()=>{
     const email=document.getElementById('add-user-email').value.trim();

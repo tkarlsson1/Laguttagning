@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>v6.1 — Laguttagning</title>
+  <title>v6.2 — Laguttagning</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
@@ -996,7 +996,6 @@
       }
 
       if (userTeams.length === 0) {
-        // No teams — show error on login screen
         showView('login');
         const loginError = document.getElementById('login-error');
         loginError.textContent = 'Ditt konto är inte kopplat till något lag. Kontakta administratören.';
@@ -1008,22 +1007,21 @@
       if (userTeams.length === 1) {
         enterTeam(userTeams[0].id, userTeams[0].name);
       } else {
-        // Try to use lastTeam
-        const preferred = userTeams.find(t=>t.id===lastTeam);
-        if (preferred) { enterTeam(preferred.id, preferred.name); }
-        else { showTeamSelect(); }
+        // Always show team select when multiple teams exist
+        // lastTeam is used to highlight preferred but user still chooses
+        showTeamSelect(lastTeam);
       }
     } catch(err) {
       console.error('loadUserTeams error:', err);
     }
   }
 
-  function showTeamSelect() {
+  function showTeamSelect(lastTeam) {
     const list = document.getElementById('team-list');
     list.innerHTML = userTeams.map(t => `
-      <div class="team-item" data-id="${t.id}">
+      <div class="team-item" data-id="${t.id}" style="${t.id===lastTeam?'border-color:var(--green)':''}">
         <div>
-          <div class="team-item-name">${escHtml(t.name)}</div>
+          <div class="team-item-name">${escHtml(t.name)}${t.id===lastTeam?' <span style="font-size:.72rem;color:var(--green)">(senaste)</span>':''}</div>
           <div class="team-item-format">${t.format||''}</div>
         </div>
         <span class="team-item-arrow">→</span>

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>v4.5 — Laguttagning</title>
+  <title>v4.6 — Laguttagning</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
@@ -750,12 +750,20 @@
         <select id="match-format"><option value="7v7">7v7</option><option value="9v9" selected>9v9</option><option value="11v11">11v11</option></select>
       </div>
       <div class="field">
-        <label for="match-difficulty">Svårighetsgrad</label>
-        <select id="match-difficulty">
-          <option value="green">🟢 Grön</option><option value="blue">🔵 Blå</option>
-          <option value="red">🔴 Röd</option><option value="black">⚫ Svart</option>
+        <label for="match-homeway">Hemma/Borta</label>
+        <select id="match-homeway">
+          <option value="">— Ej angivet —</option>
+          <option value="home">Hemma</option>
+          <option value="away">Borta</option>
         </select>
       </div>
+    </div>
+    <div class="field">
+      <label for="match-difficulty">Svårighetsgrad</label>
+      <select id="match-difficulty">
+        <option value="green">🟢 Grön</option><option value="blue">🔵 Blå</option>
+        <option value="red">🔴 Röd</option><option value="black">⚫ Svart</option>
+      </select>
     </div>
     <div class="modal-actions">
       <div class="modal-actions-left"><button class="btn-danger" id="btn-delete-match" style="display:none">Ta bort</button></div>
@@ -1156,7 +1164,7 @@
           <div class="match-card-body">
             <div class="match-time-block"><div class="match-time">${escHtml(m.time||'??:??')}</div></div>
             <div class="match-main"><div class="match-opponent">${escHtml(m.opponent||'—')}</div>${m.location?`<div class="match-location">${escHtml(m.location)}</div>`:''}</div>
-            <div class="match-badges"><span class="badge badge-format">${escHtml(m.format||'')}</span><span class="badge badge-diff-${m.difficulty||'green'}">${DIFF_LABEL[m.difficulty]||''}</span></div>
+            <div class="match-badges"><span class="badge badge-format">${escHtml(m.format||'')}</span>${m.homeway?`<span class="badge" style="color:var(--muted);border-color:var(--border)">${m.homeway==='home'?'Hemma':'Borta'}</span>`:''}<span class="badge badge-diff-${m.difficulty||'green'}">${DIFF_LABEL[m.difficulty]||''}</span></div>
           </div></div>`;
       });
     });
@@ -1171,6 +1179,7 @@
     ['match-date','match-time','match-opponent','match-location'].forEach(id=>document.getElementById(id).value='');
     document.getElementById('match-format').value='9v9';
     document.getElementById('match-difficulty').value='green';
+    document.getElementById('match-homeway').value='';
     document.getElementById('btn-delete-match').style.display='none';
     matchModal.classList.add('open'); document.getElementById('match-opponent').focus();
   });
@@ -1185,6 +1194,7 @@
     document.getElementById('match-location').value=m.location||'';
     document.getElementById('match-format').value=m.format||'9v9';
     document.getElementById('match-difficulty').value=m.difficulty||'green';
+    document.getElementById('match-homeway').value=m.homeway||'';
     document.getElementById('btn-delete-match').style.display='inline-flex';
     matchModal.classList.add('open'); document.getElementById('match-opponent').focus();
   }
@@ -1195,7 +1205,7 @@
 
   document.getElementById('btn-match-save').addEventListener('click', async ()=>{
     const date=document.getElementById('match-date').value; if (!date) { document.getElementById('match-date').focus(); return; }
-    const data={ date, time:document.getElementById('match-time').value||'', opponent:document.getElementById('match-opponent').value.trim()||'', location:document.getElementById('match-location').value.trim()||'', format:document.getElementById('match-format').value, difficulty:document.getElementById('match-difficulty').value, updatedBy:currentUser?.email||'okänd', updatedAt:serverTimestamp() };
+    const data={ date, time:document.getElementById('match-time').value||'', opponent:document.getElementById('match-opponent').value.trim()||'', location:document.getElementById('match-location').value.trim()||'', format:document.getElementById('match-format').value, difficulty:document.getElementById('match-difficulty').value, homeway:document.getElementById('match-homeway').value||'', updatedBy:currentUser?.email||'okänd', updatedAt:serverTimestamp() };
     const btn=document.getElementById('btn-match-save'); btn.disabled=true;
     try { if(editingMatchId) await updateDoc(doc(db,'matches',editingMatchId),data); else await addDoc(collection(db,'matches'),data); closeMatchModal(); }
     catch(err) { console.error(err); alert('Något gick fel.'); } finally { btn.disabled=false; }

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>v3.1 — Laguttagning</title>
+  <title>v3.5 — Laguttagning</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
@@ -448,6 +448,38 @@
       /* Field rows: stack on mobile */
       .field-row { grid-template-columns: 1fr; }
     }
+    /* ── OVERVIEW ────────────────────────────────────── */
+    .overview-week-nav { display: flex; align-items: center; gap: .75rem; }
+    .overview-empty { color: var(--muted); font-size: .95rem; padding: 2rem 0; }
+
+    .overview-table-wrap { overflow-x: auto; }
+    .overview-table {
+      border-collapse: collapse; width: 100%; min-width: 400px;
+      font-size: .88rem;
+    }
+    .overview-table th {
+      background: var(--surface); border: 1px solid var(--border);
+      padding: .6rem .9rem; text-align: left; font-weight: 600;
+      font-family: var(--font-body); white-space: nowrap;
+    }
+    .overview-table th.match-col {
+      text-align: center; min-width: 110px;
+    }
+    .overview-table th .match-col-time { font-family: var(--font-display); font-size: 1.1rem; letter-spacing: .04em; display: block; }
+    .overview-table th .match-col-opp  { font-size: .78rem; color: var(--muted); font-weight: 400; }
+    .overview-table th .match-col-diff { font-size: .7rem; margin-top: 2px; display: inline-block; }
+
+    .overview-table td {
+      border: 1px solid var(--border); padding: .45rem .9rem;
+      background: var(--bg);
+    }
+    .overview-table tr:hover td { background: var(--surface2); }
+    .overview-table td.player-name-col { font-weight: 500; white-space: nowrap; }
+    .overview-table td.dot-col { text-align: center; }
+
+    .ov-dot-selected   { font-size: 1.1rem; line-height: 1; color: var(--green); }
+    .ov-dot-absent     { font-size: 1.1rem; line-height: 1; color: var(--danger); }
+    .ov-dot-empty      { color: var(--border); font-size: .9rem; }
   </style>
 </head>
 <body>
@@ -474,6 +506,7 @@
     <button class="nav-tab active" data-page="players">SPELARE</button>
     <button class="nav-tab" data-page="matches">MATCHER</button>
     <button class="nav-tab" data-page="lineup">UTTAGNING</button>
+    <button class="nav-tab" data-page="overview">ÖVERSIKT</button>
   </div>
 
   <!-- SPELARE -->
@@ -503,7 +536,20 @@
     <div class="match-list" id="match-list"></div>
   </div>
 
-  <!-- UTTAG -->
+  <!-- ÖVERSIKT -->
+  <div id="page-overview" class="page">
+    <div class="page-header">
+      <div class="page-title">ÖVERSIKT</div>
+      <div class="overview-week-nav">
+        <button class="btn-secondary" id="btn-week-prev" style="padding:.4rem .9rem">←</button>
+        <span id="overview-week-label" style="font-size:.9rem;color:var(--muted);min-width:160px;text-align:center"></span>
+        <button class="btn-secondary" id="btn-week-next" style="padding:.4rem .9rem">→</button>
+      </div>
+    </div>
+    <div id="overview-body"></div>
+  </div>
+
+  <!-- UTTAGNING -->
   <div id="page-lineup" class="page">
     <div class="page-header">
       <div class="page-title">UTTAGNING</div>
@@ -770,6 +816,7 @@
       tab.classList.add('active');
       document.getElementById('page-'+tab.dataset.page).classList.add('active');
       if (tab.dataset.page==='lineup') refreshMatchSelector();
+      if (tab.dataset.page==='overview') renderOverview();
     });
   });
 
@@ -983,6 +1030,7 @@
       matches = snap.docs.map(d=>({id:d.id,...d.data()}));
       matches.sort((a,b)=>(`${a.date||''}T${a.time||'00:00'}`).localeCompare(`${b.date||''}T${b.time||'00:00'}`));
       renderMatches(); refreshMatchSelector();
+      if (document.getElementById('page-overview')?.classList.contains('active')) renderOverview();
     });
   }
 
@@ -1117,8 +1165,8 @@
     unsubAllLineups = onSnapshot(collection(db,'lineups'), snap=>{
       allLineups={};
       snap.docs.forEach(d=>{ allLineups[d.id]=d.data(); });
-      // Only re-render pool if a lineup is actively being viewed
       if (currentLineupMatchId && lineupFormation) renderPlayerPool();
+      if (document.getElementById('page-overview')?.classList.contains('active')) renderOverview();
     });
   }
 
@@ -1407,7 +1455,117 @@
     }).catch(() => alert('Kunde inte kopiera. Försök igen.'));
   });
 
-  // ── Custom formation handlers ─────────────────────
+  // ── OVERVIEW ──────────────────────────────────────
+  let overviewWeekOffset = 0; // 0 = current/nearest week with matches
+
+  function getWeekMatches(offset) {
+    // Find all unique ISO week keys from matches, sorted
+    const weekKeys = [...new Set(matches.map(m => isoWeekKey(m.date)).filter(Boolean))].sort();
+    if (!weekKeys.length) return { weekKey: null, weekMatches: [] };
+
+    // Find nearest upcoming week (or current) as base
+    const today = todayStr();
+    const todayWeek = isoWeekKey(today);
+    const futureWeeks = weekKeys.filter(w => w >= todayWeek);
+    const baseIdx = futureWeeks.length
+      ? weekKeys.indexOf(futureWeeks[0])
+      : weekKeys.length - 1;
+
+    const idx = Math.max(0, Math.min(weekKeys.length - 1, baseIdx + offset));
+    const weekKey = weekKeys[idx];
+    const weekMatches = matches.filter(m => isoWeekKey(m.date) === weekKey)
+      .sort((a,b) => (`${a.date}T${a.time||'00:00'}`).localeCompare(`${b.date}T${b.time||'00:00'}`));
+    return { weekKey, weekMatches, idx, total: weekKeys.length };
+  }
+
+  function weekKeyToLabel(wk) {
+    if (!wk) return '';
+    const [year, w] = wk.split('-W');
+    // Get Monday of that ISO week
+    const jan4 = new Date(parseInt(year), 0, 4);
+    const monday = new Date(jan4);
+    monday.setDate(jan4.getDate() - ((jan4.getDay() + 6) % 7) + (parseInt(w) - 1) * 7);
+    const sunday = new Date(monday); sunday.setDate(monday.getDate() + 6);
+    return `Vecka ${w} · ${monday.toLocaleDateString('sv-SE',{day:'numeric',month:'short'})} – ${sunday.toLocaleDateString('sv-SE',{day:'numeric',month:'short',year:'numeric'})}`;
+  }
+
+  function renderOverview() {
+    const body = document.getElementById('overview-body');
+    const label = document.getElementById('overview-week-label');
+    if (!body) return;
+
+    const { weekKey, weekMatches, idx, total } = getWeekMatches(overviewWeekOffset);
+
+    document.getElementById('btn-week-prev').disabled = !idx;
+    document.getElementById('btn-week-next').disabled = idx >= total - 1;
+    label.textContent = weekKey ? weekKeyToLabel(weekKey) : '—';
+
+    if (!weekMatches.length) {
+      body.innerHTML = '<div class="overview-empty">Inga matcher denna vecka.</div>';
+      return;
+    }
+
+    const today = todayStr();
+    const DIFF_EMOJI = { green:'🟢', blue:'🔵', red:'🔴', black:'⚫' };
+
+    // Build matrix
+    // Columns = matches, Rows = players (sorted by shortName)
+    const sortedPlayers = [...players].sort((a,b) => shortName(a).localeCompare(shortName(b),'sv'));
+
+    // For each match, get assigned player IDs from allLineups
+    const matchLineups = weekMatches.map(m => {
+      const lu = allLineups[m.id];
+      const pids = lu ? [...new Set(Object.values(lu.slots||{}).flat())] : [];
+      return { match: m, pids: new Set(pids) };
+    });
+
+    // Header row
+    let html = '<div class="overview-table-wrap"><table class="overview-table"><thead><tr>';
+    html += '<th>Spelare</th>';
+    matchLineups.forEach(({ match: m }) => {
+      const d = m.date ? new Date(m.date+'T12:00:00') : null;
+      const dayStr = d ? `${WEEKDAY[d.getDay()]} ${d.toLocaleDateString('sv-SE',{day:'numeric',month:'short'})}` : '?';
+      html += `<th class="match-col">
+        <span class="match-col-time">${escHtml(m.time||'?')}</span>
+        <span class="match-col-opp">${escHtml(m.opponent||'—')}</span><br>
+        <span class="match-col-opp">${dayStr}</span>
+        <span class="match-col-diff">${DIFF_EMOJI[m.difficulty]||''}</span>
+      </th>`;
+    });
+    html += '</tr></thead><tbody>';
+
+    // Player rows
+    sortedPlayers.forEach(p => {
+      const absentOnAny = matchLineups.some(({ match: m }) => isPlayerUnavailableOnDate(p, m.date||today));
+      const selectedForAny = matchLineups.some(({ pids }) => pids.has(p.id));
+      html += `<tr><td class="player-name-col">${escHtml(shortName(p))}</td>`;
+      matchLineups.forEach(({ match: m, pids }) => {
+        const absent   = isPlayerUnavailableOnDate(p, m.date||today);
+        const selected = pids.has(p.id);
+        let cell;
+        if (absent)        cell = '<span class="ov-dot-absent" title="Ej tillgänglig">●</span>';
+        else if (selected) cell = '<span class="ov-dot-selected" title="Uttagen">●</span>';
+        else               cell = '<span class="ov-dot-empty">·</span>';
+        html += `<td class="dot-col">${cell}</td>`;
+      });
+      html += '</tr>';
+    });
+
+    html += '</tbody></table></div>';
+
+    // Legend
+    html += `<div style="display:flex;gap:1.5rem;margin-top:1rem;font-size:.78rem;color:var(--muted)">
+      <span><span style="color:var(--green)">●</span> Uttagen</span>
+      <span><span style="color:var(--danger)">●</span> Ej tillgänglig</span>
+      <span><span style="color:var(--border)">·</span> Ej uttagen</span>
+    </div>`;
+
+    body.innerHTML = html;
+  }
+
+  document.getElementById('btn-week-prev').addEventListener('click', () => { overviewWeekOffset--; renderOverview(); });
+  document.getElementById('btn-week-next').addEventListener('click', () => { overviewWeekOffset++; renderOverview(); });
+
   document.getElementById('btn-save-custom-formation').addEventListener('click', async () => {
     const match  = currentMatch(); if (!match) return;
     const input  = document.getElementById('custom-formation-input');

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>v4.7 — Laguttagning</title>
+  <title>v4.8 — Laguttagning</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
@@ -963,7 +963,13 @@
     } finally { btn.disabled=false; btn.textContent='LOGGA IN'; }
   });
   document.getElementById('password').addEventListener('keydown', e=>{ if(e.key==='Enter') document.getElementById('btn-login').click(); });
-  document.getElementById('btn-logout').addEventListener('click', ()=>signOut(auth));
+  document.getElementById('btn-logout').addEventListener('click', () => {
+    showConfirm(
+      'Vill du logga ut?',
+      'Logga ut', 'btn-danger',
+      () => signOut(auth)
+    );
+  });
 
   // ── PLAYERS ───────────────────────────────────────
   function startPlayerListener() {

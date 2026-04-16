@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>v7.2 — Laguttagning</title>
+  <title>v7.3 — Laguttagning</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
@@ -851,11 +851,6 @@
     document.getElementById('view-'+n).classList.add('active');
   }
   function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-  function formatTs(ts) {
-    if (!ts) return '';
-    const d = ts.toDate ? ts.toDate() : new Date(ts);
-    return d.toLocaleDateString('sv-SE',{day:'numeric',month:'short'})+' '+d.toLocaleTimeString('sv-SE',{hour:'2-digit',minute:'2-digit'});
-  }
   function formatDate(ds) { if (!ds) return ''; return new Date(ds+'T12:00:00').toLocaleDateString('sv-SE',{day:'numeric',month:'short'}); }
   function shortName(player) {
     if (player.displayName) return player.displayName;
@@ -874,7 +869,6 @@
   }
   function getAbsenceOnDate(player, dateStr) { return (player.absences||[]).find(a=>absenceActiveOnDate(a,dateStr))||null; }
   function isPlayerUnavailableOnDate(player, dateStr) {
-    if (player.status && player.status!=='available') return true;
     return !!getAbsenceOnDate(player, dateStr);
   }
   function absencePillHtml(abs, cls) {
@@ -1003,12 +997,9 @@
       const teamIds = snap.exists() ? (snap.data().teams||[]) : [];
       const lastTeam = snap.exists() ? snap.data().lastTeam : null;
 
-      // Load team metadata
-      userTeams = [];
-      for (const tid of teamIds) {
-        const tSnap = await getDoc(doc(db,'teams',tid));
-        if (tSnap.exists()) userTeams.push({ id:tid, ...tSnap.data() });
-      }
+      // Load team metadata in parallel
+      const teamSnaps = await Promise.all(teamIds.map(tid => getDoc(doc(db,'teams',tid))));
+      userTeams = teamSnaps.filter(s => s.exists()).map(s => ({ id:s.id, ...s.data() }));
 
       if (userTeams.length === 0) {
         showView('login');
@@ -1746,7 +1737,7 @@
   document.getElementById('btn-settings').addEventListener('click',e=>{e.stopPropagation();document.getElementById('settings-dropdown').classList.toggle('open');});
   document.addEventListener('click',e=>{if(!document.querySelector('.settings-wrap')?.contains(e.target))document.getElementById('settings-dropdown')?.classList.remove('open');});
   document.getElementById('theme-toggle').addEventListener('click',()=>{
-    const isLight=document.body.classList.toggle('theme-light');
+    const isLight=!document.body.classList.contains('theme-light');
     applyTheme(isLight); saveTheme(isLight);
     setTimeout(()=>{document.getElementById('settings-dropdown')?.classList.remove('open');},1500);
   });
@@ -1793,15 +1784,15 @@
       <div class="admin-team-item">
         <div style="display:flex;justify-content:space-between;align-items:flex-start">
           <div class="admin-team-item-name">${escHtml(t.name)}</div>
-          <button class="btn-danger" style="font-size:.72rem;padding:.2rem .6rem;border-radius:6px" onclick="deleteTeam('${t.id}','${escHtml(t.name)}')">Ta bort</button>
+          <button class="btn-danger" style="font-size:.72rem;padding:.2rem .6rem;border-radius:6px" data-action="delete-team" data-teamid="${t.id}" data-teamname="${escHtml(t.name)}">Ta bort</button>
         </div>
         <div class="admin-team-item-meta">
           ${t.birthYear?`Födelseår: ${t.birthYear} · `:''}Format: ${t.format||'?'}
-          ${!t.birthYear?` <button class="btn-readme" data-teamid="${t.id}" style="font-size:.72rem" onclick="document.getElementById('edit-year-${t.id}').style.display='flex'">Lägg till födelseår</button>`:''}
+          ${!t.birthYear?` <button class="btn-readme" style="font-size:.72rem" data-action="show-year-input" data-teamid="${t.id}">Lägg till födelseår</button>`:''}
         </div>
         <div id="edit-year-${t.id}" style="display:none;align-items:center;gap:.5rem;margin-top:.4rem">
           <input type="number" placeholder="Födelseår" min="2000" max="2030" style="width:100px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--font-body);font-size:.8rem;padding:.3rem .5rem;outline:none" id="year-input-${t.id}" />
-          <button class="btn-primary" style="font-size:.8rem;padding:.3rem .7rem" onclick="saveBirthYear('${t.id}')">Spara</button>
+          <button class="btn-primary" style="font-size:.8rem;padding:.3rem .7rem" data-action="save-year" data-teamid="${t.id}">Spara</button>
         </div>
         <div class="admin-member-list">${(membersByTeam[t.id]||[]).map(e=>`<span class="admin-member-chip">${escHtml(e)}</span>`).join('')||'<span style="font-size:.75rem;color:var(--muted)">Inga tränare</span>'}</div>
       </div>`).join('');
@@ -1837,49 +1828,56 @@
     }catch(err){console.error(err);msgEl.style.color='var(--danger)';msgEl.textContent='Något gick fel.';}
   });
 
-  // ── Save birth year for existing teams ───────────
-  window.saveBirthYear = async function(teamId) {
-    const input=document.getElementById(`year-input-${teamId}`);
-    const birthYear=parseInt(input?.value);
-    if(!birthYear||birthYear<2000||birthYear>2030){alert('Ange ett giltigt födelseår.');return;}
-    const format=svffFormat(birthYear);
-    try{
-      await updateDoc(doc(db,'teams',teamId),{birthYear,format});
-      await refreshAdminTeamList();
-    }catch(err){console.error(err);alert('Något gick fel.');}
-  };
+  // ── Admin team list event delegation ─────────────
+  document.getElementById('admin-team-list').addEventListener('click', async e => {
+    const showYearBtn = e.target.closest('[data-action="show-year-input"]');
+    const saveYearBtn = e.target.closest('[data-action="save-year"]');
+    const deleteBtn   = e.target.closest('[data-action="delete-team"]');
 
-  window.deleteTeam = async function(teamId, teamName) {
-    showConfirm(
-      `Ta bort laget "${teamName}"? All data (spelare, matcher, uppställningar) raderas permanent.`,
-      'Ta bort lag', 'btn-danger',
-      async () => {
-        try {
-          // Delete all subcollections
-          const subcols = ['players','matches','lineups','customFormations'];
-          for (const col of subcols) {
-            const snap = await getDocs(collection(db,'teams',teamId,col));
-            for (const d of snap.docs) {
-              await deleteDoc(doc(db,'teams',teamId,col,d.id));
+    if (showYearBtn) {
+      const teamId = showYearBtn.dataset.teamid;
+      document.getElementById(`edit-year-${teamId}`).style.display = 'flex';
+    }
+
+    if (saveYearBtn) {
+      const teamId   = saveYearBtn.dataset.teamid;
+      const input    = document.getElementById(`year-input-${teamId}`);
+      const birthYear= parseInt(input?.value);
+      if (!birthYear||birthYear<2000||birthYear>2030) { alert('Ange ett giltigt födelseår.'); return; }
+      const format = svffFormat(birthYear);
+      try {
+        await updateDoc(doc(db,'teams',teamId), {birthYear, format});
+        await refreshAdminTeamList();
+      } catch(err) { console.error(err); alert('Något gick fel.'); }
+    }
+
+    if (deleteBtn) {
+      const teamId   = deleteBtn.dataset.teamid;
+      const teamName = deleteBtn.dataset.teamname;
+      showConfirm(
+        `Ta bort laget "${teamName}"? All data (spelare, matcher, uppställningar) raderas permanent.`,
+        'Ta bort lag', 'btn-danger',
+        async () => {
+          try {
+            const subcols = ['players','matches','lineups','customFormations'];
+            for (const col of subcols) {
+              const snap = await getDocs(collection(db,'teams',teamId,col));
+              for (const d of snap.docs) await deleteDoc(doc(db,'teams',teamId,col,d.id));
             }
-          }
-          // Delete team document
-          await deleteDoc(doc(db,'teams',teamId));
-          // Remove team from all userSettings
-          const usersSnap = await getDocs(collection(db,'userSettings'));
-          for (const d of usersSnap.docs) {
-            const teams = d.data().teams||[];
-            if (teams.includes(teamId)) {
-              await updateDoc(doc(db,'userSettings',d.id), {
-                teams: teams.filter(t=>t!==teamId)
-              });
+            await deleteDoc(doc(db,'teams',teamId));
+            const usersSnap = await getDocs(collection(db,'userSettings'));
+            for (const d of usersSnap.docs) {
+              const teams = d.data().teams||[];
+              if (teams.includes(teamId)) {
+                await updateDoc(doc(db,'userSettings',d.id), { teams: teams.filter(t=>t!==teamId) });
+              }
             }
-          }
-          await refreshAdminTeamList();
-        } catch(err) { console.error(err); alert('Något gick fel: '+err.message); }
-      }
-    );
-  };
+            await refreshAdminTeamList();
+          } catch(err) { console.error(err); alert('Något gick fel: '+err.message); }
+        }
+      );
+    }
+  });
 
   document.getElementById('btn-add-user-to-team').addEventListener('click', async()=>{
     const email=document.getElementById('add-user-email').value.trim();

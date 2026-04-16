@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>v3.9 — Laguttagning</title>
+  <title>v4.0 — Laguttagning</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
@@ -296,6 +296,7 @@
     .match-picker-opp  { font-weight: 500; font-size: .9rem; }
     .match-picker-date { font-size: .75rem; color: var(--muted); margin-top: 1px; }
     .match-picker-fmt  { font-size: .72rem; color: var(--muted); background: var(--surface2); border: 1px solid var(--border); border-radius: 4px; padding: .15rem .4rem; flex-shrink: 0; }
+    .match-picker-cnt  { font-size: .78rem; font-weight: 600; color: var(--green); background: rgba(76,175,110,.1); border: 1px solid rgba(76,175,110,.2); border-radius: 4px; padding: .15rem .5rem; flex-shrink: 0; }
     .formation-select {
       background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
       color: var(--text); font-family: var(--font-body); font-size: .95rem;
@@ -1270,6 +1271,9 @@
         html += `<div class="match-picker-group-label">${dayLabel}</div>`;
         groups[dk].forEach(m => {
           const sel = m.id === currentLineupMatchId ? ' selected' : '';
+          const lu  = allLineups[m.id];
+          const cnt = lu ? [...new Set(Object.values(lu.slots||{}).flat())].length : 0;
+          const cntHtml = cnt > 0 ? `<div class="match-picker-cnt">${cnt}</div>` : '';
           html += `<div class="match-picker-item${sel}" data-id="${m.id}">
             <div class="match-picker-bar diff-${m.difficulty||'green'}"></div>
             <div class="match-picker-body">
@@ -1278,6 +1282,7 @@
                 <div class="match-picker-opp">${escHtml(m.opponent||'—')}</div>
               </div>
               <div class="match-picker-fmt">${escHtml(m.format||'')}</div>
+              ${cntHtml}
             </div>
           </div>`;
         });

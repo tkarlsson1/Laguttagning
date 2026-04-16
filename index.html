@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>v4.6 — Laguttagning</title>
+  <title>v4.7 — Laguttagning</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
@@ -597,7 +597,6 @@
       <div class="page-title">SPELARE <span id="player-count"></span></div>
       <button class="btn-primary" id="btn-add-player">+ LÄGG TILL</button>
     </div>
-    <div id="players-last-edit" class="last-edit"></div>
     <div class="filter-bar">
       <button class="filter-btn active" data-filter="all">Alla</button>
       <button class="filter-btn" data-filter="available">Tillgänglig</button>
@@ -614,7 +613,6 @@
       <div class="page-title">MATCHER <span id="match-count"></span></div>
       <button class="btn-primary" id="btn-add-match">+ LÄGG TILL</button>
     </div>
-    <div id="matches-last-edit" class="last-edit"></div>
     <div class="match-list" id="match-list"></div>
   </div>
 
@@ -1002,7 +1000,6 @@
     }
 
     document.getElementById('player-count').textContent = `(${players.length})`;
-    lastEditText(players, document.getElementById('players-last-edit'));
 
     const grid = document.getElementById('player-grid');
     if (filtered.length === 0) {
@@ -1034,7 +1031,6 @@
         <div class="player-tags">${(p.positions||[]).map(pos=>`<span class="tag">${pos}</span>`).join('')}</div>
         <span class="status-badge ${statusClass[dispStatus]||'status-available'}">${statusLabel[dispStatus]||'Tillgänglig'}</span>
         ${pillsHtml?`<div class="absence-pills">${pillsHtml}</div>`:''}
-        ${p.updatedBy?`<div class="player-meta">${escHtml(p.updatedBy)} · ${formatTs(p.updatedAt)}</div>`:''}
       </div>`;
     }).join('');
 
@@ -1148,7 +1144,6 @@
 
   function renderMatches() {
     document.getElementById('match-count').textContent=`(${matches.length})`;
-    lastEditText(matches, document.getElementById('matches-last-edit'));
     const list=document.getElementById('match-list');
     if (matches.length===0) { list.innerHTML=`<div class="empty-state" style="grid-column:unset"><p>Inga matcher ännu</p><p>Lägg till en match med knappen ovan.</p></div>`; return; }
     const groups={};

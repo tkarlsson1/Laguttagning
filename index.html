@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>v5.3 — Laguttagning</title>
+  <title>v5.4 — Laguttagning</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
@@ -365,6 +365,7 @@
 
     .chip-starter { background: var(--green); color: #0e1110; font-size: 1.1rem; font-weight: 700; padding: 3px 5px; border-radius: 4px; display: flex; align-items: center; justify-content: space-between; gap: 2px; overflow: hidden; }
     .chip-sub     { background: var(--green); color: #0e1110; font-size: 1.1rem; font-weight: 700; padding: 3px 5px; border-radius: 3px; display: flex; align-items: center; justify-content: space-between; gap: 2px; overflow: hidden; }
+    .chip-unavailable { background: rgba(224,92,92,.15); color: var(--danger); border: 1px solid rgba(224,92,92,.3); font-size: 1.1rem; font-weight: 700; padding: 3px 5px; border-radius: 4px; display: flex; align-items: center; justify-content: space-between; gap: 2px; overflow: hidden; }
     .chip-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
     .chip-rm { background: none; border: none; cursor: pointer; color: inherit; font-size: .75rem; padding: 0 1px; opacity: .5; flex-shrink: 0; line-height: 1; }
     .chip-rm:hover { opacity: 1; color: var(--danger); }
@@ -381,7 +382,7 @@
     }
     .pool-item:hover            { background: var(--surface2); }
     .pool-item.in-selected      { background: rgba(76,175,110,.08); border-color: rgba(76,175,110,.25); }
-    .pool-item.pool-unavailable { opacity: .45; pointer-events: none; }
+    .pool-item.pool-unavailable { opacity: .45; }
 
     .pool-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 5px; }
     .dot-available   { background: var(--green); }
@@ -475,6 +476,7 @@
       .pos-label { font-size: .52rem; }
       .chip-starter { font-size: .9rem; padding: 2px 3px; }
       .chip-sub     { font-size: .9rem; padding: 2px 3px; background: var(--green); color: #0e1110; }
+      .chip-unavailable { font-size: .9rem; padding: 2px 3px; }
 
       /* Player pool: full height below pitch, no scroll cap */
       .player-pool { max-height: none; }
@@ -1497,7 +1499,10 @@
         const key=`r${row.rowIdx}-${pi}`, label=row.labels[pi]||'', pids=lineupSlots[key]||[], sel=selectedSlot===key;
         const chips=pids.map((pid,ci)=>{
           const pl=players.find(p=>p.id===pid), name=pl?escHtml(shortName(pl)):'?';
-          return `<div class="${ci===0?'chip-starter':'chip-sub'}"><span class="chip-name">${name}</span><button class="chip-rm" data-slot="${key}" data-pid="${pid}">×</button></div>`;
+          const matchDate=currentMatch()?.date||null;
+          const unavail=pl&&isPlayerUnavailableOnDate(pl,matchDate||todayStr());
+          const cls=unavail?'chip-unavailable':(ci===0?'chip-starter':'chip-sub');
+          return `<div class="${cls}"><span class="chip-name">${name}</span><button class="chip-rm" data-slot="${key}" data-pid="${pid}">×</button></div>`;
         }).join('');
         return `<div class="pos-slot${sel?' selected':''}" data-slot="${key}"><div class="pos-label">${label}</div><div class="pos-players">${chips}</div>${pids.length===0?'<div class="pos-empty">+</div>':''}</div>`;
       }).join('')}</div>`;
@@ -1568,7 +1573,7 @@
     if (unavail.length) { html+='<div class="pool-section-label">Ej tillgängliga</div>'+unavail.map(renderPoolItem).join(''); }
     pool.innerHTML=html;
 
-    pool.querySelectorAll('.pool-item:not(.pool-unavailable)').forEach(el=>{
+    pool.querySelectorAll('.pool-item').forEach(el=>{
       el.addEventListener('click',()=>{ if(selectedSlot) toggleInSlot(el.dataset.pid); });
     });
   }

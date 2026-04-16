@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>v5.7 — Laguttagning</title>
+  <title>v5.8 — Laguttagning</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
@@ -87,6 +87,16 @@
       background: #fff; top: 3px; left: 3px; transition: transform .2s;
     }
     .toggle-switch.on::after { transform: translateX(16px); }
+
+    .btn-readme {
+      background: none; border: none; color: var(--green); font-family: var(--font-body);
+      font-size: .88rem; cursor: pointer; padding: 0; text-align: left;
+    }
+    .btn-readme:hover { text-decoration: underline; }
+
+    .readme-section { margin-bottom: 1.2rem; }
+    .readme-heading { font-family: var(--font-display); font-size: 1.1rem; letter-spacing: .06em; color: var(--green); margin-bottom: .3rem; }
+    .readme-content p { font-size: .88rem; line-height: 1.6; color: var(--text); }
 
     html { background: var(--bg); }
     body { min-height: 100%; background: var(--bg); color: var(--text); font-family: var(--font-body); }
@@ -652,6 +662,9 @@
             <span id="theme-label">Mörkt</span>
             <div class="toggle-switch" id="theme-toggle"></div>
           </div>
+          <div style="border-top:1px solid var(--border);margin:.75rem 0"></div>
+          <div class="settings-label">Hjälp</div>
+          <button class="btn-readme" id="btn-readme">Snabbguide ↗</button>
         </div>
       </div>
       <button class="btn-logout" id="btn-logout">Logga ut</button>
@@ -841,6 +854,42 @@
       <div class="modal-actions-left"><button class="btn-danger" id="btn-delete-match" style="display:none">Ta bort</button></div>
       <button class="btn-secondary" id="btn-match-cancel">Avbryt</button>
       <button class="btn-primary" id="btn-match-save">SPARA</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── README MODAL ──────────────────────────────────── -->
+<div id="readme-modal" class="modal-backdrop">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-title">SNABBGUIDE</div>
+    <div class="readme-content">
+      <div class="readme-section">
+        <div class="readme-heading">Spelare</div>
+        <p>Lägg till alla spelare med namn, visningsnamn och positionstaggar. Visningsnamnet används på spelplanen. Förhinder läggs in per spelare med start- och slutdatum — en spelare kan ha flera förhinder inlagda samtidigt, t.ex. en skada och ett planerat förhinder längre fram. Appen varnar automatiskt vid uttagning om en spelare har förhinder på matchdatumet.</p>
+      </div>
+      <div class="readme-section">
+        <div class="readme-heading">Matcher</div>
+        <p>Skapa matcherna för säsongen med datum, tid, motståndare och svårighetsgrad. Hemma/Borta kan anges för att hålla koll på domarbokningar.</p>
+      </div>
+      <div class="readme-section">
+        <div class="readme-heading">Uttagning</div>
+        <p>Välj match och formation. Klicka en position på planen och sedan en spelare i listan — spelaren placeras direkt. Vill du lägga till en reserv på samma position klickar du bara in ytterligare en spelare där. Spelare med förhinder visas röda. Spelare uttagna i andra matcher samma vecka märks ut automatiskt. Allt sparas direkt.</p>
+      </div>
+      <div class="readme-section">
+        <div class="readme-heading">Översikt</div>
+        <p>Veckoöversikt som visar alla spelare mot alla matcher. Grön prick = uttagen, röd = förhinder.</p>
+      </div>
+      <div class="readme-section">
+        <div class="readme-heading">Historik</div>
+        <p>Se gamla uppställningar från avklarade matcher.</p>
+      </div>
+      <div class="readme-section">
+        <div class="readme-heading">Kopiera lista</div>
+        <p>På uttagningssidan — kopierar en alfabetisk namnlista att klistra in i exempelvis en chattgrupp.</p>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-primary" id="btn-readme-close">STÄNG</button>
     </div>
   </div>
 </div>
@@ -1751,7 +1800,17 @@
     }
   });
 
-  document.getElementById('theme-toggle').addEventListener('click', () => {
+  document.getElementById('btn-readme').addEventListener('click', () => {
+    document.getElementById('settings-dropdown').classList.remove('open');
+    document.getElementById('readme-modal').classList.add('open');
+  });
+  document.getElementById('btn-readme-close').addEventListener('click', () => {
+    document.getElementById('readme-modal').classList.remove('open');
+  });
+  document.getElementById('readme-modal').addEventListener('click', e => {
+    if (e.target === document.getElementById('readme-modal'))
+      document.getElementById('readme-modal').classList.remove('open');
+  });
     const isLight = document.body.classList.toggle('theme-light');
     applyTheme(isLight);
     saveTheme(isLight);

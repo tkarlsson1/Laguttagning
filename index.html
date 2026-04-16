@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>v6.3 — Laguttagning</title>
+  <title>v6.4 — Laguttagning</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
@@ -149,7 +149,7 @@
       justify-content: space-between; flex-shrink: 0;
     }
     .topbar-left { display: flex; align-items: center; gap: 1rem; }
-    .topbar-logo { font-family: var(--font-display); font-size: 1.6rem; letter-spacing: .08em; color: var(--green); cursor: pointer; }
+    .topbar-logo { font-family: var(--font-display); font-size: 1.6rem; letter-spacing: .08em; color: var(--green); }
     .topbar-team-name { font-size: .82rem; color: var(--muted); border-left: 1px solid var(--border); padding-left: 1rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 160px; }
     .topbar-user { display: flex; align-items: center; gap: 1rem; font-size: .85rem; color: var(--muted); }
     .btn-logout {
@@ -509,6 +509,10 @@
           <div class="theme-toggle">
             <span id="theme-label">Mörkt</span>
             <div class="toggle-switch" id="theme-toggle"></div>
+          </div>
+          <div id="switch-team-wrapper" style="display:none;border-top:1px solid var(--border);margin:.75rem 0 0">
+            <div class="settings-label" style="margin-top:.75rem">Lag</div>
+            <button class="btn-readme" id="btn-switch-team">Byt lag ↗</button>
           </div>
           <div style="border-top:1px solid var(--border);margin:.75rem 0"></div>
           <div class="settings-label">Hjälp</div>
@@ -955,17 +959,14 @@
     });
   });
 
-  // ── Topbar logo → switch team ─────────────────────
-  document.getElementById('topbar-logo').addEventListener('click', () => {
-    if (userTeams.length > 1) {
-      stopListeners();
-      // Reset only team-specific state, keep userTeams intact
-      currentTeamId=null; currentTeamName='';
-      currentLineupMatchId=null; lineupFormation=''; lineupSlots={}; selectedSlot=null;
-      players=[]; matches=[]; allLineups={}; customFormations=[];
-      overviewWeekOffset=0; selectedHistoryMatchId=null;
-      showTeamSelect(null);
-    }
+  document.getElementById('btn-switch-team').addEventListener('click', () => {
+    document.getElementById('settings-dropdown').classList.remove('open');
+    stopListeners();
+    currentTeamId=null; currentTeamName='';
+    currentLineupMatchId=null; lineupFormation=''; lineupSlots={}; selectedSlot=null;
+    players=[]; matches=[]; allLineups={}; customFormations=[];
+    overviewWeekOffset=0; selectedHistoryMatchId=null;
+    showTeamSelect(null);
   });
 
   // ── Auth ──────────────────────────────────────────
@@ -1043,6 +1044,7 @@
     currentTeamId   = teamId;
     currentTeamName = teamName;
     document.getElementById('topbar-team-name').textContent = teamName;
+    document.getElementById('switch-team-wrapper').style.display = userTeams.length > 1 ? 'block' : 'none';
 
     // Save lastTeam and email
     try { await setDoc(doc(db,'userSettings',currentUser.uid),{lastTeam:teamId, email:currentUser.email},{merge:true}); } catch(e){}

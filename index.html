@@ -1811,6 +1811,7 @@
     if (e.target === document.getElementById('readme-modal'))
       document.getElementById('readme-modal').classList.remove('open');
   });
+  document.getElementById('theme-toggle').addEventListener('click', () => {
     const isLight = document.body.classList.toggle('theme-light');
     applyTheme(isLight);
     saveTheme(isLight);

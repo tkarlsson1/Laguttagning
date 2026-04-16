@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>v6.7 — Laguttagning</title>
+  <title>v6.8 — Laguttagning</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
@@ -1776,7 +1776,10 @@
 
     listEl.innerHTML=allTeams.map(t=>`
       <div class="admin-team-item">
-        <div class="admin-team-item-name">${escHtml(t.name)}</div>
+        <div style="display:flex;justify-content:space-between;align-items:flex-start">
+          <div class="admin-team-item-name">${escHtml(t.name)}</div>
+          <button class="btn-danger" style="font-size:.72rem;padding:.2rem .6rem;border-radius:6px" onclick="deleteTeam('${t.id}','${escHtml(t.name)}')">Ta bort</button>
+        </div>
         <div class="admin-team-item-meta">
           ${t.birthYear?`Födelseår: ${t.birthYear} · `:''}Format: ${t.format||'?'}
           ${!t.birthYear?` <button class="btn-readme" data-teamid="${t.id}" style="font-size:.72rem" onclick="document.getElementById('edit-year-${t.id}').style.display='flex'">Lägg till födelseår</button>`:''}
@@ -1829,6 +1832,38 @@
       await updateDoc(doc(db,'teams',teamId),{birthYear,format});
       await refreshAdminTeamList();
     }catch(err){console.error(err);alert('Något gick fel.');}
+  };
+
+  window.deleteTeam = async function(teamId, teamName) {
+    showConfirm(
+      `Ta bort laget "${teamName}"? All data (spelare, matcher, uppställningar) raderas permanent.`,
+      'Ta bort lag', 'btn-danger',
+      async () => {
+        try {
+          // Delete all subcollections
+          const subcols = ['players','matches','lineups','customFormations'];
+          for (const col of subcols) {
+            const snap = await getDocs(collection(db,'teams',teamId,col));
+            for (const d of snap.docs) {
+              await deleteDoc(doc(db,'teams',teamId,col,d.id));
+            }
+          }
+          // Delete team document
+          await deleteDoc(doc(db,'teams',teamId));
+          // Remove team from all userSettings
+          const usersSnap = await getDocs(collection(db,'userSettings'));
+          for (const d of usersSnap.docs) {
+            const teams = d.data().teams||[];
+            if (teams.includes(teamId)) {
+              await updateDoc(doc(db,'userSettings',d.id), {
+                teams: teams.filter(t=>t!==teamId)
+              });
+            }
+          }
+          await refreshAdminTeamList();
+        } catch(err) { console.error(err); alert('Något gick fel: '+err.message); }
+      }
+    );
   };
 
   document.getElementById('btn-add-user-to-team').addEventListener('click', async()=>{

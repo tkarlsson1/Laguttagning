@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>v4.4 — Laguttagning</title>
+  <title>v4.5 — Laguttagning</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
@@ -503,7 +503,33 @@
       /* Field rows: stack on mobile */
       .field-row { grid-template-columns: 1fr; }
     }
-    /* ── OVERVIEW ────────────────────────────────────── */
+    /* ── HISTORY ─────────────────────────────────────── */
+    .history-layout { display: grid; grid-template-columns: 280px 1fr; gap: 2rem; align-items: start; }
+    @media (max-width: 780px) { .history-layout { grid-template-columns: 1fr; } }
+
+    .history-list { display: flex; flex-direction: column; gap: .5rem; max-height: 80vh; overflow-y: auto; }
+
+    .history-match-card {
+      background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+      display: flex; align-items: stretch; overflow: hidden;
+      cursor: pointer; transition: border-color .2s;
+    }
+    .history-match-card:hover    { border-color: var(--green); }
+    .history-match-card.selected { border-color: var(--green); background: rgba(76,175,110,.06); }
+    .history-match-card .match-diff-bar { width: 4px; flex-shrink: 0; }
+    .history-match-body { padding: .65rem .9rem; flex: 1; }
+    .history-match-opponent { font-weight: 600; font-size: .9rem; }
+    .history-match-meta { font-size: .75rem; color: var(--muted); margin-top: 2px; }
+
+    .history-pitch-col { }
+    .history-match-info {
+      margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border);
+    }
+    .history-match-info h3 { font-family: var(--font-display); font-size: 1.6rem; letter-spacing: .06em; }
+    .history-match-info p  { font-size: .85rem; color: var(--muted); margin-top: .25rem; }
+
+    .history-pitch-wrap { max-width: 480px; }
+    .history-no-lineup { color: var(--muted); font-size: .9rem; padding: 2rem 0; }
     .overview-week-nav { display: flex; align-items: center; gap: .75rem; }
     .overview-empty { color: var(--muted); font-size: .95rem; padding: 2rem 0; }
 
@@ -562,6 +588,7 @@
     <button class="nav-tab" data-page="matches">MATCHER</button>
     <button class="nav-tab" data-page="lineup">UTTAGNING</button>
     <button class="nav-tab" data-page="overview">ÖVERSIKT</button>
+    <button class="nav-tab" data-page="history">HISTORIK</button>
   </div>
 
   <!-- SPELARE -->
@@ -589,6 +616,19 @@
     </div>
     <div id="matches-last-edit" class="last-edit"></div>
     <div class="match-list" id="match-list"></div>
+  </div>
+
+  <!-- HISTORIK -->
+  <div id="page-history" class="page">
+    <div class="page-header">
+      <div class="page-title">HISTORIK</div>
+    </div>
+    <div class="history-layout">
+      <div class="history-list" id="history-list"></div>
+      <div class="history-pitch-col" id="history-pitch-col">
+        <div class="lineup-placeholder">Välj en match för att se uppställningen.</div>
+      </div>
+    </div>
   </div>
 
   <!-- ÖVERSIKT -->
@@ -878,6 +918,7 @@
       document.getElementById('page-'+tab.dataset.page).classList.add('active');
       if (tab.dataset.page==='lineup') refreshMatchSelector();
       if (tab.dataset.page==='overview') { overviewWeekOffset=0; renderOverview(); }
+      if (tab.dataset.page==='history') renderHistory();
     });
   });
 
@@ -899,7 +940,7 @@
       showView('login');
       [unsubPlayers,unsubMatches,unsubLineup,unsubAllLineups,unsubCustomFormations].forEach(f=>f&&f());
       unsubPlayers=unsubMatches=unsubLineup=unsubAllLineups=unsubCustomFormations=null;
-      players=[]; matches=[]; allLineups={}; customFormations=[]; overviewWeekOffset=0;
+      players=[]; matches=[]; allLineups={}; customFormations=[]; overviewWeekOffset=0; selectedHistoryMatchId=null;
     }
   });
 
@@ -1584,6 +1625,101 @@
       setTimeout(() => { btn.textContent = 'Kopiera lista'; }, 2000);
     }).catch(() => alert('Kunde inte kopiera. Försök igen.'));
   });
+
+  // ── HISTORY ───────────────────────────────────────
+  let selectedHistoryMatchId = null;
+
+  function renderHistory() {
+    const listEl = document.getElementById('history-list');
+    if (!listEl) return;
+
+    const today = todayStr();
+    const past  = matches
+      .filter(m => m.date && m.date < today)
+      .sort((a,b) => (`${b.date}T${b.time||'00:00'}`).localeCompare(`${a.date}T${a.time||'00:00'}`));
+
+    if (!past.length) {
+      listEl.innerHTML = '<div style="color:var(--muted);font-size:.9rem">Inga avklarade matcher ännu.</div>';
+      return;
+    }
+
+    listEl.innerHTML = past.map(m => {
+      const d   = new Date(m.date+'T12:00:00');
+      const sel = m.id === selectedHistoryMatchId ? ' selected' : '';
+      const lu  = allLineups[m.id];
+      const cnt = lu ? [...new Set(Object.values(lu.slots||{}).flat())].length : 0;
+      const cntTxt = cnt ? ` · ${cnt} spelare` : ' · Ingen uppställning';
+      return `<div class="history-match-card${sel}" data-id="${m.id}">
+        <div class="match-diff-bar diff-${m.difficulty||'green'}"></div>
+        <div class="history-match-body">
+          <div class="history-match-opponent">${escHtml(m.opponent||'—')}</div>
+          <div class="history-match-meta">${WEEKDAY[d.getDay()]} ${d.toLocaleDateString('sv-SE',{day:'numeric',month:'short',year:'numeric'})}${m.time?' · '+m.time:''}${cntTxt}</div>
+        </div>
+      </div>`;
+    }).join('');
+
+    listEl.querySelectorAll('.history-match-card').forEach(card => {
+      card.addEventListener('click', () => {
+        selectedHistoryMatchId = card.dataset.id;
+        renderHistory();
+        renderHistoryPitch();
+      });
+    });
+
+    // Auto-select first if none selected
+    if (!selectedHistoryMatchId && past.length) {
+      selectedHistoryMatchId = past[0].id;
+      renderHistory();
+      renderHistoryPitch();
+    }
+  }
+
+  function renderHistoryPitch() {
+    const col = document.getElementById('history-pitch-col');
+    if (!col) return;
+    const match = matches.find(m => m.id === selectedHistoryMatchId);
+    if (!match) return;
+
+    const lu = allLineups[match.id];
+    const d  = match.date ? new Date(match.date+'T12:00:00') : null;
+    const dateStr = d ? `${WEEKDAY[d.getDay()]} ${d.toLocaleDateString('sv-SE',{day:'numeric',month:'long',year:'numeric'})}` : '';
+    const infoHtml = `<div class="history-match-info">
+      <h3>${escHtml(match.opponent||'—')}</h3>
+      <p>${dateStr}${match.time?' · '+match.time:''}${match.format?' · '+match.format:''}</p>
+    </div>`;
+
+    if (!lu || !lu.formation) {
+      col.innerHTML = infoHtml + '<div class="history-no-lineup">Ingen uppställning sparad för den här matchen.</div>';
+      return;
+    }
+
+    const slots  = lu.slots || {};
+    const rows   = parseFormationRows(lu.formation);
+
+    const pitchHtml = [...rows].reverse().map(row => {
+      return `<div class="pitch-row">${Array.from({length:row.count},(_,pi) => {
+        const key  = `r${row.rowIdx}-${pi}`;
+        const pids = slots[key] || [];
+        const label = row.labels[pi] || '';
+        const chips = pids.map((pid,ci) => {
+          const pl   = players.find(p => p.id===pid);
+          const name = pl ? escHtml(shortName(pl)) : '?';
+          return `<div class="${ci===0?'chip-starter':'chip-sub'}"><span class="chip-name">${name}</span></div>`;
+        }).join('');
+        return `<div class="pos-slot" style="cursor:default">
+          <div class="pos-label">${label}</div>
+          <div class="pos-players">${chips}</div>
+          ${pids.length===0?'<div class="pos-empty">+</div>':''}
+        </div>`;
+      }).join('')}</div>`;
+    }).join('');
+
+    col.innerHTML = infoHtml + `
+      <div class="history-pitch-wrap">
+        <div style="font-size:.75rem;color:var(--muted);margin-bottom:.75rem">Formation: ${escHtml(lu.formation)}</div>
+        <div class="pitch"><div class="pitch-rows" style="min-height:420px">${pitchHtml}</div></div>
+      </div>`;
+  }
 
   // ── OVERVIEW ──────────────────────────────────────
   let overviewWeekOffset = 0; // 0 = current/nearest week with matches

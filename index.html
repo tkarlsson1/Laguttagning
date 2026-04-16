@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>v6.2 — Laguttagning</title>
+  <title>v6.3 — Laguttagning</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
@@ -959,8 +959,12 @@
   document.getElementById('topbar-logo').addEventListener('click', () => {
     if (userTeams.length > 1) {
       stopListeners();
-      resetAppState();
-      showTeamSelect();
+      // Reset only team-specific state, keep userTeams intact
+      currentTeamId=null; currentTeamName='';
+      currentLineupMatchId=null; lineupFormation=''; lineupSlots={}; selectedSlot=null;
+      players=[]; matches=[]; allLineups={}; customFormations=[];
+      overviewWeekOffset=0; selectedHistoryMatchId=null;
+      showTeamSelect(null);
     }
   });
 

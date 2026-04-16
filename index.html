@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>v5.5 — Laguttagning</title>
+  <title>v5.6 — Laguttagning</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
@@ -88,9 +88,10 @@
     }
     .toggle-switch.on::after { transform: translateX(16px); }
 
-    html, body { height: 100%; background: var(--bg); color: var(--text); font-family: var(--font-body); }
+    html { background: var(--bg); }
+    body { min-height: 100%; background: var(--bg); color: var(--text); font-family: var(--font-body); }
     .view { display: none; min-height: 100vh; }
-    .view.active { display: flex; flex-direction: column; }
+    .view.active { display: flex; flex-direction: column; min-height: 100vh; }
     /* Prevent flash of login screen before auth check completes */
     body:not(.auth-ready) .view { display: none !important; }
 

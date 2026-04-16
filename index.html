@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>v5.4 — Laguttagning</title>
+  <title>v5.5 — Laguttagning</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
@@ -30,6 +30,63 @@
       --font-display: 'Bebas Neue', sans-serif;
       --font-body:    'DM Sans', sans-serif;
     }
+
+    body.theme-light {
+      --bg:         #f4f6f4;
+      --surface:    #ffffff;
+      --surface2:   #eef1ee;
+      --border:     #d0d8d2;
+      --green:      #2e7d4a;
+      --green-dim:  #4caf6e;
+      --text:       #1a2420;
+      --muted:      #7a8c80;
+      --danger:     #c0392b;
+      --warn:       #b7770d;
+      --info:       #2563a8;
+      --diff-green: #2e7d4a;
+      --diff-blue:  #2563a8;
+      --diff-red:   #c0392b;
+      --diff-black: #555f5a;
+    }
+
+    /* pitch stays green in light mode */
+    body.theme-light .pitch { box-shadow: 0 8px 32px rgba(0,0,0,.15); }
+    body.theme-light .chip-starter { background: #2e7d4a; color: #fff; }
+    body.theme-light .chip-sub     { background: #2e7d4a; color: #fff; }
+
+    /* settings button */
+    .btn-settings {
+      background: transparent; border: 1px solid var(--border); border-radius: 6px;
+      color: var(--muted); font-size: 1rem; width: 32px; height: 32px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; transition: border-color .2s, color .2s; flex-shrink: 0;
+    }
+    .btn-settings:hover { border-color: var(--text); color: var(--text); }
+
+    /* settings dropdown */
+    .settings-wrap { position: relative; }
+    .settings-dropdown {
+      display: none; position: absolute; top: calc(100% + 8px); right: 0;
+      background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+      padding: .75rem 1rem; min-width: 180px; box-shadow: 0 8px 24px rgba(0,0,0,.3);
+      z-index: 50;
+    }
+    .settings-dropdown.open { display: block; }
+    .settings-label { font-size: .75rem; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin-bottom: .6rem; }
+    .theme-toggle {
+      display: flex; align-items: center; justify-content: space-between;
+      font-size: .88rem; color: var(--text);
+    }
+    .toggle-switch {
+      width: 38px; height: 22px; background: var(--border); border-radius: 11px;
+      position: relative; cursor: pointer; transition: background .2s; flex-shrink: 0;
+    }
+    .toggle-switch.on { background: var(--green); }
+    .toggle-switch::after {
+      content: ''; position: absolute; width: 16px; height: 16px; border-radius: 50%;
+      background: #fff; top: 3px; left: 3px; transition: transform .2s;
+    }
+    .toggle-switch.on::after { transform: translateX(16px); }
 
     html, body { height: 100%; background: var(--bg); color: var(--text); font-family: var(--font-body); }
     .view { display: none; min-height: 100vh; }
@@ -584,7 +641,20 @@
 <div id="view-app" class="view">
   <div class="topbar">
     <div class="topbar-logo">LAGUTTAGNING</div>
-    <div class="topbar-user"><span id="user-email"></span><button class="btn-logout" id="btn-logout">Logga ut</button></div>
+    <div class="topbar-user">
+      <span id="user-email"></span>
+      <div class="settings-wrap">
+        <button class="btn-settings" id="btn-settings" title="Inställningar">⚙</button>
+        <div class="settings-dropdown" id="settings-dropdown">
+          <div class="settings-label">Tema</div>
+          <div class="theme-toggle">
+            <span id="theme-label">Mörkt</span>
+            <div class="toggle-switch" id="theme-toggle"></div>
+          </div>
+        </div>
+      </div>
+      <button class="btn-logout" id="btn-logout">Logga ut</button>
+    </div>
   </div>
   <div class="nav-tabs">
     <button class="nav-tab active" data-page="players">SPELARE</button>
@@ -789,7 +859,7 @@
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
   import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-  import { getFirestore, collection, doc, onSnapshot, addDoc, updateDoc, deleteDoc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  import { getFirestore, collection, doc, getDoc, onSnapshot, addDoc, updateDoc, deleteDoc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
   const firebaseConfig = {
     apiKey:"AIzaSyDtWJUooasHwd3PKnx_vHvbE4rzU5iGS40", authDomain:"laguttagning.firebaseapp.com",
@@ -939,6 +1009,7 @@
       document.getElementById('user-email').textContent = user.email;
       showView('app');
       startPlayerListener(); startMatchListener(); startAllLineupsListener(); startCustomFormationsListener();
+      loadTheme();
       // Default to lineup tab
       document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
       document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
@@ -950,6 +1021,7 @@
       [unsubPlayers,unsubMatches,unsubLineup,unsubAllLineups,unsubCustomFormations].forEach(f=>f&&f());
       unsubPlayers=unsubMatches=unsubLineup=unsubAllLineups=unsubCustomFormations=null;
       players=[]; matches=[]; allLineups={}; customFormations=[]; overviewWeekOffset=0; selectedHistoryMatchId=null;
+      applyTheme(false);
     }
   });
 
@@ -1643,7 +1715,46 @@
     }).catch(() => alert('Kunde inte kopiera. Försök igen.'));
   });
 
-  // ── HISTORY ───────────────────────────────────────
+  // ── THEME ─────────────────────────────────────────
+  function applyTheme(light) {
+    document.body.classList.toggle('theme-light', light);
+    const toggle = document.getElementById('theme-toggle');
+    const label  = document.getElementById('theme-label');
+    if (toggle) toggle.classList.toggle('on', light);
+    if (label)  label.textContent = light ? 'Ljust' : 'Mörkt';
+  }
+
+  async function saveTheme(light) {
+    if (!currentUser) return;
+    try {
+      await setDoc(doc(db, 'userSettings', currentUser.uid), { theme: light ? 'light' : 'dark' }, { merge: true });
+    } catch(err) { console.error('Could not save theme', err); }
+  }
+
+  async function loadTheme() {
+    if (!currentUser) return;
+    try {
+      const snap = await getDoc(doc(db, 'userSettings', currentUser.uid));
+      if (snap.exists()) applyTheme(snap.data().theme === 'light');
+    } catch(err) { console.error('Could not load theme', err); }
+  }
+
+  document.getElementById('btn-settings').addEventListener('click', e => {
+    e.stopPropagation();
+    document.getElementById('settings-dropdown').classList.toggle('open');
+  });
+
+  document.addEventListener('click', e => {
+    if (!document.querySelector('.settings-wrap')?.contains(e.target)) {
+      document.getElementById('settings-dropdown')?.classList.remove('open');
+    }
+  });
+
+  document.getElementById('theme-toggle').addEventListener('click', () => {
+    const isLight = document.body.classList.toggle('theme-light');
+    applyTheme(isLight);
+    saveTheme(isLight);
+  });
   let selectedHistoryMatchId = null;
 
   function renderHistory() {

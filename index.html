@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>v5.6 — Laguttagning</title>
+  <title>v5.7 — Laguttagning</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
@@ -1755,6 +1755,9 @@
     const isLight = document.body.classList.toggle('theme-light');
     applyTheme(isLight);
     saveTheme(isLight);
+    setTimeout(() => {
+      document.getElementById('settings-dropdown')?.classList.remove('open');
+    }, 1500);
   });
   let selectedHistoryMatchId = null;
 

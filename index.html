@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>v6.8 — Laguttagning</title>
+  <title>v6.9 — Laguttagning</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
@@ -1749,8 +1749,11 @@
 
   async function openAdminModal() {
     document.getElementById('settings-dropdown').classList.remove('open');
+    document.getElementById('add-user-email').value = '';
     adminModal.classList.add('open');
     await refreshAdminTeamList();
+    // Reset team selector to blank after list is populated
+    document.getElementById('add-user-team').selectedIndex = -1;
   }
 
   async function refreshAdminTeamList() {
@@ -1759,7 +1762,7 @@
     const allTeams=teamsSnap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.name||'').localeCompare(b.name||'','sv'));
 
     const teamSel=document.getElementById('add-user-team');
-    teamSel.innerHTML=allTeams.map(t=>`<option value="${t.id}">${escHtml(t.name)}</option>`).join('');
+    teamSel.innerHTML='<option value="">— Välj lag —</option>'+allTeams.map(t=>`<option value="${t.id}">${escHtml(t.name)}</option>`).join('');
 
     // Team overview list
     const listEl=document.getElementById('admin-team-list');
@@ -1871,6 +1874,7 @@
     const teamId=document.getElementById('add-user-team').value;
     const msgEl=document.getElementById('add-user-msg');
     if(!email){msgEl.style.color='var(--danger)';msgEl.textContent='Ange en e-postadress.';return;}
+    if(!teamId){msgEl.style.color='var(--danger)';msgEl.textContent='Välj ett lag.';return;}
 
     const btn=document.getElementById('btn-add-user-to-team'); btn.disabled=true;
     msgEl.style.color='var(--muted)'; msgEl.textContent='Arbetar...';

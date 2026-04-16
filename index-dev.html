@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>v3.3-dev — Laguttagning</title>
+  <title>v3.2-dev — Laguttagning</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
@@ -1538,8 +1538,6 @@
     sortedPlayers.forEach(p => {
       const absentOnAny = matchLineups.some(({ match: m }) => isPlayerUnavailableOnDate(p, m.date||today));
       const selectedForAny = matchLineups.some(({ pids }) => pids.has(p.id));
-      if (!selectedForAny && !absentOnAny) return; // skip players with no relevance this week
-
       html += `<tr><td class="player-name-col">${escHtml(shortName(p))}</td>`;
       matchLineups.forEach(({ match: m, pids }) => {
         const absent   = isPlayerUnavailableOnDate(p, m.date||today);

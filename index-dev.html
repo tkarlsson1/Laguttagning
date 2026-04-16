@@ -477,7 +477,7 @@
     .overview-table td.player-name-col { font-weight: 500; white-space: nowrap; }
     .overview-table td.dot-col { text-align: center; }
 
-    .ov-dot-selected   { font-size: 1.1rem; line-height: 1; }
+    .ov-dot-selected   { font-size: 1.1rem; line-height: 1; color: var(--green); }
     .ov-dot-absent     { font-size: 1.1rem; line-height: 1; color: var(--danger); }
     .ov-dot-empty      { color: var(--border); font-size: .9rem; }
   </style>
@@ -1516,10 +1516,8 @@
     const matchLineups = weekMatches.map(m => {
       const lu = allLineups[m.id];
       const pids = lu ? [...new Set(Object.values(lu.slots||{}).flat())] : [];
-      console.log('Match:', m.id, m.opponent, '| Lineup found:', !!lu, '| PIDs:', pids);
       return { match: m, pids: new Set(pids) };
     });
-    console.log('allLineups keys:', Object.keys(allLineups));
 
     // Header row
     let html = '<div class="overview-table-wrap"><table class="overview-table"><thead><tr>';

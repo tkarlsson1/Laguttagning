@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>v6.0 — Laguttagning</title>
+  <title>v6.1 — Laguttagning</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
@@ -1042,8 +1042,8 @@
     currentTeamName = teamName;
     document.getElementById('topbar-team-name').textContent = teamName;
 
-    // Save lastTeam
-    try { await setDoc(doc(db,'userSettings',currentUser.uid),{lastTeam:teamId},{merge:true}); } catch(e){}
+    // Save lastTeam and email
+    try { await setDoc(doc(db,'userSettings',currentUser.uid),{lastTeam:teamId, email:currentUser.email},{merge:true}); } catch(e){}
 
     showView('app');
     // Default to lineup tab
@@ -1804,16 +1804,27 @@
     msgEl.style.color='var(--muted)'; msgEl.textContent='Arbetar...';
 
     try{
-      // Try to create user account (will fail if exists — that's ok)
       let uid=null;
+      let isNewUser=false;
+
+      // Try to create new account
       try{
-        const cred=await createUserWithEmailAndPassword(auth,email,'temp-reset-'+Math.random().toString(36).slice(2));
+        const cred=await createUserWithEmailAndPassword(auth,email,'Temp'+Math.random().toString(36).slice(2)+'!');
         uid=cred.user.uid;
+        isNewUser=true;
       }catch(e){
-        // User already exists — find uid via userSettings (search by email)
-        const usersSnap=await getDocs(collection(db,'userSettings'));
-        const found=usersSnap.docs.find(d=>d.data().email===email);
-        if(found)uid=found.id;
+        if(e.code==='auth/email-already-in-use'){
+          // Existing user — find uid via email field in userSettings
+          const usersSnap=await getDocs(collection(db,'userSettings'));
+          const found=usersSnap.docs.find(d=>d.data().email===email);
+          if(found) uid=found.id;
+          else {
+            // Email field might not exist yet — inform admin
+            msgEl.style.color='var(--danger)';
+            msgEl.textContent='Användaren finns men har inte loggat in i nya versionen än. Be dem logga in först, sedan försök igen.';
+            btn.disabled=false; return;
+          }
+        } else { throw e; }
       }
 
       if(!uid){msgEl.style.color='var(--danger)';msgEl.textContent='Kunde inte hitta eller skapa användaren.';btn.disabled=false;return;}
@@ -1826,11 +1837,14 @@
         await setDoc(userRef,{teams:[...existingTeams,teamId],email},{merge:true});
       }
 
-      // Send password reset email
+      // Send password reset/welcome email
       await sendPasswordResetEmail(auth,email);
 
       document.getElementById('add-user-email').value='';
-      msgEl.style.color='var(--green)'; msgEl.textContent=`Klart! Lösenordslänk skickad till ${email}.`;
+      msgEl.style.color='var(--green)';
+      msgEl.textContent=isNewUser
+        ? `Nytt konto skapat! Lösenordslänk skickad till ${email}.`
+        : `Klart! ${email} har lagts till och fått en lösenordslänk.`;
       await refreshAdminTeamList();
       setTimeout(()=>{msgEl.textContent='';},5000);
     }catch(err){

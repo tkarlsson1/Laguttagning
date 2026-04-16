@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>v3.8 — Laguttagning</title>
+  <title>v3.9 — Laguttagning</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
@@ -1328,6 +1328,7 @@
     lineupSlots={};
     if (!matchId) { document.getElementById('formation-group').style.display='none'; document.getElementById('lineup-body').innerHTML='<div class="lineup-placeholder">Välj en match ovan för att sätta laget.</div>'; return; }
     const match=matches.find(m=>m.id===matchId); if (!match) return;
+    refreshMatchSelector();
     renderFormationPicker(match.format||'9v9');
     unsubLineup=onSnapshot(doc(db,'lineups',matchId), snap=>{
       if (snap.exists()) {

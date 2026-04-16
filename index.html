@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>v3.7 — Laguttagning</title>
+  <title>v3.8 — Laguttagning</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
@@ -249,6 +249,53 @@
     .lineup-formation-group { display: flex; flex-direction: column; gap: .4rem; flex: 2; }
     .field-label { font-size: .78rem; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
     .save-indicator { font-size: .78rem; color: var(--muted); align-self: flex-end; white-space: nowrap; }
+
+    /* ── MATCH PICKER ────────────────────────────────── */
+    .match-picker { position: relative; }
+    .match-picker-trigger {
+      background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
+      color: var(--text); padding: .75rem 1rem; cursor: pointer;
+      display: flex; justify-content: space-between; align-items: center;
+      transition: border-color .2s; user-select: none;
+    }
+    .match-picker-trigger:hover         { border-color: var(--green); }
+    .match-picker-trigger.open          { border-color: var(--green); border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
+    .match-picker-arrow { color: var(--muted); font-size: .8rem; transition: transform .2s; }
+    .match-picker-trigger.open .match-picker-arrow { transform: rotate(180deg); }
+
+    .match-picker-dropdown {
+      display: none; position: absolute; top: 100%; left: 0; right: 0;
+      background: var(--surface); border: 1px solid var(--green);
+      border-top: none; border-bottom-left-radius: 10px; border-bottom-right-radius: 10px;
+      box-shadow: 0 12px 32px rgba(0,0,0,.4); z-index: 50;
+      max-height: 340px; overflow-y: auto;
+    }
+    .match-picker-dropdown.open { display: block; }
+
+    .match-picker-empty { padding: .9rem 1rem; color: var(--muted); font-size: .85rem; }
+
+    .match-picker-group-label {
+      font-size: .72rem; font-weight: 600; text-transform: uppercase; letter-spacing: .06em;
+      color: var(--muted); padding: .6rem 1rem .3rem;
+      border-top: 1px solid var(--border);
+    }
+    .match-picker-group-label:first-child { border-top: none; }
+
+    .match-picker-item {
+      display: flex; align-items: stretch; cursor: pointer;
+      border-bottom: 1px solid var(--border); transition: background .12s;
+    }
+    .match-picker-item:last-child { border-bottom: none; }
+    .match-picker-item:hover { background: var(--surface2); }
+    .match-picker-item.selected { background: rgba(76,175,110,.08); }
+
+    .match-picker-bar { width: 4px; flex-shrink: 0; }
+    .match-picker-body { padding: .6rem .9rem; flex: 1; display: flex; align-items: center; gap: 1rem; }
+    .match-picker-time { font-family: var(--font-display); font-size: 1.1rem; letter-spacing: .04em; flex-shrink: 0; }
+    .match-picker-info { flex: 1; }
+    .match-picker-opp  { font-weight: 500; font-size: .9rem; }
+    .match-picker-date { font-size: .75rem; color: var(--muted); margin-top: 1px; }
+    .match-picker-fmt  { font-size: .72rem; color: var(--muted); background: var(--surface2); border: 1px solid var(--border); border-radius: 4px; padding: .15rem .4rem; flex-shrink: 0; }
     .formation-select {
       background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
       color: var(--text); font-family: var(--font-body); font-size: .95rem;
@@ -551,8 +598,14 @@
     </div>
     <div class="lineup-top">
       <div class="field lineup-match-field" style="margin-bottom:0">
-        <label for="lineup-match-select">Match</label>
-        <select id="lineup-match-select"><option value="">— Välj match —</option></select>
+        <label>Match</label>
+        <div class="match-picker" id="match-picker">
+          <div class="match-picker-trigger" id="match-picker-trigger">
+            <span id="match-picker-label" style="color:var(--muted)">— Välj match —</span>
+            <span class="match-picker-arrow">▾</span>
+          </div>
+          <div class="match-picker-dropdown" id="match-picker-dropdown"></div>
+        </div>
       </div>
       <div class="lineup-formation-group" id="formation-group" style="display:none">
         <div class="field-label">Formation</div>
@@ -1195,17 +1248,77 @@
     return null;
   }
   function refreshMatchSelector() {
-    const sel=document.getElementById('lineup-match-select'); if (!sel) return;
-    const cur=currentLineupMatchId||'';
-    sel.innerHTML='<option value="">— Välj match —</option>'+matches.map(m=>{
-      const d=m.date?new Date(m.date+'T12:00:00'):null;
-      const ds=d?d.toLocaleDateString('sv-SE',{weekday:'short',day:'numeric',month:'short'}):'?';
-      const em={green:'🟢',blue:'🔵',red:'🔴',black:'⚫'}[m.difficulty]||'';
-      return `<option value="${m.id}"${m.id===cur?' selected':''}>${em} ${ds}${m.time?' '+m.time:''} · ${m.opponent||'Okänd'} (${m.format||''})</option>`;
-    }).join('');
+    const trigger  = document.getElementById('match-picker-trigger');
+    const dropdown = document.getElementById('match-picker-dropdown');
+    const label    = document.getElementById('match-picker-label');
+    if (!trigger) return;
+
+    const today = todayStr();
+    const upcoming = matches.filter(m => m.date >= today);
+
+    // Build dropdown content grouped by date
+    if (!upcoming.length) {
+      dropdown.innerHTML = '<div class="match-picker-empty">Inga kommande matcher.</div>';
+    } else {
+      const groups = {};
+      upcoming.forEach(m => { const k=m.date||'okänt'; if(!groups[k]) groups[k]=[]; groups[k].push(m); });
+      let html = '';
+      Object.keys(groups).sort().forEach(dk => {
+        const d = dk !== 'okänt' ? new Date(dk+'T12:00:00') : null;
+        const weekNum = d ? isoWeekKey(dk).split('-W')[1] : null;
+        const dayLabel = d ? `${WEEKDAY[d.getDay()]} ${d.toLocaleDateString('sv-SE',{day:'numeric',month:'long'})} · Vecka ${weekNum}` : 'Okänt datum';
+        html += `<div class="match-picker-group-label">${dayLabel}</div>`;
+        groups[dk].forEach(m => {
+          const sel = m.id === currentLineupMatchId ? ' selected' : '';
+          html += `<div class="match-picker-item${sel}" data-id="${m.id}">
+            <div class="match-picker-bar diff-${m.difficulty||'green'}"></div>
+            <div class="match-picker-body">
+              <div class="match-picker-time">${escHtml(m.time||'?')}</div>
+              <div class="match-picker-info">
+                <div class="match-picker-opp">${escHtml(m.opponent||'—')}</div>
+              </div>
+              <div class="match-picker-fmt">${escHtml(m.format||'')}</div>
+            </div>
+          </div>`;
+        });
+      });
+      dropdown.innerHTML = html;
+      dropdown.querySelectorAll('.match-picker-item').forEach(item => {
+        item.addEventListener('click', () => {
+          selectLineupMatch(item.dataset.id);
+          closePicker();
+        });
+      });
+    }
+
+    // Update trigger label
+    const cur = matches.find(m => m.id === currentLineupMatchId);
+    if (cur) {
+      const d = cur.date ? new Date(cur.date+'T12:00:00') : null;
+      const dayStr = d ? `${WEEKDAY[d.getDay()]} ${d.toLocaleDateString('sv-SE',{day:'numeric',month:'short'})}` : '';
+      label.textContent = `${cur.time||'?'} · ${cur.opponent||'—'} (${dayStr})`;
+      label.style.color = 'var(--text)';
+    } else {
+      label.textContent = '— Välj match —';
+      label.style.color = 'var(--muted)';
+    }
   }
 
-  document.getElementById('lineup-match-select').addEventListener('change', e=>selectLineupMatch(e.target.value));
+  function closePicker() {
+    document.getElementById('match-picker-trigger')?.classList.remove('open');
+    document.getElementById('match-picker-dropdown')?.classList.remove('open');
+  }
+
+  document.getElementById('match-picker-trigger').addEventListener('click', () => {
+    const trigger  = document.getElementById('match-picker-trigger');
+    const dropdown = document.getElementById('match-picker-dropdown');
+    const isOpen   = trigger.classList.contains('open');
+    if (isOpen) { closePicker(); } else { trigger.classList.add('open'); dropdown.classList.add('open'); }
+  });
+
+  document.addEventListener('click', e => {
+    if (!document.getElementById('match-picker')?.contains(e.target)) closePicker();
+  });
 
   function selectLineupMatch(matchId) {
     if (unsubLineup) { unsubLineup(); unsubLineup=null; }

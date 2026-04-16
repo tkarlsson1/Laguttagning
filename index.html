@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>v3.5 — Laguttagning</title>
+  <title>v3.6 — Laguttagning</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
@@ -248,14 +248,6 @@
     .lineup-match-field { min-width: 280px; max-width: 400px; margin-bottom: 0; flex: 1; }
     .lineup-formation-group { display: flex; flex-direction: column; gap: .4rem; flex: 2; }
     .field-label { font-size: .78rem; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
-    .formation-btns { display: flex; flex-wrap: wrap; gap: .4rem; }
-    .formation-btn {
-      background: var(--surface); border: 1px solid var(--border); border-radius: 6px;
-      color: var(--muted); font-family: var(--font-body); font-size: .85rem; font-weight: 500;
-      padding: .35rem .8rem; cursor: pointer; transition: all .15s;
-    }
-    .formation-btn:hover  { border-color: var(--text); color: var(--text); }
-    .formation-btn.active { background: var(--green); border-color: var(--green); color: #0e1110; font-weight: 700; }
     .save-indicator { font-size: .78rem; color: var(--muted); align-self: flex-end; white-space: nowrap; }
     .formation-select {
       background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
@@ -816,7 +808,7 @@
       tab.classList.add('active');
       document.getElementById('page-'+tab.dataset.page).classList.add('active');
       if (tab.dataset.page==='lineup') refreshMatchSelector();
-      if (tab.dataset.page==='overview') renderOverview();
+      if (tab.dataset.page==='overview') { overviewWeekOffset=0; renderOverview(); }
     });
   });
 
@@ -837,7 +829,7 @@
       showView('login');
       [unsubPlayers,unsubMatches,unsubLineup,unsubAllLineups,unsubCustomFormations].forEach(f=>f&&f());
       unsubPlayers=unsubMatches=unsubLineup=unsubAllLineups=unsubCustomFormations=null;
-      players=[]; matches=[]; allLineups={}; customFormations=[];
+      players=[]; matches=[]; allLineups={}; customFormations=[]; overviewWeekOffset=0;
     }
   });
 
@@ -870,6 +862,7 @@
       players.sort((a,b)=>(a.name||'').localeCompare(b.name||'','sv'));
       renderPlayers();
       if (currentLineupMatchId && lineupFormation) renderPlayerPool();
+      if (document.getElementById('page-overview')?.classList.contains('active')) renderOverview();
     });
   }
 
@@ -1044,7 +1037,9 @@
     let html='';
     Object.keys(groups).sort().forEach(dk=>{
       const d=dk!=='okänt'?new Date(dk+'T12:00:00'):null;
-      html+=`<div class="date-group-header">${d?`${WEEKDAY[d.getDay()]} ${d.toLocaleDateString('sv-SE',{day:'numeric',month:'long',year:'numeric'})}` :'Okänt datum'}</div>`;
+      const weekNum = d ? isoWeekKey(dk).split('-W')[1] : null;
+      const weekLabel = weekNum ? ` · Vecka ${weekNum}` : '';
+      html+=`<div class="date-group-header">${d?`${WEEKDAY[d.getDay()]} ${d.toLocaleDateString('sv-SE',{day:'numeric',month:'long',year:'numeric'})}${weekLabel}` :'Okänt datum'}</div>`;
       groups[dk].forEach(m=>{
         html+=`<div class="match-card" data-id="${m.id}"><div class="match-diff-bar diff-${m.difficulty||'green'}"></div>
           <div class="match-card-body">
@@ -1244,7 +1239,6 @@
 
     const all = allFormationsForFormat(format);
     const customForFormat = all.filter(x => x.custom);
-    const isCustomSelected = customForFormat.some(x => x.f === lineupFormation);
 
     sel.innerHTML =
       '<option value="">— Välj formation —</option>' +
@@ -1536,8 +1530,6 @@
 
     // Player rows
     sortedPlayers.forEach(p => {
-      const absentOnAny = matchLineups.some(({ match: m }) => isPlayerUnavailableOnDate(p, m.date||today));
-      const selectedForAny = matchLineups.some(({ pids }) => pids.has(p.id));
       html += `<tr><td class="player-name-col">${escHtml(shortName(p))}</td>`;
       matchLineups.forEach(({ match: m, pids }) => {
         const absent   = isPlayerUnavailableOnDate(p, m.date||today);

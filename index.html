@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>v5.2 — Laguttagning</title>
+  <title>v5.3 — Laguttagning</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
@@ -535,24 +535,25 @@
 
     .overview-table-wrap { overflow-x: auto; }
     .overview-table {
-      border-collapse: collapse; width: 100%; min-width: 400px;
-      font-size: .88rem;
+      border-collapse: collapse; width: 100%;
+      font-size: .88rem; table-layout: fixed;
     }
     .overview-table th {
       background: var(--surface); border: 1px solid var(--border);
-      padding: .6rem .9rem; text-align: left; font-weight: 600;
-      font-family: var(--font-body); white-space: nowrap;
+      padding: .6rem .5rem; text-align: left; font-weight: 600;
+      font-family: var(--font-body); white-space: nowrap; overflow: hidden;
     }
+    .overview-table th:first-child { width: 120px; }
     .overview-table th.match-col {
-      text-align: center; width: 70px; max-width: 70px; word-break: break-word;
+      text-align: center; width: 70px; max-width: 70px; word-break: break-word; white-space: normal;
     }
     .overview-table th .match-col-time { font-family: var(--font-display); font-size: .9rem; letter-spacing: .04em; display: block; }
     .overview-table th .match-col-opp  { font-size: .65rem; color: var(--muted); font-weight: 400; word-break: break-word; display: block; }
     .overview-table th .match-col-diff { font-size: .7rem; margin-top: 2px; display: inline-block; }
 
     .overview-table td {
-      border: 1px solid var(--border); padding: .45rem .9rem;
-      background: var(--bg);
+      border: 1px solid var(--border); padding: .45rem .5rem;
+      background: var(--bg); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     }
     .overview-table tr:hover td { background: var(--surface2); }
     .overview-table td.player-name-col { font-weight: 500; white-space: nowrap; }

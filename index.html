@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>v4.3 — Laguttagning</title>
+  <title>v4.4 — Laguttagning</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
@@ -34,6 +34,8 @@
     html, body { height: 100%; background: var(--bg); color: var(--text); font-family: var(--font-body); }
     .view { display: none; min-height: 100vh; }
     .view.active { display: flex; flex-direction: column; }
+    /* Prevent flash of login screen before auth check completes */
+    body:not(.auth-ready) .view { display: none !important; }
 
     /* ── LOGIN ───────────────────────────────────────── */
     #view-login { align-items: center; justify-content: center; padding: 2rem; position: relative; overflow: hidden; }
@@ -881,6 +883,7 @@
 
   // ── Auth ──────────────────────────────────────────
   onAuthStateChanged(auth, user => {
+    document.body.classList.add('auth-ready');
     currentUser = user;
     if (user) {
       document.getElementById('user-email').textContent = user.email;

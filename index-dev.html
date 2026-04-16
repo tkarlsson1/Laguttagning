@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>v3.3-dev — Laguttagning</title>
+  <title>v3.2-dev — Laguttagning</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
@@ -1516,8 +1516,10 @@
     const matchLineups = weekMatches.map(m => {
       const lu = allLineups[m.id];
       const pids = lu ? [...new Set(Object.values(lu.slots||{}).flat())] : [];
+      console.log('Match:', m.id, m.opponent, '| Lineup found:', !!lu, '| PIDs:', pids);
       return { match: m, pids: new Set(pids) };
     });
+    console.log('allLineups keys:', Object.keys(allLineups));
 
     // Header row
     let html = '<div class="overview-table-wrap"><table class="overview-table"><thead><tr>';

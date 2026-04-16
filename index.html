@@ -3,11 +3,20 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>v7.1 — Laguttagning</title>
+  <title>v7.2 — Laguttagning</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <script>
+    // Apply theme immediately from localStorage to prevent flash
+    if (localStorage.getItem('theme') === 'light') {
+      document.documentElement.classList.add('theme-light-early');
+    }
+  </script>
   <style>
+    /* Apply light theme early before body is ready */
+    html.theme-light-early body { background: #f4f6f4; color: #1a2420; }
+    html.theme-light-early { background: #f4f6f4; }
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
@@ -1719,6 +1728,8 @@
   // ── THEME ─────────────────────────────────────────
   function applyTheme(light) {
     document.body.classList.toggle('theme-light',light);
+    document.documentElement.classList.toggle('theme-light-early',light);
+    localStorage.setItem('theme', light ? 'light' : 'dark');
     const toggle=document.getElementById('theme-toggle'),label=document.getElementById('theme-label');
     if(toggle)toggle.classList.toggle('on',light);
     if(label)label.textContent=light?'Ljust':'Mörkt';

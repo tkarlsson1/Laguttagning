@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>v7.6 — Uttagning</title>
+  <title>v7.7 — Uttagning</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
@@ -1056,6 +1056,16 @@
     document.getElementById('formation-group').style.display = 'none';
     const pickerLabel = document.getElementById('match-picker-label');
     if (pickerLabel) { pickerLabel.textContent = '— Välj match —'; pickerLabel.style.color = 'var(--muted)'; }
+    // Reset player filter
+    activeFilter = 'all';
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b.dataset.filter === 'all'));
+    // Reset history
+    selectedHistoryMatchId = null;
+    const historyPitchCol = document.getElementById('history-pitch-col');
+    if (historyPitchCol) historyPitchCol.innerHTML = '<div class="lineup-placeholder">Välj en match för att se uppställningen.</div>';
+    // Close any open modals
+    document.getElementById('player-modal').classList.remove('open');
+    document.getElementById('match-modal').classList.remove('open');
     // Default to lineup tab
     document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
     document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));

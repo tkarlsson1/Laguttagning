@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>v7.9 — Uttagning</title>
+  <title>v8.0 — Uttagning</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
@@ -1369,88 +1369,76 @@
   document.getElementById('btn-fogis-cancel').addEventListener('click', () => document.getElementById('fogis-modal').classList.remove('open'));
   document.getElementById('fogis-modal').addEventListener('click', e => { if (e.target === document.getElementById('fogis-modal')) document.getElementById('fogis-modal').classList.remove('open'); });
 
-  function parseFogisText(text, myTeamName) {
-    // Map colour words to difficulty
+  function parseFogisText(rawText, myTeamName) {
     const colourMap = { 'svart':'black', 'röd':'red', 'blå':'blue', 'grön':'green' };
 
-    // Extract date blocks — each starts with a date YYYY-MM-DD
-    const dateRx = /(\d{4}-\d{2}-\d{2})/g;
-    const timeRx = /(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2})/;
-    const noTimeRx = /\(Tid ej fastställd\)/;
+    // Strip header row if present
+    const headerEnd = rawText.search(/(?:Pojk|Flicka|Dam|Herr)\s+\d/i);
+    const text = headerEnd > 0 ? rawText.slice(headerEnd) : rawText;
 
-    // Split into match blocks by looking for series header pattern
-    // Each block starts with series name like "Pojk 9m9 Svart Regional Gr."
-    const blockRx = /(Pojk|Flicka|Dam|Herr)[^\n]*?Gr\.\d+/gi;
-    const blocks = [];
-    let m;
-    const positions = [];
-    while ((m = blockRx.exec(text)) !== null) positions.push(m.index);
-    positions.push(text.length);
+    // Split into blocks — each starts with the serie header
+    const parts = text.split(/(?=(?:Pojk|Flicka|Dam|Herr)\s+\d)/i).filter(s => s.trim());
 
-    const matches = [];
-    for (let i = 0; i < positions.length - 1; i++) {
-      const block = text.slice(positions[i], positions[i+1]);
+    const results = [];
+    const currentTeam = userTeams.find(t => t.id === currentTeamId);
+    const format = currentTeam?.birthYear ? svffFormat(currentTeam.birthYear) : (currentTeam?.format || '9v9');
 
-      // Extract serie name (everything up to the match number)
-      const serieMatch = block.match(/^((?:Pojk|Flicka|Dam|Herr)[^0-9]+?)(?:\d+\s)/i);
-      const serie = serieMatch ? serieMatch[1].trim() : '';
+    for (const block of parts) {
+      // 1. Extract serie — matches "Pojk 9m9 Svart Regional Gr.1" pattern
+      const serieMatch = block.match(/^((?:Pojk|Flicka|Dam|Herr).*?Gr\.\d+)/i);
+      if (!serieMatch) continue;
+      const serie = serieMatch[1].trim().replace(/\d+$/, '').trim();
 
-      // Extract difficulty from serie name
+      // 2. Extract difficulty from serie using whole-word match
       let difficulty = 'green';
       const serieLower = serie.toLowerCase();
       for (const [word, val] of Object.entries(colourMap)) {
-        if (serieLower.includes(word)) { difficulty = val; break; }
+        if (new RegExp(`\\b${word}\\b`).test(serieLower)) { difficulty = val; break; }
       }
 
-      // Extract date
-      const dateMatch = block.match(/(\d{4}-\d{2}-\d{2})/);
+      // 3. Get text after serie header — strip leading digits (match IDs + round numbers)
+      const afterSerie = block.slice(serieMatch[0].length).replace(/^\d+/, '');
+
+      // 4. Find date (YYYY-MM-DD) — this is our anchor
+      const dateMatch = afterSerie.match(/(\d{4}-\d{2}-\d{2})/);
       if (!dateMatch) continue;
       const date = dateMatch[1];
+      const dateIdx = afterSerie.indexOf(date);
 
-      // Extract time
-      const timeMatch = block.match(/\d{4}-\d{2}-\d{2}\s+(\d{2}:\d{2})/);
-      const time = timeMatch ? timeMatch[1] : '';
+      // 5. Teams text = everything between stripped numbers and date
+      const teamsText = afterSerie.slice(0, dateIdx);
 
-      // Extract teams — they appear before the date
-      const beforeDate = block.slice(0, block.indexOf(date));
-      // Remove the serie header and match number from the start
-      const teamsRaw = beforeDate.replace(/^.*?Gr\.\d+\d*/i, '').trim();
-
-      // Teams are the last two meaningful chunks before the date
-      // Split on patterns that look like team names
-      const teamLines = teamsRaw.split(/\d+/).map(s => s.trim()).filter(s => s.length > 2);
-      if (teamLines.length < 2) continue;
-      const team1 = teamLines[teamLines.length - 2];
-      const team2 = teamLines[teamLines.length - 1];
-
-      // Determine home/away
-      const myName = myTeamName.toLowerCase();
+      // 6. Find my team name in teams text (case-insensitive)
+      const myLower  = myTeamName.toLowerCase();
+      const texLower = teamsText.toLowerCase();
+      const myIdx    = texLower.indexOf(myLower);
       let opponent = '', homeway = '';
-      if (team1.toLowerCase().includes(myName) || myName.includes(team1.toLowerCase().slice(0,8))) {
-        opponent = team2; homeway = 'home';
-      } else if (team2.toLowerCase().includes(myName) || myName.includes(team2.toLowerCase().slice(0,8))) {
-        opponent = team1; homeway = 'away';
+      if (myIdx === 0) {
+        homeway  = 'home';
+        opponent = teamsText.slice(myTeamName.length);
+      } else if (myIdx > 0) {
+        homeway  = 'away';
+        opponent = teamsText.slice(0, myIdx);
       } else {
-        // Fallback — try partial match
-        if (team1.toLowerCase().split(' ').some(w => w.length > 3 && myName.includes(w))) {
-          opponent = team2; homeway = 'home';
-        } else {
-          opponent = team1; homeway = 'away';
-        }
+        continue; // Can't identify teams — skip
       }
 
-      // Extract location (after time, before Google/Bing)
-      const afterTime = block.slice(block.indexOf(date) + date.length);
-      const locMatch = afterTime.match(/\d{2}:\d{2}([^G\n]+?)(?:Google|$)/);
-      const location = locMatch ? locMatch[1].trim().replace(/\d+$/, '').trim() : '';
+      // 7. Extract time
+      const afterDate = afterSerie.slice(dateIdx + date.length);
+      const timeMatch = afterDate.match(/^\s*(\d{2}:\d{2})/);
+      const time = timeMatch ? timeMatch[1] : '';
 
-      // Current team's format
-      const currentTeam = userTeams.find(t => t.id === currentTeamId);
-      const format = currentTeam?.birthYear ? svffFormat(currentTeam.birthYear) : (currentTeam?.format || '9v9');
+      // 8. Extract location — text after time, before digits or "Google"
+      let location = '';
+      if (time) {
+        const afterTime = afterDate.slice(afterDate.indexOf(time) + time.length);
+        const locMatch  = afterTime.match(/^([^0-9G\n]+?)(?=\d|Google|$)/);
+        if (locMatch) location = locMatch[1].trim();
+      }
 
-      matches.push({ date, time, opponent: opponent.trim(), location, homeway, difficulty, serie, format });
+      results.push({ date, time, opponent: opponent.trim(), location, homeway, difficulty, serie, format });
     }
-    return matches;
+    return results;
   }
 
   let fogisMatches = [];

@@ -3,13 +3,14 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>v7.7 — Uttagning</title>
+  <title>v7.8 — Uttagning</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
   <script>
     // Apply theme immediately from localStorage to prevent flash
-    if (localStorage.getItem('theme') === 'light') {
+    // Default is light theme
+    if (localStorage.getItem('theme') !== 'dark') {
       document.documentElement.classList.add('theme-light-early');
     }
   </script>
@@ -987,7 +988,7 @@
       showView('login');
       stopListeners();
       resetAppState();
-      applyTheme(false);
+      applyTheme(true);
     }
   });
 
@@ -1746,7 +1747,12 @@
   }
   async function loadTheme() {
     if(!currentUser)return;
-    try{const snap=await getDoc(doc(db,'userSettings',currentUser.uid));if(snap.exists())applyTheme(snap.data().theme==='light');}catch(e){}
+    try{
+      const snap=await getDoc(doc(db,'userSettings',currentUser.uid));
+      // Default to light if no preference stored
+      const isLight = snap.exists() ? snap.data().theme !== 'dark' : true;
+      applyTheme(isLight);
+    }catch(e){}
   }
 
   document.getElementById('btn-settings').addEventListener('click',e=>{e.stopPropagation();document.getElementById('settings-dropdown').classList.toggle('open');});

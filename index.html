@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>v7.8 — Uttagning</title>
+  <title>v7.9 — Uttagning</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
@@ -417,6 +417,13 @@
     .admin-member-list { display: flex; flex-wrap: wrap; gap: .3rem; margin-top: .4rem; }
     .admin-member-chip { font-size: .72rem; background: var(--surface2); border: 1px solid var(--border); border-radius: 4px; padding: .15rem .5rem; color: var(--muted); }
 
+    /* ── FOGIS IMPORT ────────────────────────────────── */
+    .fogis-preview-table { width: 100%; border-collapse: collapse; font-size: .82rem; margin-bottom: .5rem; }
+    .fogis-preview-table th { background: var(--surface2); border: 1px solid var(--border); padding: .4rem .6rem; text-align: left; font-weight: 600; color: var(--muted); font-size: .72rem; text-transform: uppercase; letter-spacing: .04em; }
+    .fogis-preview-table td { border: 1px solid var(--border); padding: .4rem .6rem; }
+    .fogis-preview-table tr:hover td { background: var(--surface2); }
+    .fogis-parse-error { color: var(--danger); font-size: .85rem; margin-bottom: .75rem; }
+
     /* ── MODALS ──────────────────────────────────────── */
     .modal-backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.7); z-index: 100; align-items: center; justify-content: center; padding: 1rem; }
     .modal-backdrop.open { display: flex; }
@@ -564,7 +571,10 @@
   <div id="page-matches" class="page">
     <div class="page-header">
       <div class="page-title">MATCHER <span id="match-count"></span></div>
-      <button class="btn-primary" id="btn-add-match">+ LÄGG TILL</button>
+      <div style="display:flex;gap:.75rem">
+        <button class="btn-secondary" id="btn-import-fogis">Importera från Fogis</button>
+        <button class="btn-primary" id="btn-add-match">+ LÄGG TILL</button>
+      </div>
     </div>
     <div class="match-list" id="match-list"></div>
   </div>
@@ -705,10 +715,32 @@
         <option value="red">🔴 Röd</option><option value="black">⚫ Svart</option>
       </select>
     </div>
+    <div class="field"><label for="match-serie">Serie <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--muted)">(valfritt)</span></label><input type="text" id="match-serie" placeholder="T.ex. Pojk 9m9 Svart Regional" /></div>
     <div class="modal-actions">
       <div class="modal-actions-left"><button class="btn-danger" id="btn-delete-match" style="display:none">Ta bort</button></div>
       <button class="btn-secondary" id="btn-match-cancel">Avbryt</button>
       <button class="btn-primary" id="btn-match-save">SPARA</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── FOGIS IMPORT MODAL ─────────────────────────────── -->
+<div id="fogis-modal" class="modal-backdrop">
+  <div class="modal" style="max-width:620px">
+    <div class="modal-title">IMPORTERA FRÅN FOGIS</div>
+    <div class="field">
+      <label for="fogis-team-name">Lagets namn i Fogis</label>
+      <input type="text" id="fogis-team-name" placeholder="T.ex. Irsta IF P12 Svart" autocomplete="off" />
+    </div>
+    <div class="field">
+      <label for="fogis-text">Klistra in text från Fogis</label>
+      <textarea id="fogis-text" rows="6" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:var(--font-body);font-size:.85rem;padding:.75rem 1rem;resize:vertical;outline:none;width:100%;transition:border-color .2s" placeholder="Klistra in matchlistan här..."></textarea>
+    </div>
+    <button class="btn-secondary" id="btn-fogis-parse" style="margin-bottom:1rem">Analysera</button>
+    <div id="fogis-preview"></div>
+    <div class="modal-actions">
+      <button class="btn-secondary" id="btn-fogis-cancel">Avbryt</button>
+      <button class="btn-primary" id="btn-fogis-import" style="display:none">IMPORTERA MATCHER</button>
     </div>
   </div>
 </div>
@@ -1273,7 +1305,7 @@
         html+=`<div class="match-card" data-id="${m.id}"><div class="match-diff-bar diff-${m.difficulty||'green'}"></div>
           <div class="match-card-body">
             <div class="match-time-block"><div class="match-time">${escHtml(m.time||'??:??')}</div></div>
-            <div class="match-main"><div class="match-opponent">${escHtml(m.opponent||'—')}</div>${m.location?`<div class="match-location">${escHtml(m.location)}</div>`:''}</div>
+            <div class="match-main"><div class="match-opponent">${escHtml(m.opponent||'—')}</div>${m.location?`<div class="match-location">${escHtml(m.location)}</div>`:''}${m.serie?`<div class="match-location" style="color:var(--muted)">${escHtml(m.serie)}</div>`:''}</div>
             <div class="match-badges"><span class="badge badge-format">${escHtml(m.format||'')}</span>${m.homeway?`<span class="badge" style="color:var(--muted);border-color:var(--border)">${m.homeway==='home'?'Hemma':'Borta'}</span>`:''}<span class="badge badge-diff-${m.difficulty||'green'}">${DIFF_LABEL[m.difficulty]||''}</span></div>
           </div></div>`;
       });
@@ -1286,7 +1318,7 @@
   document.getElementById('btn-add-match').addEventListener('click',()=>{
     editingMatchId=null;
     document.getElementById('match-modal-title').textContent='LÄGG TILL MATCH';
-    ['match-date','match-time','match-opponent','match-location'].forEach(id=>document.getElementById(id).value='');
+    ['match-date','match-time','match-opponent','match-location','match-serie'].forEach(id=>document.getElementById(id).value='');
     const currentTeam=userTeams.find(t=>t.id===currentTeamId);
     const defaultFormat=currentTeam?.birthYear?svffFormat(currentTeam.birthYear):(currentTeam?.format||'9v9');
     document.getElementById('match-format').value=defaultFormat;
@@ -1307,6 +1339,7 @@
     document.getElementById('match-format').value=m.format||'9v9';
     document.getElementById('match-difficulty').value=m.difficulty||'green';
     document.getElementById('match-homeway').value=m.homeway||'';
+    document.getElementById('match-serie').value=m.serie||'';
     document.getElementById('btn-delete-match').style.display='inline-flex';
     matchModal.classList.add('open'); document.getElementById('match-opponent').focus();
   }
@@ -1317,13 +1350,171 @@
 
   document.getElementById('btn-match-save').addEventListener('click', async()=>{
     const date=document.getElementById('match-date').value; if (!date){document.getElementById('match-date').focus();return;}
-    const data={date,time:document.getElementById('match-time').value||'',opponent:document.getElementById('match-opponent').value.trim()||'',location:document.getElementById('match-location').value.trim()||'',format:document.getElementById('match-format').value,difficulty:document.getElementById('match-difficulty').value,homeway:document.getElementById('match-homeway').value||'',updatedBy:currentUser?.email||'okänd',updatedAt:serverTimestamp()};
+    const data={date,time:document.getElementById('match-time').value||'',opponent:document.getElementById('match-opponent').value.trim()||'',location:document.getElementById('match-location').value.trim()||'',format:document.getElementById('match-format').value,difficulty:document.getElementById('match-difficulty').value,homeway:document.getElementById('match-homeway').value||'',serie:document.getElementById('match-serie').value.trim()||'',updatedBy:currentUser?.email||'okänd',updatedAt:serverTimestamp()};
     const btn=document.getElementById('btn-match-save'); btn.disabled=true;
     try{if(editingMatchId)await updateDoc(teamDoc('matches',editingMatchId),data);else await addDoc(teamCol('matches'),data);closeMatchModal();}
     catch(err){console.error(err);alert('Något gick fel.');}finally{btn.disabled=false;}
   });
 
-  // ── Confirm / Delete ──────────────────────────────
+  document.getElementById('btn-import-fogis').addEventListener('click', () => {
+    // Pre-fill team name if saved
+    const saved = localStorage.getItem(`fogis-team-${currentTeamId}`);
+    if (saved) document.getElementById('fogis-team-name').value = saved;
+    document.getElementById('fogis-text').value = '';
+    document.getElementById('fogis-preview').innerHTML = '';
+    document.getElementById('btn-fogis-import').style.display = 'none';
+    document.getElementById('fogis-modal').classList.add('open');
+  });
+
+  document.getElementById('btn-fogis-cancel').addEventListener('click', () => document.getElementById('fogis-modal').classList.remove('open'));
+  document.getElementById('fogis-modal').addEventListener('click', e => { if (e.target === document.getElementById('fogis-modal')) document.getElementById('fogis-modal').classList.remove('open'); });
+
+  function parseFogisText(text, myTeamName) {
+    // Map colour words to difficulty
+    const colourMap = { 'svart':'black', 'röd':'red', 'blå':'blue', 'grön':'green' };
+
+    // Extract date blocks — each starts with a date YYYY-MM-DD
+    const dateRx = /(\d{4}-\d{2}-\d{2})/g;
+    const timeRx = /(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2})/;
+    const noTimeRx = /\(Tid ej fastställd\)/;
+
+    // Split into match blocks by looking for series header pattern
+    // Each block starts with series name like "Pojk 9m9 Svart Regional Gr."
+    const blockRx = /(Pojk|Flicka|Dam|Herr)[^\n]*?Gr\.\d+/gi;
+    const blocks = [];
+    let m;
+    const positions = [];
+    while ((m = blockRx.exec(text)) !== null) positions.push(m.index);
+    positions.push(text.length);
+
+    const matches = [];
+    for (let i = 0; i < positions.length - 1; i++) {
+      const block = text.slice(positions[i], positions[i+1]);
+
+      // Extract serie name (everything up to the match number)
+      const serieMatch = block.match(/^((?:Pojk|Flicka|Dam|Herr)[^0-9]+?)(?:\d+\s)/i);
+      const serie = serieMatch ? serieMatch[1].trim() : '';
+
+      // Extract difficulty from serie name
+      let difficulty = 'green';
+      const serieLower = serie.toLowerCase();
+      for (const [word, val] of Object.entries(colourMap)) {
+        if (serieLower.includes(word)) { difficulty = val; break; }
+      }
+
+      // Extract date
+      const dateMatch = block.match(/(\d{4}-\d{2}-\d{2})/);
+      if (!dateMatch) continue;
+      const date = dateMatch[1];
+
+      // Extract time
+      const timeMatch = block.match(/\d{4}-\d{2}-\d{2}\s+(\d{2}:\d{2})/);
+      const time = timeMatch ? timeMatch[1] : '';
+
+      // Extract teams — they appear before the date
+      const beforeDate = block.slice(0, block.indexOf(date));
+      // Remove the serie header and match number from the start
+      const teamsRaw = beforeDate.replace(/^.*?Gr\.\d+\d*/i, '').trim();
+
+      // Teams are the last two meaningful chunks before the date
+      // Split on patterns that look like team names
+      const teamLines = teamsRaw.split(/\d+/).map(s => s.trim()).filter(s => s.length > 2);
+      if (teamLines.length < 2) continue;
+      const team1 = teamLines[teamLines.length - 2];
+      const team2 = teamLines[teamLines.length - 1];
+
+      // Determine home/away
+      const myName = myTeamName.toLowerCase();
+      let opponent = '', homeway = '';
+      if (team1.toLowerCase().includes(myName) || myName.includes(team1.toLowerCase().slice(0,8))) {
+        opponent = team2; homeway = 'home';
+      } else if (team2.toLowerCase().includes(myName) || myName.includes(team2.toLowerCase().slice(0,8))) {
+        opponent = team1; homeway = 'away';
+      } else {
+        // Fallback — try partial match
+        if (team1.toLowerCase().split(' ').some(w => w.length > 3 && myName.includes(w))) {
+          opponent = team2; homeway = 'home';
+        } else {
+          opponent = team1; homeway = 'away';
+        }
+      }
+
+      // Extract location (after time, before Google/Bing)
+      const afterTime = block.slice(block.indexOf(date) + date.length);
+      const locMatch = afterTime.match(/\d{2}:\d{2}([^G\n]+?)(?:Google|$)/);
+      const location = locMatch ? locMatch[1].trim().replace(/\d+$/, '').trim() : '';
+
+      // Current team's format
+      const currentTeam = userTeams.find(t => t.id === currentTeamId);
+      const format = currentTeam?.birthYear ? svffFormat(currentTeam.birthYear) : (currentTeam?.format || '9v9');
+
+      matches.push({ date, time, opponent: opponent.trim(), location, homeway, difficulty, serie, format });
+    }
+    return matches;
+  }
+
+  let fogisMatches = [];
+
+  document.getElementById('btn-fogis-parse').addEventListener('click', () => {
+    const myTeam = document.getElementById('fogis-team-name').value.trim();
+    const text   = document.getElementById('fogis-text').value.trim();
+    const preview = document.getElementById('fogis-preview');
+
+    if (!myTeam) { preview.innerHTML = '<div class="fogis-parse-error">Ange lagets namn i Fogis.</div>'; return; }
+    if (!text)   { preview.innerHTML = '<div class="fogis-parse-error">Klistra in text från Fogis.</div>'; return; }
+
+    // Save team name for next time
+    localStorage.setItem(`fogis-team-${currentTeamId}`, myTeam);
+
+    fogisMatches = parseFogisText(text, myTeam);
+
+    if (!fogisMatches.length) {
+      preview.innerHTML = '<div class="fogis-parse-error">Inga matcher hittades. Kontrollera att du klistrat in rätt text och att lagnamnet stämmer.</div>';
+      document.getElementById('btn-fogis-import').style.display = 'none';
+      return;
+    }
+
+    const DIFF_EMOJI = { green:'🟢', blue:'🔵', red:'🔴', black:'⚫' };
+    let html = `<div style="font-size:.82rem;color:var(--muted);margin-bottom:.5rem">${fogisMatches.length} matcher hittade</div>
+      <table class="fogis-preview-table">
+        <thead><tr><th>Datum</th><th>Tid</th><th>Motståndare</th><th>H/B</th><th>Serie</th><th></th></tr></thead>
+        <tbody>`;
+    fogisMatches.forEach((m, i) => {
+      const d = new Date(m.date+'T12:00:00');
+      const dateStr = `${WEEKDAY[d.getDay()]} ${d.toLocaleDateString('sv-SE',{day:'numeric',month:'short'})}`;
+      html += `<tr>
+        <td>${dateStr}</td>
+        <td>${m.time||'—'}</td>
+        <td>${escHtml(m.opponent)}</td>
+        <td>${m.homeway==='home'?'Hemma':'Borta'}</td>
+        <td>${escHtml(m.serie)}</td>
+        <td>${DIFF_EMOJI[m.difficulty]||''}</td>
+      </tr>`;
+    });
+    html += '</tbody></table>';
+    preview.innerHTML = html;
+    document.getElementById('btn-fogis-import').style.display = 'inline-flex';
+  });
+
+  document.getElementById('btn-fogis-import').addEventListener('click', async () => {
+    const btn = document.getElementById('btn-fogis-import');
+    btn.disabled = true; btn.textContent = 'IMPORTERAR...';
+    try {
+      for (const m of fogisMatches) {
+        await addDoc(teamCol('matches'), {
+          ...m,
+          updatedBy: currentUser?.email||'okänd',
+          updatedAt: serverTimestamp()
+        });
+      }
+      document.getElementById('fogis-modal').classList.remove('open');
+      fogisMatches = [];
+    } catch(err) {
+      console.error(err); alert('Något gick fel vid import: '+err.message);
+    } finally {
+      btn.disabled = false; btn.textContent = 'IMPORTERA MATCHER';
+    }
+  });
   let pendingDelete=null, pendingConfirmCb=null;
   const confirmBackdrop=document.getElementById('confirm-backdrop');
   const confirmOkBtn=document.getElementById('confirm-ok');

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>v8.0 — Uttagning</title>
+  <title>v8.1 — Uttagning</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
@@ -1384,10 +1384,10 @@
     const format = currentTeam?.birthYear ? svffFormat(currentTeam.birthYear) : (currentTeam?.format || '9v9');
 
     for (const block of parts) {
-      // 1. Extract serie — matches "Pojk 9m9 Svart Regional Gr.1" pattern
-      const serieMatch = block.match(/^((?:Pojk|Flicka|Dam|Herr).*?Gr\.\d+)/i);
+      // 1. Extract serie — up to and including Gr.N (single digit group number)
+      const serieMatch = block.match(/^((?:Pojk|Flicka|Dam|Herr).*?Gr\.\d)/i);
       if (!serieMatch) continue;
-      const serie = serieMatch[1].trim().replace(/\d+$/, '').trim();
+      const serie = serieMatch[1].trim();
 
       // 2. Extract difficulty from serie using whole-word match
       let difficulty = 'green';

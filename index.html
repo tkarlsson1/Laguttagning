@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>v8.1 — Uttagning</title>
+  <title>v8.2 — Uttagning</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
@@ -1396,8 +1396,8 @@
         if (new RegExp(`\\b${word}\\b`).test(serieLower)) { difficulty = val; break; }
       }
 
-      // 3. Get text after serie header — strip leading digits (match IDs + round numbers)
-      const afterSerie = block.slice(serieMatch[0].length).replace(/^\d+/, '');
+      // 3. Get text after serie — strip all leading non-letter chars (digits, spaces, tabs)
+      const afterSerie = block.slice(serieMatch[0].length).replace(/^[^A-ZÅÄÖa-zåäö]+/, '');
 
       // 4. Find date (YYYY-MM-DD) — this is our anchor
       const dateMatch = afterSerie.match(/(\d{4}-\d{2}-\d{2})/);

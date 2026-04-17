@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>v8.2 — Uttagning</title>
+  <title>v8.3 — Uttagning</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
@@ -1396,8 +1396,11 @@
         if (new RegExp(`\\b${word}\\b`).test(serieLower)) { difficulty = val; break; }
       }
 
-      // 3. Get text after serie — strip all leading non-letter chars (digits, spaces, tabs)
-      const afterSerie = block.slice(serieMatch[0].length).replace(/^[^A-ZÅÄÖa-zåäö]+/, '');
+      // 3. Extract match-id (fogisId) and strip it + other leading non-letter chars
+      const afterSerieRaw = block.slice(serieMatch[0].length);
+      const fogisIdMatch  = afterSerieRaw.match(/^([\d\s]+)/);
+      const fogisId       = fogisIdMatch ? fogisIdMatch[1].replace(/\s+/g,'') : '';
+      const afterSerie    = afterSerieRaw.replace(/^[^A-ZÅÄÖa-zåäö]+/, '');
 
       // 4. Find date (YYYY-MM-DD) — this is our anchor
       const dateMatch = afterSerie.match(/(\d{4}-\d{2}-\d{2})/);
@@ -1436,7 +1439,7 @@
         if (locMatch) location = locMatch[1].trim();
       }
 
-      results.push({ date, time, opponent: opponent.trim(), location, homeway, difficulty, serie, format });
+      results.push({ fogisId, date, time, opponent: opponent.trim(), location, homeway, difficulty, serie, format });
     }
     return results;
   }
@@ -1488,15 +1491,28 @@
     const btn = document.getElementById('btn-fogis-import');
     btn.disabled = true; btn.textContent = 'IMPORTERAR...';
     try {
+      let created = 0, updated = 0;
       for (const m of fogisMatches) {
-        await addDoc(teamCol('matches'), {
-          ...m,
-          updatedBy: currentUser?.email||'okänd',
-          updatedAt: serverTimestamp()
-        });
+        const data = { ...m, updatedBy: currentUser?.email||'okänd', updatedAt: serverTimestamp() };
+        if (m.fogisId) {
+          // Check if match with this fogisId already exists
+          const existing = matches.find(x => x.fogisId === m.fogisId);
+          if (existing) {
+            await updateDoc(teamDoc('matches', existing.id), data);
+            updated++;
+          } else {
+            await addDoc(teamCol('matches'), data);
+            created++;
+          }
+        } else {
+          await addDoc(teamCol('matches'), data);
+          created++;
+        }
       }
       document.getElementById('fogis-modal').classList.remove('open');
       fogisMatches = [];
+      const msg = [created && `${created} skapade`, updated && `${updated} uppdaterade`].filter(Boolean).join(', ');
+      setTimeout(() => alert(`Import klar: ${msg}.`), 300);
     } catch(err) {
       console.error(err); alert('Något gick fel vid import: '+err.message);
     } finally {

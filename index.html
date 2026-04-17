@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>v7.5 — Uttagning</title>
+  <title>v7.6 — Uttagning</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
@@ -1051,6 +1051,11 @@
     try { await setDoc(doc(db,'userSettings',currentUser.uid),{lastTeam:teamId, email:currentUser.email},{merge:true}); } catch(e){}
 
     showView('app');
+    // Reset lineup UI
+    document.getElementById('lineup-body').innerHTML = '<div class="lineup-placeholder">Välj en match ovan för att sätta laget.</div>';
+    document.getElementById('formation-group').style.display = 'none';
+    const pickerLabel = document.getElementById('match-picker-label');
+    if (pickerLabel) { pickerLabel.textContent = '— Välj match —'; pickerLabel.style.color = 'var(--muted)'; }
     // Default to lineup tab
     document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
     document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));

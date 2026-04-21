@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>v8.4 — Uttagning</title>
+  <title>v8.5 — Uttagning</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
@@ -595,6 +595,7 @@
     <div class="page-header">
       <div class="page-title">UTTAGNING</div>
       <div style="display:flex;align-items:center;gap:1rem">
+        <button class="btn-secondary" id="btn-clear-lineup" style="display:none">Rensa uppställning</button>
         <button class="btn-secondary" id="btn-copy-lineup" style="display:none">Kopiera lista</button>
         <div class="save-indicator" id="save-indicator"></div>
       </div>
@@ -1814,8 +1815,18 @@
 
   function updateCopyButton() {
     const btn=document.getElementById('btn-copy-lineup'); if(!btn)return;
-    btn.style.display=(currentLineupMatchId&&lineupFormation&&Object.keys(lineupSlots).length>0)?'inline-flex':'none';
+    const hasLineup=currentLineupMatchId&&lineupFormation&&Object.keys(lineupSlots).length>0;
+    btn.style.display=hasLineup?'inline-flex':'none';
+    document.getElementById('btn-clear-lineup').style.display=hasLineup?'inline-flex':'none';
   }
+
+  document.getElementById('btn-clear-lineup').addEventListener('click', () => {
+    showConfirm(
+      'Rensa hela uppställningen för den här matchen?',
+      'Rensa', 'btn-danger',
+      () => { lineupSlots={}; saveLineup(); renderLineupBody(); }
+    );
+  });
 
   async function saveLineup() {
     if(!currentLineupMatchId||!lineupFormation)return;

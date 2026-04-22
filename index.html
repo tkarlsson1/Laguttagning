@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>v8.5 — Uttagning</title>
+  <title>v8.6 — Uttagning</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
@@ -1390,11 +1390,11 @@
       if (!serieMatch) continue;
       const serie = serieMatch[1].trim().replace(/\.$/, '');
 
-      // 2. Extract difficulty from serie using whole-word match
+      // 2. Extract difficulty from serie — use space/start/end as boundaries since \b doesn't handle å/ä/ö
       let difficulty = 'green';
       const serieLower = serie.toLowerCase();
       for (const [word, val] of Object.entries(colourMap)) {
-        if (new RegExp(`\\b${word}\\b`).test(serieLower)) { difficulty = val; break; }
+        if (new RegExp(`(^|\\s)${word}(\\s|$)`).test(serieLower)) { difficulty = val; break; }
       }
 
       // 3. Extract match-id (fogisId) and strip it + other leading non-letter chars

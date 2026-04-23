@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>v8.6 — Uttagning</title>
+  <title>v8.7 — Uttagning</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
@@ -282,7 +282,8 @@
     .badge-diff-blue  { color: var(--diff-blue);  background: rgba(92,158,224,.1);   border-color: rgba(92,158,224,.25); }
     .badge-diff-red   { color: var(--diff-red);   background: rgba(224,92,92,.1);    border-color: rgba(224,92,92,.25); }
     .badge-diff-black { color: var(--diff-black); background: rgba(176,184,179,.08); border-color: rgba(176,184,179,.2); }
-    .empty-state { text-align: center; padding: 4rem 2rem; color: var(--muted); grid-column: 1 / -1; }
+    .match-card-other { opacity: .75; }
+    .match-card-other:hover { opacity: 1; }
     .empty-state p:first-child { font-family: var(--font-display); font-size: 1.4rem; color: var(--text); margin-bottom: .5rem; }
 
     /* ── LINEUP PAGE ─────────────────────────────────── */
@@ -577,6 +578,7 @@
       </div>
     </div>
     <div class="match-list" id="match-list"></div>
+    <div class="filter-bar" id="match-teamlabel-filter" style="margin-top:1rem;display:none"></div>
   </div>
 
   <!-- HISTORIK -->
@@ -636,6 +638,7 @@
         <button class="btn-secondary" id="btn-week-next" style="padding:.4rem .9rem">→</button>
       </div>
     </div>
+    <div class="filter-bar" id="overview-teamlabel-filter" style="margin-bottom:1rem;display:none"></div>
     <div id="overview-body"></div>
   </div>
 
@@ -717,6 +720,10 @@
       </select>
     </div>
     <div class="field"><label for="match-serie">Serie <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--muted)">(valfritt)</span></label><input type="text" id="match-serie" placeholder="T.ex. Pojk 9m9 Svart Regional" /></div>
+    <div class="field">
+      <label for="match-teamlabel">Lag</label>
+      <select id="match-teamlabel"></select>
+    </div>
     <div class="modal-actions">
       <div class="modal-actions-left"><button class="btn-danger" id="btn-delete-match" style="display:none">Ta bort</button></div>
       <button class="btn-secondary" id="btn-match-cancel">Avbryt</button>
@@ -732,6 +739,10 @@
     <div class="field">
       <label for="fogis-team-name">Lagets namn i Fogis</label>
       <input type="text" id="fogis-team-name" placeholder="T.ex. Irsta IF P12 Svart" autocomplete="off" />
+    </div>
+    <div class="field">
+      <label for="fogis-teamlabel">Lag (visas i appen)</label>
+      <select id="fogis-teamlabel"></select>
     </div>
     <div class="field">
       <label for="fogis-text">Klistra in text från Fogis</label>
@@ -1092,6 +1103,8 @@
     if (pickerLabel) { pickerLabel.textContent = '— Välj match —'; pickerLabel.style.color = 'var(--muted)'; }
     // Reset player filter
     activeFilter = 'all';
+    activeMatchTeamFilter = [];
+    activeOverviewTeamFilter = [];
     document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b.dataset.filter === 'all'));
     // Reset history
     selectedHistoryMatchId = null;
@@ -1279,6 +1292,38 @@
     finally{btn.disabled=false;}
   });
 
+  let activeMatchTeamFilter = []; // empty = all
+  let activeOverviewTeamFilter = []; // empty = all
+
+  function getTeamLabels() {
+    const labels = [...new Set(matches.map(m=>m.teamlabel).filter(Boolean))].sort();
+    return labels;
+  }
+
+  function populateTeamLabelSelect(selectId, currentValue) {
+    const sel = document.getElementById(selectId); if (!sel) return;
+    const labels = getTeamLabels();
+    const currentTeam = userTeams.find(t=>t.id===currentTeamId);
+    const ownName = currentTeam?.name || 'Eget lag';
+    // Always include own team name + existing labels + "Lägg till..."
+    const allOptions = [ownName, ...labels.filter(l=>l!==ownName)];
+    sel.innerHTML = allOptions.map(l=>`<option value="${escHtml(l)}"${l===currentValue?' selected':''}>${escHtml(l)}</option>`).join('')
+      + '<option value="__new__">＋ Lägg till annat lag...</option>';
+    sel.onchange = () => {
+      if (sel.value === '__new__') {
+        const newLabel = prompt('Ange lagnamn:');
+        if (newLabel && newLabel.trim()) {
+          const opt = document.createElement('option');
+          opt.value = newLabel.trim(); opt.textContent = newLabel.trim(); opt.selected = true;
+          sel.insertBefore(opt, sel.lastElementChild);
+          sel.value = newLabel.trim();
+        } else {
+          sel.value = currentValue || ownName;
+        }
+      }
+    };
+  }
+
   // ── MATCHES ───────────────────────────────────────
   function startMatchListener() {
     if (unsubMatches) { unsubMatches(); unsubMatches=null; }
@@ -1293,9 +1338,38 @@
   function renderMatches() {
     document.getElementById('match-count').textContent=`(${matches.length})`;
     const list=document.getElementById('match-list');
-    if (matches.length===0){list.innerHTML=`<div class="empty-state" style="grid-column:unset"><p>Inga matcher ännu</p><p>Lägg till en match med knappen ovan.</p></div>`;return;}
+
+    // Build multi-select filter bar
+    const labels = getTeamLabels();
+    const filterBar = document.getElementById('match-teamlabel-filter');
+    if (labels.length > 0) {
+      filterBar.style.display = 'flex';
+      filterBar.innerHTML = `<button class="filter-btn${activeMatchTeamFilter.length===0?' active':''}" data-label="__all__">Alla</button>`
+        + labels.map(l=>`<button class="filter-btn${activeMatchTeamFilter.includes(l)?' active':''}" data-label="${escHtml(l)}">${escHtml(l)}</button>`).join('');
+      filterBar.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          if (btn.dataset.label === '__all__') {
+            activeMatchTeamFilter = [];
+          } else {
+            const l = btn.dataset.label;
+            if (activeMatchTeamFilter.includes(l)) activeMatchTeamFilter = activeMatchTeamFilter.filter(x=>x!==l);
+            else activeMatchTeamFilter = [...activeMatchTeamFilter, l];
+          }
+          renderMatches();
+        });
+      });
+    } else {
+      filterBar.style.display = 'none';
+    }
+
+    // Filter matches
+    const filtered = activeMatchTeamFilter.length === 0
+      ? matches
+      : matches.filter(m => activeMatchTeamFilter.includes(m.teamlabel||''));
+
+    if (filtered.length===0){list.innerHTML=`<div class="empty-state" style="grid-column:unset"><p>Inga matcher</p><p>${activeMatchTeamFilter.length?'Inga matcher för valda lag.':'Lägg till en match med knappen ovan.'}</p></div>`;return;}
     const groups={};
-    matches.forEach(m=>{const k=m.date||'okänt';if(!groups[k])groups[k]=[];groups[k].push(m);});
+    filtered.forEach(m=>{const k=m.date||'okänt';if(!groups[k])groups[k]=[];groups[k].push(m);});
     let html='';
     Object.keys(groups).sort().forEach(dk=>{
       const d=dk!=='okänt'?new Date(dk+'T12:00:00'):null;
@@ -1303,11 +1377,23 @@
       const weekLabel=weekNum?` · Vecka ${weekNum}`:'';
       html+=`<div class="date-group-header">${d?`${WEEKDAY[d.getDay()]} ${d.toLocaleDateString('sv-SE',{day:'numeric',month:'long',year:'numeric'})}${weekLabel}`:'Okänt datum'}</div>`;
       groups[dk].forEach(m=>{
-        html+=`<div class="match-card" data-id="${m.id}"><div class="match-diff-bar diff-${m.difficulty||'green'}"></div>
+        const currentTeam=userTeams.find(t=>t.id===currentTeamId);
+        const ownName=currentTeam?.name||'';
+        const isOwn=!m.teamlabel||m.teamlabel===ownName;
+        html+=`<div class="match-card${isOwn?'':' match-card-other'}" data-id="${m.id}"><div class="match-diff-bar diff-${m.difficulty||'green'}"></div>
           <div class="match-card-body">
             <div class="match-time-block"><div class="match-time">${escHtml(m.time||'??:??')}</div></div>
-            <div class="match-main"><div class="match-opponent">${escHtml(m.opponent||'—')}</div>${m.location?`<div class="match-location">${escHtml(m.location)}</div>`:''}${m.serie?`<div class="match-location" style="color:var(--muted)">${escHtml(m.serie)}</div>`:''}</div>
-            <div class="match-badges"><span class="badge badge-format">${escHtml(m.format||'')}</span>${m.homeway?`<span class="badge" style="color:var(--muted);border-color:var(--border)">${m.homeway==='home'?'Hemma':'Borta'}</span>`:''}<span class="badge badge-diff-${m.difficulty||'green'}">${DIFF_LABEL[m.difficulty]||''}</span></div>
+            <div class="match-main">
+              <div class="match-opponent">${escHtml(m.opponent||'—')}</div>
+              ${m.location?`<div class="match-location">${escHtml(m.location)}</div>`:''}
+              ${m.serie?`<div class="match-location" style="color:var(--muted)">${escHtml(m.serie)}</div>`:''}
+            </div>
+            <div class="match-badges">
+              ${m.teamlabel?`<span class="badge" style="color:var(--info);border-color:rgba(92,158,224,.3);background:rgba(92,158,224,.08)">${escHtml(m.teamlabel)}</span>`:''}
+              <span class="badge badge-format">${escHtml(m.format||'')}</span>
+              ${m.homeway?`<span class="badge" style="color:var(--muted);border-color:var(--border)">${m.homeway==='home'?'Hemma':'Borta'}</span>`:''}
+              <span class="badge badge-diff-${m.difficulty||'green'}">${DIFF_LABEL[m.difficulty]||''}</span>
+            </div>
           </div></div>`;
       });
     });
@@ -1325,6 +1411,7 @@
     document.getElementById('match-format').value=defaultFormat;
     document.getElementById('match-difficulty').value='green';
     document.getElementById('match-homeway').value='';
+    populateTeamLabelSelect('match-teamlabel', currentTeam?.name||'');
     document.getElementById('btn-delete-match').style.display='none';
     matchModal.classList.add('open'); document.getElementById('match-opponent').focus();
   });
@@ -1341,6 +1428,7 @@
     document.getElementById('match-difficulty').value=m.difficulty||'green';
     document.getElementById('match-homeway').value=m.homeway||'';
     document.getElementById('match-serie').value=m.serie||'';
+    populateTeamLabelSelect('match-teamlabel', m.teamlabel||'');
     document.getElementById('btn-delete-match').style.display='inline-flex';
     matchModal.classList.add('open'); document.getElementById('match-opponent').focus();
   }
@@ -1351,16 +1439,19 @@
 
   document.getElementById('btn-match-save').addEventListener('click', async()=>{
     const date=document.getElementById('match-date').value; if (!date){document.getElementById('match-date').focus();return;}
-    const data={date,time:document.getElementById('match-time').value||'',opponent:document.getElementById('match-opponent').value.trim()||'',location:document.getElementById('match-location').value.trim()||'',format:document.getElementById('match-format').value,difficulty:document.getElementById('match-difficulty').value,homeway:document.getElementById('match-homeway').value||'',serie:document.getElementById('match-serie').value.trim()||'',updatedBy:currentUser?.email||'okänd',updatedAt:serverTimestamp()};
+    const teamlabel=document.getElementById('match-teamlabel').value;
+    if (!teamlabel||teamlabel==='__new__'){alert('Välj ett lag.');return;}
+    const data={date,time:document.getElementById('match-time').value||'',opponent:document.getElementById('match-opponent').value.trim()||'',location:document.getElementById('match-location').value.trim()||'',format:document.getElementById('match-format').value,difficulty:document.getElementById('match-difficulty').value,homeway:document.getElementById('match-homeway').value||'',serie:document.getElementById('match-serie').value.trim()||'',teamlabel,updatedBy:currentUser?.email||'okänd',updatedAt:serverTimestamp()};
     const btn=document.getElementById('btn-match-save'); btn.disabled=true;
     try{if(editingMatchId)await updateDoc(teamDoc('matches',editingMatchId),data);else await addDoc(teamCol('matches'),data);closeMatchModal();}
     catch(err){console.error(err);alert('Något gick fel.');}finally{btn.disabled=false;}
   });
 
   document.getElementById('btn-import-fogis').addEventListener('click', () => {
-    // Pre-fill team name if saved
     const saved = localStorage.getItem(`fogis-team-${currentTeamId}`);
     if (saved) document.getElementById('fogis-team-name').value = saved;
+    const currentTeam = userTeams.find(t=>t.id===currentTeamId);
+    populateTeamLabelSelect('fogis-teamlabel', currentTeam?.name||'');
     document.getElementById('fogis-text').value = '';
     document.getElementById('fogis-preview').innerHTML = '';
     document.getElementById('btn-fogis-import').style.display = 'none';
@@ -1493,8 +1584,9 @@
     btn.disabled = true; btn.textContent = 'IMPORTERAR...';
     try {
       let created = 0, updated = 0;
+      const teamlabel = document.getElementById('fogis-teamlabel').value;
       for (const m of fogisMatches) {
-        const data = { ...m, updatedBy: currentUser?.email||'okänd', updatedAt: serverTimestamp() };
+        const data = { ...m, teamlabel, updatedBy: currentUser?.email||'okänd', updatedAt: serverTimestamp() };
         if (m.fogisId) {
           // Check if match with this fogisId already exists
           const existing = matches.find(x => x.fogisId === m.fogisId);
@@ -1596,7 +1688,7 @@
             <div class="match-picker-bar diff-${m.difficulty||'green'}"></div>
             <div class="match-picker-body">
               <div class="match-picker-time">${escHtml(m.time||'?')}</div>
-              <div class="match-picker-info"><div class="match-picker-opp">${escHtml(m.opponent||'—')}</div></div>
+              <div class="match-picker-info"><div class="match-picker-opp">${escHtml(m.opponent||'—')}</div>${m.teamlabel?`<div style="font-size:.7rem;color:var(--info);margin-top:1px">${escHtml(m.teamlabel)}</div>`:''}</div>
               <div class="match-picker-fmt">${escHtml(m.format||'')}</div>
               ${cnt>0?`<div class="match-picker-cnt">${cnt}</div>`:''}
             </div>
@@ -1631,6 +1723,11 @@
     currentLineupMatchId=matchId||null; selectedSlot=null; lineupFormation=''; lineupSlots={};
     if(!matchId){document.getElementById('formation-group').style.display='none';document.getElementById('lineup-body').innerHTML='<div class="lineup-placeholder">Välj en match ovan för att sätta laget.</div>';return;}
     const match=matches.find(m=>m.id===matchId); if(!match)return;
+    const currentTeam=userTeams.find(t=>t.id===currentTeamId);
+    const ownName=currentTeam?.name||'';
+    const isOtherTeam=match.teamlabel&&match.teamlabel!==ownName;
+    const warning=isOtherTeam?`<div style="background:rgba(92,158,224,.1);border:1px solid rgba(92,158,224,.25);border-radius:8px;padding:.6rem 1rem;font-size:.82rem;color:var(--info);margin-bottom:1rem">📋 Du tittar på en match för <strong>${escHtml(match.teamlabel)}</strong> — uttagningen påverkar inte deras trupp.</div>`:'';
+    document.getElementById('lineup-body').innerHTML=warning+'<div class="lineup-placeholder">Laddar...</div>';
     refreshMatchSelector();
     renderFormationPicker(match.format||'9v9');
     unsubLineup=onSnapshot(teamDoc('lineups',matchId),snap=>{
@@ -1673,8 +1770,13 @@
   function renderLineupBody() {
     const body=document.getElementById('lineup-body');
     if(!currentLineupMatchId){body.innerHTML='<div class="lineup-placeholder">Välj en match ovan.</div>';return;}
-    if(!lineupFormation){body.innerHTML='<div class="lineup-placeholder">Välj en formation ovan för att fortsätta.</div>';return;}
-    body.innerHTML=`<div class="lineup-main">
+    const match=currentMatch();
+    const currentTeam=userTeams.find(t=>t.id===currentTeamId);
+    const ownName=currentTeam?.name||'';
+    const isOtherTeam=match?.teamlabel&&match.teamlabel!==ownName;
+    const warning=isOtherTeam?`<div style="background:rgba(92,158,224,.1);border:1px solid rgba(92,158,224,.25);border-radius:8px;padding:.6rem 1rem;font-size:.82rem;color:var(--info);margin-bottom:1rem">📋 Du tittar på en match för <strong>${escHtml(match.teamlabel)}</strong> — uttagningen påverkar inte deras trupp.</div>`:'';
+    if(!lineupFormation){body.innerHTML=warning+'<div class="lineup-placeholder">Välj en formation ovan för att fortsätta.</div>';return;}
+    body.innerHTML=warning+`<div class="lineup-main">
       <div class="pitch-col"><div class="pitch" id="pitch"><div class="pitch-rows" id="pitch-rows"></div></div></div>
       <div class="pool-col"><div class="pool-header">SPELARE</div><div class="pool-hint" id="pool-hint">Välj en position på planen för att lägga till spelare</div><div class="player-pool" id="player-pool"></div></div>
     </div>`;
@@ -1903,10 +2005,38 @@
     document.getElementById('btn-week-prev').disabled=!idx;
     document.getElementById('btn-week-next').disabled=idx>=total-1;
     label.textContent=weekKey?weekKeyToLabel(weekKey):'—';
-    if(!weekMatches.length){body.innerHTML='<div class="overview-empty">Inga matcher denna vecka.</div>';return;}
+
+    // Team label filter bar
+    const overviewFilterBar = document.getElementById('overview-teamlabel-filter');
+    const allLabels = getTeamLabels();
+    if (allLabels.length > 0) {
+      overviewFilterBar.style.display = 'flex';
+      overviewFilterBar.innerHTML = `<button class="filter-btn${activeOverviewTeamFilter.length===0?' active':''}" data-label="__all__">Alla</button>`
+        + allLabels.map(l=>`<button class="filter-btn${activeOverviewTeamFilter.includes(l)?' active':''}" data-label="${escHtml(l)}">${escHtml(l)}</button>`).join('');
+      overviewFilterBar.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          if (btn.dataset.label === '__all__') activeOverviewTeamFilter = [];
+          else {
+            const l = btn.dataset.label;
+            if (activeOverviewTeamFilter.includes(l)) activeOverviewTeamFilter = activeOverviewTeamFilter.filter(x=>x!==l);
+            else activeOverviewTeamFilter = [...activeOverviewTeamFilter, l];
+          }
+          renderOverview();
+        });
+      });
+    } else {
+      overviewFilterBar.style.display = 'none';
+    }
+
+    // Filter matches by team label
+    const filteredWeekMatches = activeOverviewTeamFilter.length === 0
+      ? weekMatches
+      : weekMatches.filter(m => activeOverviewTeamFilter.includes(m.teamlabel||''));
+
+    if(!filteredWeekMatches.length){body.innerHTML='<div class="overview-empty">Inga matcher denna vecka.</div>';return;}
     const today=todayStr(),DIFF_EMOJI={green:'🟢',blue:'🔵',red:'🔴',black:'⚫'};
     const sortedPlayers=[...players].sort((a,b)=>shortName(a).localeCompare(shortName(b),'sv'));
-    const matchLineups=weekMatches.map(m=>{const lu=allLineups[m.id];return{match:m,pids:new Set(lu?[...new Set(Object.values(lu.slots||{}).flat())]:[])}; });
+    const matchLineups=filteredWeekMatches.map(m=>{const lu=allLineups[m.id];return{match:m,pids:new Set(lu?[...new Set(Object.values(lu.slots||{}).flat())]:[])}; });
     let html='<div class="overview-table-wrap"><table class="overview-table"><thead><tr><th>Spelare</th>';
     matchLineups.forEach(({match:m})=>{
       const d=m.date?new Date(m.date+'T12:00:00'):null;

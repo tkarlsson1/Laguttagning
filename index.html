@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>v9.1 — Uttagning</title>
+  <title>v9.2 — Uttagning</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
@@ -215,8 +215,6 @@
     .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem; }
     .page-title  { font-family: var(--font-display); font-size: 2rem; letter-spacing: .06em; }
     .page-title span { color: var(--muted); font-size: 1.2rem; margin-left: .5rem; }
-    .last-edit   { font-size: .75rem; color: var(--muted); margin-bottom: 1rem; min-height: 1.2em; }
-
     .filter-bar { display: flex; gap: .5rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
     .filter-btn {
       background: var(--surface); border: 1px solid var(--border); border-radius: 20px;
@@ -282,9 +280,10 @@
     .badge-diff-blue  { color: var(--diff-blue);  background: rgba(92,158,224,.1);   border-color: rgba(92,158,224,.25); }
     .badge-diff-red   { color: var(--diff-red);   background: rgba(224,92,92,.1);    border-color: rgba(224,92,92,.25); }
     .badge-diff-black { color: var(--diff-black); background: rgba(176,184,179,.08); border-color: rgba(176,184,179,.2); }
+    .empty-state { text-align: center; padding: 4rem 2rem; color: var(--muted); }
+    .empty-state p:first-child { font-family: var(--font-display); font-size: 1.4rem; color: var(--text); margin-bottom: .5rem; }
     .match-card-other { opacity: .75; }
     .match-card-other:hover { opacity: 1; }
-    .empty-state p:first-child { font-family: var(--font-display); font-size: 1.4rem; color: var(--text); margin-bottom: .5rem; }
 
     /* ── LINEUP PAGE ─────────────────────────────────── */
     .lineup-top { display: flex; gap: 1.5rem; align-items: flex-end; flex-wrap: wrap; margin-bottom: 1.5rem; }
@@ -1326,21 +1325,33 @@
     const labels = getTeamLabels();
     const currentTeam = userTeams.find(t=>t.id===currentTeamId);
     const ownName = currentTeam?.name || 'Eget lag';
-    // Always include own team name + existing labels + "Lägg till..."
     const allOptions = [ownName, ...labels.filter(l=>l!==ownName)];
     sel.innerHTML = allOptions.map(l=>`<option value="${escHtml(l)}"${l===currentValue?' selected':''}>${escHtml(l)}</option>`).join('')
       + '<option value="__new__">＋ Lägg till annat lag...</option>';
     sel.onchange = () => {
       if (sel.value === '__new__') {
-        const newLabel = prompt('Ange lagnamn:');
-        if (newLabel && newLabel.trim()) {
-          const opt = document.createElement('option');
-          opt.value = newLabel.trim(); opt.textContent = newLabel.trim(); opt.selected = true;
-          sel.insertBefore(opt, sel.lastElementChild);
-          sel.value = newLabel.trim();
-        } else {
-          sel.value = currentValue || ownName;
-        }
+        // Insert a temporary text input next to the select
+        sel.value = currentValue || ownName;
+        const existing = document.getElementById(`${selectId}-new-input`);
+        if (existing) { existing.focus(); return; }
+        const wrapper = sel.parentElement;
+        const inp = document.createElement('input');
+        inp.type = 'text'; inp.placeholder = 'T.ex. Irsta P11'; inp.id = `${selectId}-new-input`;
+        inp.style.cssText = 'margin-top:.4rem;background:var(--bg);border:1px solid var(--green);border-radius:8px;color:var(--text);font-family:var(--font-body);font-size:.95rem;padding:.6rem 1rem;outline:none;width:100%';
+        wrapper.appendChild(inp);
+        inp.focus();
+        inp.onkeydown = e => {
+          if (e.key === 'Enter' && inp.value.trim()) {
+            const newLabel = inp.value.trim();
+            const opt = document.createElement('option');
+            opt.value = newLabel; opt.textContent = newLabel; opt.selected = true;
+            sel.insertBefore(opt, sel.lastElementChild);
+            sel.value = newLabel;
+            inp.remove();
+          }
+          if (e.key === 'Escape') inp.remove();
+        };
+        inp.onblur = () => { setTimeout(() => inp.remove(), 200); };
       }
     };
   }
@@ -1993,7 +2004,7 @@
       return `<div class="history-match-card${sel}" data-id="${m.id}"><div class="match-diff-bar diff-${m.difficulty||'green'}"></div>
         <div class="history-match-body">
           <div class="history-match-opponent">${escHtml(m.opponent||'—')}</div>
-          <div class="history-match-meta">${WEEKDAY[d.getDay()]} ${d.toLocaleDateString('sv-SE',{day:'numeric',month:'short',year:'numeric'})}${m.time?' · '+m.time:''}${cnt?' · '+cnt+' spelare':' · Ingen uppställning'}</div>
+          <div class="history-match-meta">${WEEKDAY[d.getDay()]} ${d.toLocaleDateString('sv-SE',{day:'numeric',month:'short',year:'numeric'})}${m.time?' · '+m.time:''}${m.teamlabel?' · '+escHtml(m.teamlabel):''}${cnt?' · '+cnt+' spelare':' · Ingen uppställning'}</div>
         </div></div>`;
     }).join('');
     listEl.querySelectorAll('.history-match-card').forEach(card=>{card.addEventListener('click',()=>{selectedHistoryMatchId=card.dataset.id;renderHistory();renderHistoryPitch();});});
@@ -2018,15 +2029,18 @@
   }
 
   // ── OVERVIEW ──────────────────────────────────────
-  function getWeekMatches(offset) {
-    const weekKeys=[...new Set(matches.map(m=>isoWeekKey(m.date)).filter(Boolean))].sort();
+  function getWeekMatches(offset, filterLabels) {
+    const filteredMatches = filterLabels && filterLabels.length > 0
+      ? matches.filter(m => filterLabels.includes(m.teamlabel||''))
+      : matches;
+    const weekKeys=[...new Set(filteredMatches.map(m=>isoWeekKey(m.date)).filter(Boolean))].sort();
     if(!weekKeys.length)return{weekKey:null,weekMatches:[],idx:0,total:0};
     const today=todayStr(),todayWeek=isoWeekKey(today);
     const futureWeeks=weekKeys.filter(w=>w>=todayWeek);
     const baseIdx=futureWeeks.length?weekKeys.indexOf(futureWeeks[0]):weekKeys.length-1;
     const idx=Math.max(0,Math.min(weekKeys.length-1,baseIdx+offset));
     const weekKey=weekKeys[idx];
-    const weekMatches=matches.filter(m=>isoWeekKey(m.date)===weekKey).sort((a,b)=>(`${a.date}T${a.time||'00:00'}`).localeCompare(`${b.date}T${b.time||'00:00'}`));
+    const weekMatches=filteredMatches.filter(m=>isoWeekKey(m.date)===weekKey).sort((a,b)=>(`${a.date}T${a.time||'00:00'}`).localeCompare(`${b.date}T${b.time||'00:00'}`));
     return{weekKey,weekMatches,idx,total:weekKeys.length};
   }
 
@@ -2042,7 +2056,7 @@
   function renderOverview() {
     const body=document.getElementById('overview-body'),label=document.getElementById('overview-week-label');
     if(!body)return;
-    const{weekKey,weekMatches,idx,total}=getWeekMatches(overviewWeekOffset);
+    const{weekKey,weekMatches,idx,total}=getWeekMatches(overviewWeekOffset, activeOverviewTeamFilter);
     document.getElementById('btn-week-prev').disabled=!idx;
     document.getElementById('btn-week-next').disabled=idx>=total-1;
     label.textContent=weekKey?weekKeyToLabel(weekKey):'—';
@@ -2069,15 +2083,10 @@
       overviewFilterBar.style.display = 'none';
     }
 
-    // Filter matches by team label
-    const filteredWeekMatches = activeOverviewTeamFilter.length === 0
-      ? weekMatches
-      : weekMatches.filter(m => activeOverviewTeamFilter.includes(m.teamlabel||''));
-
-    if(!filteredWeekMatches.length){body.innerHTML='<div class="overview-empty">Inga matcher denna vecka.</div>';return;}
+    if(!weekMatches.length){body.innerHTML='<div class="overview-empty">Inga matcher denna vecka.</div>';return;}
     const today=todayStr(),DIFF_EMOJI={green:'🟢',blue:'🔵',red:'🔴',black:'⚫'};
     const sortedPlayers=[...players].sort((a,b)=>shortName(a).localeCompare(shortName(b),'sv'));
-    const matchLineups=filteredWeekMatches.map(m=>{const lu=allLineups[m.id];return{match:m,pids:new Set(lu?[...new Set(Object.values(lu.slots||{}).flat())]:[])}; });
+    const matchLineups=weekMatches.map(m=>{const lu=allLineups[m.id];return{match:m,pids:new Set(lu?[...new Set(Object.values(lu.slots||{}).flat())]:[])}; });
     let html='<div class="overview-table-wrap"><table class="overview-table"><thead><tr><th>Spelare</th>';
     matchLineups.forEach(({match:m})=>{
       const d=m.date?new Date(m.date+'T12:00:00'):null;

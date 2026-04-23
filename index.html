@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>v8.8 — Uttagning</title>
+  <title>v8.9 — Uttagning</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
@@ -602,6 +602,7 @@
         <div class="save-indicator" id="save-indicator"></div>
       </div>
     </div>
+    <div class="filter-bar" id="lineup-teamlabel-filter" style="margin-bottom:.75rem;display:none"></div>
     <div class="lineup-top">
       <div class="field lineup-match-field" style="margin-bottom:0">
         <label>Match</label>
@@ -1123,6 +1124,7 @@
     activeFilter = 'all';
     activeMatchTeamFilter = [];
     activeOverviewTeamFilter = [];
+    activeLineupTeamFilter = '';
     document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b.dataset.filter === 'all'));
     // Reset history
     selectedHistoryMatchId = null;
@@ -1310,8 +1312,9 @@
     finally{btn.disabled=false;}
   });
 
-  let activeMatchTeamFilter = []; // empty = all
+  let activeMatchTeamFilter    = []; // empty = all
   let activeOverviewTeamFilter = []; // empty = all
+  let activeLineupTeamFilter   = ''; // single value, empty = all
 
   function getTeamLabels() {
     const labels = [...new Set(matches.map(m=>m.teamlabel).filter(Boolean))].sort();
@@ -1687,7 +1690,27 @@
     const dropdown=document.getElementById('match-picker-dropdown');
     const label=document.getElementById('match-picker-label');
     if(!trigger)return;
-    const today=todayStr(), upcoming=matches.filter(m=>m.date>=today);
+
+    // Build filter bar
+    const filterBar=document.getElementById('lineup-teamlabel-filter');
+    const labels=getTeamLabels();
+    if(labels.length>0){
+      filterBar.style.display='flex';
+      filterBar.innerHTML=`<button class="filter-btn${!activeLineupTeamFilter?' active':''}" data-label="">Alla</button>`
+        +labels.map(l=>`<button class="filter-btn${activeLineupTeamFilter===l?' active':''}" data-label="${escHtml(l)}">${escHtml(l)}</button>`).join('');
+      filterBar.querySelectorAll('.filter-btn').forEach(btn=>{
+        btn.addEventListener('click',()=>{
+          activeLineupTeamFilter=btn.dataset.label;
+          refreshMatchSelector();
+        });
+      });
+    } else {
+      filterBar.style.display='none';
+    }
+
+    const today=todayStr();
+    let upcoming=matches.filter(m=>m.date>=today);
+    if(activeLineupTeamFilter) upcoming=upcoming.filter(m=>(m.teamlabel||'')===activeLineupTeamFilter);
     if(!upcoming.length){
       dropdown.innerHTML='<div class="match-picker-empty">Inga kommande matcher.</div>';
     } else {

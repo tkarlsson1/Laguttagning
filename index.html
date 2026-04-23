@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>v8.7 — Uttagning</title>
+  <title>v8.8 — Uttagning</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
@@ -803,6 +803,24 @@
       </div>
       <button class="btn-primary" id="btn-add-user-to-team" style="font-size:1rem;padding:.7rem 1.2rem">Lägg till &amp; skicka lösenordslänk</button>
       <div id="add-user-msg" style="font-size:.82rem;margin-top:.5rem;min-height:1.2em"></div>
+    </div>
+
+    <!-- Rename team label on matches -->
+    <div class="admin-section">
+      <div class="admin-section-title">Byt lagnamn på matcher</div>
+      <p style="font-size:.82rem;color:var(--muted);margin-bottom:.75rem">Byt ut ett felstavat lagnamn på alla matcher i nuvarande lag.</p>
+      <div class="field-row">
+        <div class="field" style="margin-bottom:0">
+          <label for="rename-from">Nuvarande namn</label>
+          <input type="text" id="rename-from" placeholder="T.ex. IrstaP13" autocomplete="off" />
+        </div>
+        <div class="field" style="margin-bottom:0">
+          <label for="rename-to">Nytt namn</label>
+          <input type="text" id="rename-to" placeholder="T.ex. Irsta P13" autocomplete="off" />
+        </div>
+      </div>
+      <div style="margin-top:.75rem"><button class="btn-primary" id="btn-rename-teamlabel" style="font-size:1rem;padding:.7rem 1.2rem">Byt namn</button></div>
+      <div id="rename-teamlabel-msg" style="font-size:.82rem;margin-top:.5rem;min-height:1.2em"></div>
     </div>
 
     <!-- Team overview -->
@@ -2157,6 +2175,29 @@
 
   document.getElementById('btn-admin').addEventListener('click', openAdminModal);
   document.getElementById('btn-admin-close').addEventListener('click',()=>adminModal.classList.remove('open'));
+
+  document.getElementById('btn-rename-teamlabel').addEventListener('click', async () => {
+    const from = document.getElementById('rename-from').value.trim();
+    const to   = document.getElementById('rename-to').value.trim();
+    const msgEl = document.getElementById('rename-teamlabel-msg');
+    if (!from || !to) { msgEl.style.color='var(--danger)'; msgEl.textContent='Fyll i båda fälten.'; return; }
+    if (from === to)  { msgEl.style.color='var(--danger)'; msgEl.textContent='Namnen är identiska.'; return; }
+    const toUpdate = matches.filter(m => m.teamlabel === from);
+    if (!toUpdate.length) { msgEl.style.color='var(--danger)'; msgEl.textContent=`Hittade inga matcher med lagnamnet "${from}".`; return; }
+    const btn = document.getElementById('btn-rename-teamlabel'); btn.disabled = true;
+    msgEl.style.color='var(--muted)'; msgEl.textContent=`Uppdaterar ${toUpdate.length} matcher...`;
+    try {
+      for (const m of toUpdate) {
+        await updateDoc(teamDoc('matches', m.id), { teamlabel: to });
+      }
+      document.getElementById('rename-from').value = '';
+      document.getElementById('rename-to').value = '';
+      msgEl.style.color='var(--green)'; msgEl.textContent=`Klart! ${toUpdate.length} matcher uppdaterade.`;
+      setTimeout(()=>{ msgEl.textContent=''; }, 4000);
+    } catch(err) {
+      console.error(err); msgEl.style.color='var(--danger)'; msgEl.textContent='Något gick fel: '+err.message;
+    } finally { btn.disabled = false; }
+  });
   adminModal.addEventListener('click',e=>{if(e.target===adminModal)adminModal.classList.remove('open');});
 
   // ── SvFF format calculation ───────────────────────

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>v9.0 — Uttagning</title>
+  <title>v9.1 — Uttagning</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
@@ -1490,7 +1490,7 @@
     const text = headerEnd > 0 ? rawText.slice(headerEnd) : rawText;
 
     // Split into blocks — each starts with the serie header
-    const parts = text.split(/(?=(?:Pojk|Flicka|Dam|Herr)\s+\d)/i).filter(s => s.trim());
+    const parts = text.split(/(?=(?:(?:Pojk|Flicka|Dam|Herr)\s+\d|P\d{2}-\d{2}))/i).filter(s => s.trim());
 
     const results = [];
     const currentTeam = userTeams.find(t => t.id === currentTeamId);
@@ -1498,7 +1498,7 @@
 
     for (const block of parts) {
       // 1. Extract serie — everything up to the start of the match-id (7+ consecutive digits)
-      const serieMatch = block.match(/^((?:Pojk|Flicka|Dam|Herr).*?)(?=\d{7})/i);
+      const serieMatch = block.match(/^((?:(?:Pojk|Flicka|Dam|Herr)|P\d{2}-\d{2}).*?)(?=\d{7})/i);
       if (!serieMatch) continue;
       const serie = serieMatch[1].trim().replace(/\.$/, '');
 
@@ -1548,7 +1548,7 @@
       let location = '';
       if (time) {
         const afterTime = afterDate.slice(afterDate.indexOf(time) + time.length);
-        const locMatch  = afterTime.match(/^([^0-9G\n]+?)(?=\d|Google|$)/);
+        const locMatch  = afterTime.match(/^([^0-9G\nK]+?)(?=\d|Google|Krockar|$)/);
         if (locMatch) location = locMatch[1].trim();
       }
 

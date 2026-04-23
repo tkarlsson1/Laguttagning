@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>v9.4 — Uttagning</title>
+  <title>v9.5 — Uttagning</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
@@ -806,6 +806,18 @@
       <div id="add-user-msg" style="font-size:.82rem;margin-top:.5rem;min-height:1.2em"></div>
     </div>
 
+    <!-- Bulk delete matches by team label -->
+    <div class="admin-section">
+      <div class="admin-section-title">Ta bort matcher per lag</div>
+      <p style="font-size:.82rem;color:var(--muted);margin-bottom:.75rem">Ta bort alla matcher med ett visst lagnamn i nuvarande lag.</p>
+      <div class="field" style="margin-bottom:.75rem">
+        <label for="bulk-delete-label">Lagnamn</label>
+        <select id="bulk-delete-label"></select>
+      </div>
+      <button class="btn-danger" id="btn-bulk-delete-matches" style="font-size:1rem;padding:.7rem 1.2rem">Ta bort matcher</button>
+      <div id="bulk-delete-msg" style="font-size:.82rem;margin-top:.5rem;min-height:1.2em"></div>
+    </div>
+
     <!-- Rename team label on matches -->
     <div class="admin-section">
       <div class="admin-section-title">Byt lagnamn på matcher</div>
@@ -1590,25 +1602,33 @@
       return;
     }
 
-    const DIFF_EMOJI = { green:'🟢', blue:'🔵', red:'🔴', black:'⚫' };
-    let html = `<div style="font-size:.82rem;color:var(--muted);margin-bottom:.5rem">${fogisMatches.length} matcher hittade</div>
-      <table class="fogis-preview-table">
-        <thead><tr><th>Datum</th><th>Tid</th><th>Motståndare</th><th>H/B</th><th>Serie</th><th></th></tr></thead>
-        <tbody>`;
-    fogisMatches.forEach((m, i) => {
-      const d = new Date(m.date+'T12:00:00');
-      const dateStr = `${WEEKDAY[d.getDay()]} ${d.toLocaleDateString('sv-SE',{day:'numeric',month:'short'})}`;
-      html += `<tr>
-        <td>${dateStr}</td>
-        <td>${m.time||'—'}</td>
-        <td>${escHtml(m.opponent)}</td>
-        <td>${m.homeway==='home'?'Hemma':'Borta'}</td>
-        <td>${escHtml(m.serie)}</td>
-        <td>${DIFF_EMOJI[m.difficulty]||''}</td>
-      </tr>`;
-    });
-    html += '</tbody></table>';
-    preview.innerHTML = html;
+    preview.innerHTML = `<div style="font-size:.82rem;color:var(--muted);margin-bottom:.5rem">${fogisMatches.length} matcher hittade — kontrollera och justera vid behov</div>
+      <div style="overflow-x:auto">
+      <table class="fogis-preview-table" id="fogis-editable-table">
+        <thead><tr><th>Datum</th><th>Tid</th><th>Motståndare</th><th>H/B</th><th>Plats</th><th>Svårighet</th><th>Serie</th></tr></thead>
+        <tbody>${fogisMatches.map((m,i) => {
+          const d = new Date(m.date+'T12:00:00');
+          const dateStr = `${WEEKDAY[d.getDay()]} ${d.toLocaleDateString('sv-SE',{day:'numeric',month:'short'})}`;
+          const inputStyle = 'background:var(--bg);border:1px solid var(--border);border-radius:4px;color:var(--text);font-family:var(--font-body);font-size:.8rem;padding:.2rem .4rem;outline:none;width:100%';
+          return `<tr data-idx="${i}">
+            <td><span style="font-size:.78rem">${dateStr}</span></td>
+            <td><input class="fp-time" value="${escHtml(m.time||'')}" placeholder="HH:MM" style="${inputStyle};width:60px" /></td>
+            <td><input class="fp-opponent" value="${escHtml(m.opponent)}" style="${inputStyle};min-width:140px" /></td>
+            <td><select class="fp-homeway" style="${inputStyle};width:80px">
+              <option value="home"${m.homeway==='home'?' selected':''}>Hemma</option>
+              <option value="away"${m.homeway==='away'?' selected':''}>Borta</option>
+            </select></td>
+            <td><input class="fp-location" value="${escHtml(m.location||'')}" style="${inputStyle};min-width:120px" /></td>
+            <td><select class="fp-difficulty" style="${inputStyle};width:80px">
+              <option value="green"${m.difficulty==='green'?' selected':''}>🟢 Grön</option>
+              <option value="blue"${m.difficulty==='blue'?' selected':''}>🔵 Blå</option>
+              <option value="red"${m.difficulty==='red'?' selected':''}>🔴 Röd</option>
+              <option value="black"${m.difficulty==='black'?' selected':''}>⚫ Svart</option>
+            </select></td>
+            <td style="font-size:.72rem;color:var(--muted)">${escHtml(m.serie)}</td>
+          </tr>`;
+        }).join('')}</tbody>
+      </table></div>`;
     document.getElementById('btn-fogis-import').style.display = 'inline-flex';
   });
 
@@ -1618,6 +1638,20 @@
     try {
       let created = 0, updated = 0;
       const teamlabel = document.getElementById('fogis-teamlabel').value;
+
+      // Read edited values from preview table
+      const table = document.getElementById('fogis-editable-table');
+      if (table) {
+        table.querySelectorAll('tbody tr').forEach(row => {
+          const i = parseInt(row.dataset.idx);
+          if (isNaN(i) || !fogisMatches[i]) return;
+          fogisMatches[i].time     = row.querySelector('.fp-time')?.value.trim()     || '';
+          fogisMatches[i].opponent = row.querySelector('.fp-opponent')?.value.trim() || '';
+          fogisMatches[i].homeway  = row.querySelector('.fp-homeway')?.value         || 'home';
+          fogisMatches[i].location = row.querySelector('.fp-location')?.value.trim() || '';
+          fogisMatches[i].difficulty = row.querySelector('.fp-difficulty')?.value    || 'green';
+        });
+      }
       for (const m of fogisMatches) {
         const data = { ...m, teamlabel, updatedBy: currentUser?.email||'okänd', updatedAt: serverTimestamp() };
         if (m.fogisId) {
@@ -2163,8 +2197,13 @@
     document.getElementById('add-user-email').value = '';
     adminModal.classList.add('open');
     await refreshAdminTeamList();
-    // Reset team selector to blank after list is populated
     document.getElementById('add-user-team').selectedIndex = -1;
+    // Populate bulk delete dropdown
+    const labels = getTeamLabels();
+    const bulkSel = document.getElementById('bulk-delete-label');
+    bulkSel.innerHTML = labels.length
+      ? '<option value="">— Välj lag —</option>' + labels.map(l=>`<option value="${escHtml(l)}">${escHtml(l)}</option>`).join('')
+      : '<option value="">Inga lag-etiketter finns</option>';
   }
 
   async function refreshAdminTeamList() {
@@ -2207,6 +2246,39 @@
   }
 
   document.getElementById('btn-admin').addEventListener('click', openAdminModal);
+  document.getElementById('btn-bulk-delete-matches').addEventListener('click', () => {
+    const label = document.getElementById('bulk-delete-label').value;
+    const msgEl = document.getElementById('bulk-delete-msg');
+    if (!label) { msgEl.style.color='var(--danger)'; msgEl.textContent='Välj ett lag.'; return; }
+    const toDelete = matches.filter(m => (m.teamlabel||'') === label);
+    if (!toDelete.length) { msgEl.style.color='var(--danger)'; msgEl.textContent=`Hittade inga matcher med lagnamnet "${label}".`; return; }
+    showConfirm(
+      `Ta bort alla ${toDelete.length} matcher för "${label}"? Uppställningar för dessa matcher raderas också.`,
+      'Ta bort', 'btn-danger',
+      async () => {
+        const btn = document.getElementById('btn-bulk-delete-matches'); btn.disabled = true;
+        msgEl.style.color='var(--muted)'; msgEl.textContent=`Raderar ${toDelete.length} matcher...`;
+        try {
+          for (const m of toDelete) {
+            await deleteDoc(teamDoc('matches', m.id));
+            // Also delete lineup if exists
+            try { await deleteDoc(teamDoc('lineups', m.id)); } catch(e) {}
+          }
+          msgEl.style.color='var(--green)'; msgEl.textContent=`Klart! ${toDelete.length} matcher raderade.`;
+          // Refresh bulk delete dropdown
+          const labels = getTeamLabels();
+          const bulkSel = document.getElementById('bulk-delete-label');
+          bulkSel.innerHTML = labels.length
+            ? '<option value="">— Välj lag —</option>' + labels.map(l=>`<option value="${escHtml(l)}">${escHtml(l)}</option>`).join('')
+            : '<option value="">Inga lag-etiketter finns</option>';
+          setTimeout(()=>{ msgEl.textContent=''; }, 4000);
+        } catch(err) {
+          console.error(err); msgEl.style.color='var(--danger)'; msgEl.textContent='Något gick fel: '+err.message;
+        } finally { btn.disabled = false; }
+      }
+    );
+  });
+
   document.getElementById('btn-admin-close').addEventListener('click',()=>adminModal.classList.remove('open'));
 
   document.getElementById('btn-rename-teamlabel').addEventListener('click', async () => {

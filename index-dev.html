@@ -1,0 +1,2451 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>v9.8-dev — Uttagning</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <script>
+    // Apply theme immediately from localStorage to prevent flash
+    // Default is light theme
+    if (localStorage.getItem('theme') !== 'dark') {
+      document.documentElement.classList.add('theme-light-early');
+    }
+  </script>
+  <style>
+    /* Apply light theme early before body is ready */
+    html.theme-light-early body { background: #f4f6f4; color: #1a2420; }
+    html.theme-light-early { background: #f4f6f4; }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:         #0e1110;
+      --surface:    #161c18;
+      --surface2:   #1d2520;
+      --border:     #2a332c;
+      --green:      #4caf6e;
+      --green-dim:  #2e7d4a;
+      --text:       #e8ede9;
+      --muted:      #6b7a6e;
+      --danger:     #e05c5c;
+      --warn:       #e0a85c;
+      --info:       #5c9ee0;
+      --diff-green: #4caf6e;
+      --diff-blue:  #5c9ee0;
+      --diff-red:   #e05c5c;
+      --diff-black: #b0b8b3;
+      --font-display: 'Bebas Neue', sans-serif;
+      --font-body:    'DM Sans', sans-serif;
+    }
+
+    body.theme-light {
+      --bg:         #f4f6f4;
+      --surface:    #ffffff;
+      --surface2:   #eef1ee;
+      --border:     #d0d8d2;
+      --green:      #2e7d4a;
+      --green-dim:  #4caf6e;
+      --text:       #1a2420;
+      --muted:      #7a8c80;
+      --danger:     #c0392b;
+      --warn:       #b7770d;
+      --info:       #2563a8;
+      --diff-green: #2e7d4a;
+      --diff-blue:  #2563a8;
+      --diff-red:   #c0392b;
+      --diff-black: #555f5a;
+    }
+
+    body.theme-light .pitch { box-shadow: 0 8px 32px rgba(0,0,0,.15); }
+    body.theme-light .chip-starter { background: #2e7d4a; color: #fff; }
+    body.theme-light .chip-sub     { background: #2e7d4a; color: #fff; }
+
+    html { background: var(--bg); }
+    body { min-height: 100%; background: var(--bg); color: var(--text); font-family: var(--font-body); }
+    body:not(.auth-ready) .view { display: none !important; }
+
+    .view { display: none; min-height: 100vh; }
+    .view.active { display: flex; flex-direction: column; min-height: 100vh; }
+
+    /* ── LOGIN ───────────────────────────────────────── */
+    #view-login, #view-team-select {
+      align-items: center; justify-content: center; padding: 2rem; position: relative; overflow: hidden;
+    }
+    #view-login::before, #view-team-select::before {
+      content: ''; position: absolute; inset: 0;
+      background: repeating-linear-gradient(to bottom, transparent 0, transparent 58px, rgba(76,175,110,.04) 58px, rgba(76,175,110,.04) 60px);
+      pointer-events: none;
+    }
+    .login-card {
+      position: relative; background: var(--surface); border: 1px solid var(--border);
+      border-radius: 16px; padding: 2.5rem 3rem; width: 100%; max-width: 420px;
+      box-shadow: 0 32px 64px rgba(0,0,0,.5);
+    }
+    .login-logo { font-family: var(--font-display); font-size: 2.8rem; letter-spacing: .08em; color: var(--green); line-height: 1; margin-bottom: .25rem; }
+    .login-sub  { font-size: .85rem; color: var(--muted); margin-bottom: 2rem; }
+
+    /* ── TEAM SELECT ─────────────────────────────────── */
+    .team-select-card {
+      position: relative; background: var(--surface); border: 1px solid var(--border);
+      border-radius: 16px; padding: 2.5rem 3rem; width: 100%; max-width: 420px;
+      box-shadow: 0 32px 64px rgba(0,0,0,.5);
+    }
+    .team-select-title { font-family: var(--font-display); font-size: 2rem; letter-spacing: .08em; color: var(--green); margin-bottom: .25rem; }
+    .team-select-sub   { font-size: .85rem; color: var(--muted); margin-bottom: 1.5rem; }
+    .team-list { display: flex; flex-direction: column; gap: .6rem; }
+    .team-item {
+      background: var(--bg); border: 1px solid var(--border); border-radius: 10px;
+      padding: .9rem 1.2rem; cursor: pointer; transition: border-color .2s, background .15s;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .team-item:hover { border-color: var(--green); background: var(--surface2); }
+    .team-item-name   { font-weight: 600; font-size: .95rem; }
+    .team-item-format { font-size: .78rem; color: var(--muted); margin-top: 2px; }
+    .team-item-arrow  { color: var(--muted); font-size: 1.1rem; }
+
+    /* ── SHARED FORM ─────────────────────────────────── */
+    .field { display: flex; flex-direction: column; gap: .4rem; margin-bottom: 1.2rem; }
+    .field label { font-size: .78rem; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+    .field input, .field select {
+      background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
+      color: var(--text); font-family: var(--font-body); font-size: .95rem;
+      padding: .75rem 1rem; transition: border-color .2s; outline: none;
+    }
+    .field input:focus, .field select:focus { border-color: var(--green); }
+    .field input[type="date"]::-webkit-calendar-picker-indicator,
+    .field input[type="time"]::-webkit-calendar-picker-indicator { filter: invert(.6); cursor: pointer; opacity: .7; }
+    .field input[type="date"]::-webkit-calendar-picker-indicator:hover,
+    .field input[type="time"]::-webkit-calendar-picker-indicator:hover { opacity: 1; }
+    .field select option { background: var(--surface); }
+    .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; }
+
+    .btn-primary {
+      background: var(--green); color: #0e1110; border: none; border-radius: 8px;
+      font-family: var(--font-display); font-size: 1.2rem; letter-spacing: .08em;
+      padding: .85rem 1.5rem; cursor: pointer; transition: background .2s, transform .1s;
+    }
+    .btn-primary:hover  { background: #5dc97f; }
+    .btn-primary:active { transform: scale(.98); }
+    .btn-primary:disabled { background: var(--green-dim); cursor: not-allowed; }
+    .btn-primary.full { width: 100%; margin-top: .5rem; }
+
+    .btn-secondary {
+      background: transparent; border: 1px solid var(--border); border-radius: 8px;
+      color: var(--muted); font-family: var(--font-body); font-size: .9rem;
+      padding: .75rem 1.5rem; cursor: pointer; transition: border-color .2s, color .2s;
+    }
+    .btn-secondary:hover { border-color: var(--text); color: var(--text); }
+
+    .btn-danger {
+      background: transparent; border: 1px solid rgba(224,92,92,.3); border-radius: 8px;
+      color: var(--danger); font-family: var(--font-body); font-size: .9rem;
+      padding: .75rem 1.5rem; cursor: pointer; transition: background .2s;
+    }
+    .btn-danger:hover { background: rgba(224,92,92,.1); }
+
+    .error-msg {
+      background: rgba(224,92,92,.12); border: 1px solid rgba(224,92,92,.3);
+      border-radius: 8px; color: var(--danger); font-size: .85rem;
+      padding: .7rem 1rem; margin-bottom: 1rem; display: none;
+    }
+    .error-msg.visible { display: block; }
+
+    /* ── TOPBAR ──────────────────────────────────────── */
+    .topbar {
+      background: var(--surface); border-bottom: 1px solid var(--border);
+      padding: 0 2rem; height: 56px; display: flex; align-items: center;
+      justify-content: space-between; flex-shrink: 0;
+    }
+    .topbar-left { display: flex; align-items: center; gap: 1rem; }
+    .topbar-logo { font-family: var(--font-display); font-size: 1.6rem; letter-spacing: .08em; color: var(--green); }
+    .topbar-team-name { font-size: .82rem; color: var(--muted); border-left: 1px solid var(--border); padding-left: 1rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 160px; }
+    .topbar-user { display: flex; align-items: center; gap: 1rem; font-size: .85rem; color: var(--muted); }
+    .btn-logout {
+      background: transparent; border: 1px solid var(--border); border-radius: 6px;
+      color: var(--muted); font-family: var(--font-body); font-size: .8rem;
+      padding: .35rem .8rem; cursor: pointer; transition: border-color .2s, color .2s;
+    }
+    .btn-logout:hover { border-color: var(--danger); color: var(--danger); }
+
+    /* settings */
+    .btn-settings {
+      background: transparent; border: 1px solid var(--border); border-radius: 6px;
+      color: var(--muted); font-size: 1rem; width: 32px; height: 32px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; transition: border-color .2s, color .2s; flex-shrink: 0;
+    }
+    .btn-settings:hover { border-color: var(--text); color: var(--text); }
+    .settings-wrap { position: relative; }
+    .settings-dropdown {
+      display: none; position: absolute; top: calc(100% + 8px); right: 0;
+      background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+      padding: .75rem 1rem; min-width: 180px; box-shadow: 0 8px 24px rgba(0,0,0,.3); z-index: 50;
+    }
+    .settings-dropdown.open { display: block; }
+    .settings-label { font-size: .75rem; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin-bottom: .6rem; }
+    .theme-toggle { display: flex; align-items: center; justify-content: space-between; font-size: .88rem; color: var(--text); }
+    .toggle-switch { width: 38px; height: 22px; background: var(--border); border-radius: 11px; position: relative; cursor: pointer; transition: background .2s; flex-shrink: 0; }
+    .toggle-switch.on { background: var(--green); }
+    .toggle-switch::after { content: ''; position: absolute; width: 16px; height: 16px; border-radius: 50%; background: #fff; top: 3px; left: 3px; transition: transform .2s; }
+    .toggle-switch.on::after { transform: translateX(16px); }
+    .btn-readme { background: none; border: none; color: var(--green); font-family: var(--font-body); font-size: .88rem; cursor: pointer; padding: 0; text-align: left; }
+    .btn-readme:hover { text-decoration: underline; }
+    .btn-admin  { background: none; border: none; color: var(--warn); font-family: var(--font-body); font-size: .88rem; cursor: pointer; padding: 0; text-align: left; }
+    .btn-admin:hover  { text-decoration: underline; }
+    .readme-section { margin-bottom: 1.2rem; }
+    .readme-heading { font-family: var(--font-display); font-size: 1.1rem; letter-spacing: .06em; color: var(--green); margin-bottom: .3rem; }
+    .readme-content p { font-size: .88rem; line-height: 1.6; color: var(--text); }
+
+    /* ── NAV TABS ────────────────────────────────────── */
+    .nav-tabs { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 2rem; display: flex; flex-shrink: 0; }
+    .nav-tab {
+      font-family: var(--font-display); font-size: 1rem; letter-spacing: .08em;
+      color: var(--muted); padding: .9rem 1.5rem; cursor: pointer;
+      border-bottom: 2px solid transparent; transition: color .2s, border-color .2s;
+      background: none; border-top: none; border-left: none; border-right: none;
+    }
+    .nav-tab:hover  { color: var(--text); }
+    .nav-tab.active { color: var(--green); border-bottom-color: var(--green); }
+
+    /* ── PAGES ───────────────────────────────────────── */
+    .page { display: none; flex: 1; padding: 2rem; max-width: 1200px; width: 100%; margin: 0 auto; }
+    .page.active { display: block; }
+    .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem; }
+    .page-title  { font-family: var(--font-display); font-size: 2rem; letter-spacing: .06em; }
+    .page-title span { color: var(--muted); font-size: 1.2rem; margin-left: .5rem; }
+    .filter-bar { display: flex; gap: .5rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
+    .filter-btn {
+      background: var(--surface); border: 1px solid var(--border); border-radius: 20px;
+      color: var(--muted); font-family: var(--font-body); font-size: .82rem; font-weight: 500;
+      padding: .35rem .9rem; cursor: pointer; transition: all .2s;
+    }
+    .filter-btn:hover  { border-color: var(--text); color: var(--text); }
+    .filter-btn.active { background: var(--green); border-color: var(--green); color: #0e1110; }
+
+    /* ── PLAYER GRID ─────────────────────────────────── */
+    .player-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 1rem; }
+    .player-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1rem 1.2rem; cursor: pointer; transition: border-color .2s, transform .15s; }
+    .player-card:hover { border-color: var(--green); transform: translateY(-2px); }
+    .player-card-name  { font-weight: 600; font-size: 1rem; margin-bottom: .5rem; }
+    .player-tags       { display: flex; flex-wrap: wrap; gap: .3rem; margin-bottom: .7rem; }
+    .tag { font-size: .72rem; font-weight: 600; letter-spacing: .04em; padding: .2rem .5rem; border-radius: 4px; background: rgba(76,175,110,.12); color: var(--green); border: 1px solid rgba(76,175,110,.2); }
+    .status-badge { display: inline-flex; align-items: center; gap: .35rem; font-size: .75rem; font-weight: 500; padding: .25rem .6rem; border-radius: 20px; }
+    .status-badge::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+    .status-available   { color: var(--green);  background: rgba(76,175,110,.1); }
+    .status-injured     { color: var(--danger);  background: rgba(224,92,92,.1); }
+    .status-sick        { color: var(--warn);    background: rgba(224,168,92,.1); }
+    .status-unavailable { color: var(--info);    background: rgba(92,158,224,.1); }
+    .absence-pills { display: flex; flex-direction: column; gap: 3px; margin-top: .6rem; }
+    .absence-pill { font-size: .7rem; padding: .2rem .5rem; border-radius: 4px; display: inline-flex; align-items: center; gap: .3rem; width: fit-content; }
+    .absence-pill-active   { background: rgba(224,92,92,.1);   color: var(--danger); border: 1px solid rgba(224,92,92,.2); }
+    .absence-pill-upcoming { background: rgba(224,168,92,.08); color: var(--warn);   border: 1px solid rgba(224,168,92,.18); }
+
+    /* ── ABSENCE ROWS ────────────────────────────────── */
+    .absence-section { margin-bottom: 1.2rem; }
+    .absence-section-label { font-size: .78rem; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin-bottom: .5rem; }
+    .absence-rows { display: flex; flex-direction: column; gap: .4rem; margin-bottom: .5rem; }
+    .absence-row { display: grid; grid-template-columns: auto 1fr 1fr 1fr auto; gap: .4rem; align-items: center; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: .5rem .6rem; }
+    .absence-row select, .absence-row input[type="date"], .absence-row input[type="text"] { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-family: var(--font-body); font-size: .8rem; padding: .3rem .5rem; outline: none; width: 100%; }
+    .absence-row input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(.6); cursor: pointer; opacity: .7; }
+    .absence-row input[type="date"]::-webkit-calendar-picker-indicator:hover { opacity: 1; }
+    .absence-row input::placeholder { color: var(--muted); }
+    .abs-rm { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 1.1rem; padding: 0 2px; transition: color .15s; line-height: 1; }
+    .abs-rm:hover { color: var(--danger); }
+    .btn-add-absence { background: transparent; border: 1px dashed var(--border); border-radius: 6px; color: var(--muted); font-size: .82rem; padding: .35rem .75rem; cursor: pointer; transition: all .15s; width: 100%; }
+    .btn-add-absence:hover { border-color: var(--green); color: var(--green); }
+
+    /* ── MATCH LIST ──────────────────────────────────── */
+    .match-list { display: flex; flex-direction: column; gap: .75rem; }
+    .date-group-header { font-family: var(--font-display); font-size: 1rem; letter-spacing: .08em; color: var(--muted); padding: .5rem 0 .25rem; border-bottom: 1px solid var(--border); margin-top: 1rem; }
+    .date-group-header:first-child { margin-top: 0; }
+    .match-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; display: flex; align-items: stretch; overflow: hidden; cursor: pointer; transition: border-color .2s, transform .15s; }
+    .match-card:hover { border-color: var(--green); transform: translateY(-1px); }
+    .match-diff-bar { width: 5px; flex-shrink: 0; }
+    .diff-green { background: var(--diff-green); }
+    .diff-blue  { background: var(--diff-blue); }
+    .diff-red   { background: var(--diff-red); }
+    .diff-black { background: var(--diff-black); }
+    .match-card-body { flex: 1; padding: .9rem 1.2rem; display: flex; align-items: center; gap: 1.5rem; flex-wrap: wrap; }
+    .match-time-block { min-width: 70px; }
+    .match-time    { font-family: var(--font-display); font-size: 1.4rem; letter-spacing: .04em; line-height: 1; }
+    .match-main    { flex: 1; min-width: 120px; }
+    .match-opponent{ font-weight: 600; font-size: 1rem; }
+    .match-location{ font-size: .8rem; color: var(--muted); margin-top: .15rem; }
+    .match-badges  { display: flex; gap: .5rem; flex-wrap: wrap; align-items: center; }
+    .badge { font-size: .72rem; font-weight: 600; letter-spacing: .04em; padding: .2rem .55rem; border-radius: 4px; border: 1px solid; }
+    .badge-format     { color: var(--text);       background: rgba(232,237,233,.06); border-color: var(--border); }
+    .badge-diff-green { color: var(--diff-green); background: rgba(76,175,110,.1);   border-color: rgba(76,175,110,.25); }
+    .badge-diff-blue  { color: var(--diff-blue);  background: rgba(92,158,224,.1);   border-color: rgba(92,158,224,.25); }
+    .badge-diff-red   { color: var(--diff-red);   background: rgba(224,92,92,.1);    border-color: rgba(224,92,92,.25); }
+    .badge-diff-black { color: var(--diff-black); background: rgba(176,184,179,.08); border-color: rgba(176,184,179,.2); }
+    .empty-state { text-align: center; padding: 4rem 2rem; color: var(--muted); }
+    .empty-state p:first-child { font-family: var(--font-display); font-size: 1.4rem; color: var(--text); margin-bottom: .5rem; }
+    .match-card-other { opacity: .75; }
+    .match-card-other:hover { opacity: 1; }
+
+    /* ── LINEUP PAGE ─────────────────────────────────── */
+    .lineup-top { display: flex; gap: 1.5rem; align-items: flex-end; flex-wrap: wrap; margin-bottom: 1.5rem; }
+    .lineup-match-field { min-width: 280px; max-width: 400px; margin-bottom: 0; flex: 1; }
+    .lineup-formation-group { display: flex; flex-direction: column; gap: .4rem; flex: 2; }
+    .field-label { font-size: .78rem; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+    .save-indicator { font-size: .78rem; color: var(--muted); align-self: flex-end; white-space: nowrap; }
+    .formation-select { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-family: var(--font-body); font-size: .95rem; padding: .75rem 1rem; outline: none; cursor: pointer; min-width: 160px; transition: border-color .2s; }
+    .formation-select:focus { border-color: var(--green); }
+    .custom-formation-row { display: none; align-items: center; gap: .5rem; flex-wrap: wrap; margin-top: .4rem; }
+    .custom-formation-row.visible { display: flex; }
+    .custom-formation-row input { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-family: var(--font-body); font-size: .95rem; padding: .6rem .9rem; outline: none; width: 130px; transition: border-color .2s; }
+    .custom-formation-row input:focus { border-color: var(--green); }
+    .custom-formation-error { font-size: .78rem; color: var(--danger); margin-top: .3rem; width: 100%; }
+    .btn-delete-custom { font-size: .75rem; color: var(--danger); background: none; border: none; cursor: pointer; padding: 0; text-decoration: underline; margin-top: .3rem; display: none; }
+    .btn-delete-custom.visible { display: inline; }
+    .lineup-placeholder { text-align: center; padding: 3rem 1rem; color: var(--muted); font-size: .95rem; }
+    .lineup-main { display: grid; grid-template-columns: 2.3fr 1fr; gap: 2rem; align-items: start; }
+    @media (max-width: 780px) { .lineup-main { grid-template-columns: 1fr; } }
+
+    /* ── MATCH PICKER ────────────────────────────────── */
+    .match-picker { position: relative; }
+    .match-picker-trigger { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; color: var(--text); padding: .75rem 1rem; cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: border-color .2s; user-select: none; }
+    .match-picker-trigger:hover { border-color: var(--green); }
+    .match-picker-trigger.open  { border-color: var(--green); border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
+    .match-picker-arrow { color: var(--muted); font-size: .8rem; transition: transform .2s; }
+    .match-picker-trigger.open .match-picker-arrow { transform: rotate(180deg); }
+    .match-picker-dropdown { display: none; position: absolute; top: 100%; left: 0; right: 0; background: var(--surface); border: 1px solid var(--green); border-top: none; border-bottom-left-radius: 10px; border-bottom-right-radius: 10px; box-shadow: 0 12px 32px rgba(0,0,0,.4); z-index: 50; max-height: 340px; overflow-y: auto; }
+    .match-picker-dropdown.open { display: block; }
+    .match-picker-empty { padding: .9rem 1rem; color: var(--muted); font-size: .85rem; }
+    .match-picker-group-label { font-size: .72rem; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); padding: .6rem 1rem .3rem; border-top: 1px solid var(--border); }
+    .match-picker-group-label:first-child { border-top: none; }
+    .match-picker-item { display: flex; align-items: stretch; cursor: pointer; border-bottom: 1px solid var(--border); transition: background .12s; }
+    .match-picker-item:last-child { border-bottom: none; }
+    .match-picker-item:hover { background: var(--surface2); }
+    .match-picker-item.selected { background: rgba(76,175,110,.08); }
+    .match-picker-bar  { width: 4px; flex-shrink: 0; }
+    .match-picker-body { padding: .6rem .9rem; flex: 1; display: flex; align-items: center; gap: 1rem; }
+    .match-picker-time { font-family: var(--font-display); font-size: 1.1rem; letter-spacing: .04em; flex-shrink: 0; }
+    .match-picker-info { flex: 1; }
+    .match-picker-opp  { font-weight: 500; font-size: .9rem; }
+    .match-picker-fmt  { font-size: .72rem; color: var(--muted); background: var(--surface2); border: 1px solid var(--border); border-radius: 4px; padding: .15rem .4rem; flex-shrink: 0; }
+    .match-picker-cnt  { font-size: .78rem; font-weight: 600; color: var(--green); background: rgba(76,175,110,.1); border: 1px solid rgba(76,175,110,.2); border-radius: 4px; padding: .15rem .5rem; flex-shrink: 0; }
+
+    /* ── PITCH ───────────────────────────────────────── */
+    .pitch { background: #1e5918; background-image: repeating-linear-gradient(to bottom, rgba(0,0,0,0) 0, rgba(0,0,0,0) 48px, rgba(0,0,0,.07) 48px, rgba(0,0,0,.07) 96px); border-radius: 10px; position: relative; width: 100%; padding: 10px; box-shadow: 0 8px 32px rgba(0,0,0,.4); }
+    .pitch::before { content: ''; position: absolute; inset: 8px; border: 2px solid rgba(255,255,255,.15); border-radius: 2px; pointer-events: none; z-index: 0; }
+    .pitch-rows { display: flex; flex-direction: column; gap: 5px; position: relative; z-index: 1; min-height: 460px; }
+    .pitch-row  { display: flex; justify-content: space-evenly; align-items: center; flex: 1; gap: 5px; }
+    .pos-slot { background: rgba(0,0,0,.3); border: 2px solid rgba(255,255,255,.12); border-radius: 8px; padding: 4px 5px; min-width: 58px; flex: 1; max-width: 90px; text-align: center; cursor: pointer; transition: border-color .15s, background .15s; }
+    .pos-slot:hover    { border-color: rgba(255,255,255,.3); background: rgba(0,0,0,.45); }
+    .pos-slot.selected { border-color: var(--green); background: rgba(76,175,110,.18); box-shadow: 0 0 0 2px rgba(76,175,110,.2); }
+    .pos-label  { font-size: .58rem; font-weight: 700; letter-spacing: .06em; color: rgba(255,255,255,.38); text-transform: uppercase; margin-bottom: 3px; }
+    .pos-empty  { font-size: 1rem; color: rgba(255,255,255,.18); line-height: 1.4; }
+    .pos-players { display: flex; flex-direction: column; gap: 2px; }
+    .chip-starter { background: var(--green); color: #0e1110; font-size: 1.1rem; font-weight: 700; padding: 3px 5px; border-radius: 4px; display: flex; align-items: center; justify-content: space-between; gap: 2px; overflow: hidden; }
+    .chip-sub     { background: var(--green); color: #0e1110; font-size: 1.1rem; font-weight: 700; padding: 3px 5px; border-radius: 3px; display: flex; align-items: center; justify-content: space-between; gap: 2px; overflow: hidden; }
+    .chip-unavailable { background: rgba(224,92,92,.15); color: var(--danger); border: 1px solid rgba(224,92,92,.3); font-size: 1.1rem; font-weight: 700; padding: 3px 5px; border-radius: 4px; display: flex; align-items: center; justify-content: space-between; gap: 2px; overflow: hidden; }
+    .chip-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+    .chip-rm { background: none; border: none; cursor: pointer; color: inherit; font-size: .75rem; padding: 0 1px; opacity: .5; flex-shrink: 0; line-height: 1; }
+    .chip-rm:hover { opacity: 1; color: var(--danger); }
+
+    /* ── PLAYER POOL ─────────────────────────────────── */
+    .pool-header { font-family: var(--font-display); font-size: 1.2rem; letter-spacing: .08em; margin-bottom: .4rem; }
+    .pool-hint   { font-size: .8rem; color: var(--muted); margin-bottom: .75rem; min-height: 1.1em; }
+    .player-pool { display: flex; flex-direction: column; gap: 2px; max-height: 520px; overflow-y: auto; }
+    .pool-item { display: flex; align-items: flex-start; gap: .6rem; padding: .45rem .75rem; border-radius: 8px; cursor: pointer; transition: background .12s; border: 1px solid transparent; }
+    .pool-item:hover            { background: var(--surface2); }
+    .pool-item.in-selected      { background: rgba(76,175,110,.08); border-color: rgba(76,175,110,.25); }
+    .pool-item.pool-unavailable { opacity: .45; }
+    .pool-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 5px; }
+    .dot-available   { background: var(--green); }
+    .dot-assigned    { background: var(--warn); }
+    .dot-unavailable { background: var(--muted); }
+    .dot-absent      { background: var(--danger); }
+    .pool-info  { flex: 1; min-width: 0; }
+    .pool-name  { font-weight: 500; font-size: 1rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .pool-tags  { font-size: .7rem; color: var(--muted); margin-top: 1px; }
+    .pool-absent-reason { font-size: .7rem; color: var(--danger); margin-top: 2px; }
+    .pool-right { display: flex; flex-direction: column; gap: 2px; align-items: flex-end; flex-shrink: 0; }
+    .pool-badge { font-size: .68rem; color: var(--warn); background: rgba(224,168,92,.1); border: 1px solid rgba(224,168,92,.2); border-radius: 4px; padding: .15rem .4rem; white-space: nowrap; }
+    .pool-check { color: var(--green); font-size: .95rem; }
+    .conflict-badge { font-size: .65rem; font-weight: 600; padding: .15rem .4rem; border-radius: 4px; white-space: nowrap; }
+    .conflict-week  { color: var(--warn);   background: rgba(224,168,92,.12); border: 1px solid rgba(224,168,92,.25); }
+    .conflict-time  { color: var(--danger); background: rgba(224,92,92,.12);  border: 1px solid rgba(224,92,92,.25); }
+    .pool-section-label { font-size: .72rem; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); padding: .6rem .75rem .3rem; border-top: 1px solid var(--border); margin-top: .25rem; }
+    .pool-section-label:first-child { border-top: none; margin-top: 0; padding-top: .3rem; }
+
+    /* ── OVERVIEW ────────────────────────────────────── */
+    .overview-week-nav { display: flex; align-items: center; gap: .75rem; }
+    .overview-empty { color: var(--muted); font-size: .95rem; padding: 2rem 0; }
+    .overview-table-wrap { overflow-x: auto; }
+    .overview-table { border-collapse: collapse; width: 100%; font-size: .88rem; table-layout: fixed; }
+    .overview-table th { background: var(--surface); border: 1px solid var(--border); padding: .6rem .5rem; text-align: left; font-weight: 600; font-family: var(--font-body); white-space: nowrap; overflow: hidden; }
+    .overview-table th:first-child { width: 120px; }
+    .overview-table th.match-col { text-align: center; width: 70px; max-width: 70px; word-break: break-word; white-space: normal; }
+    .overview-table th .match-col-time { font-family: var(--font-display); font-size: .9rem; letter-spacing: .04em; display: block; }
+    .overview-table th .match-col-opp  { font-size: .65rem; color: var(--muted); font-weight: 400; word-break: break-word; display: block; }
+    .overview-table td { border: 1px solid var(--border); padding: .45rem .5rem; background: var(--bg); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .overview-table tr:hover td { background: var(--surface2); }
+    .overview-table td.player-name-col { font-weight: 500; }
+    .overview-table td.dot-col { text-align: center; }
+    .ov-dot-selected { font-size: 1.1rem; line-height: 1; color: var(--green); }
+    .ov-dot-absent   { font-size: 1.1rem; line-height: 1; color: var(--danger); }
+    .ov-dot-empty    { color: var(--border); font-size: .9rem; }
+
+    /* ── HISTORY ─────────────────────────────────────── */
+    .history-layout { display: grid; grid-template-columns: 280px 1fr; gap: 2rem; align-items: start; }
+    @media (max-width: 780px) { .history-layout { grid-template-columns: 1fr; } }
+    .history-list { display: flex; flex-direction: column; gap: .5rem; max-height: 80vh; overflow-y: auto; }
+    .history-match-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; display: flex; align-items: stretch; overflow: hidden; cursor: pointer; transition: border-color .2s; }
+    .history-match-card:hover    { border-color: var(--green); }
+    .history-match-card.selected { border-color: var(--green); background: rgba(76,175,110,.06); }
+    .history-match-card .match-diff-bar { width: 4px; flex-shrink: 0; }
+    .history-match-body { padding: .65rem .9rem; flex: 1; }
+    .history-match-opponent { font-weight: 600; font-size: .9rem; }
+    .history-match-meta { font-size: .75rem; color: var(--muted); margin-top: 2px; }
+    .history-match-info { margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border); }
+    .history-match-info h3 { font-family: var(--font-display); font-size: 1.6rem; letter-spacing: .06em; }
+    .history-match-info p  { font-size: .85rem; color: var(--muted); margin-top: .25rem; }
+    .history-pitch-wrap { max-width: 480px; }
+    .history-no-lineup { color: var(--muted); font-size: .9rem; padding: 2rem 0; }
+
+    /* ── ADMIN MODAL ─────────────────────────────────── */
+    .admin-section { margin-bottom: 1.5rem; }
+    .admin-section-title { font-family: var(--font-display); font-size: 1.2rem; letter-spacing: .06em; margin-bottom: .75rem; color: var(--warn); }
+    .admin-team-list { display: flex; flex-direction: column; gap: .5rem; margin-bottom: 1rem; }
+    .admin-team-item { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: .6rem .9rem; }
+    .admin-team-item-name   { font-weight: 600; font-size: .9rem; }
+    .admin-team-item-meta   { font-size: .75rem; color: var(--muted); margin-top: 2px; }
+    .admin-member-list { display: flex; flex-wrap: wrap; gap: .3rem; margin-top: .4rem; }
+    .admin-member-chip { font-size: .72rem; background: var(--surface2); border: 1px solid var(--border); border-radius: 4px; padding: .15rem .5rem; color: var(--muted); }
+
+    /* ── FOGIS IMPORT ────────────────────────────────── */
+    .fogis-preview-table { width: 100%; border-collapse: collapse; font-size: .82rem; margin-bottom: .5rem; }
+    .fogis-preview-table th { background: var(--surface2); border: 1px solid var(--border); padding: .4rem .6rem; text-align: left; font-weight: 600; color: var(--muted); font-size: .72rem; text-transform: uppercase; letter-spacing: .04em; }
+    .fogis-preview-table td { border: 1px solid var(--border); padding: .4rem .6rem; }
+    .fogis-preview-table tr:hover td { background: var(--surface2); }
+    .fogis-parse-error { color: var(--danger); font-size: .85rem; margin-bottom: .75rem; }
+
+    /* ── MODALS ──────────────────────────────────────── */
+    .modal-backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.7); z-index: 100; align-items: center; justify-content: center; padding: 1rem; }
+    .modal-backdrop.open { display: flex; }
+    .modal { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 2rem; width: 100%; max-width: 540px; max-height: 90vh; overflow-y: auto; box-shadow: 0 32px 64px rgba(0,0,0,.6); }
+    .modal-title { font-family: var(--font-display); font-size: 1.6rem; letter-spacing: .06em; margin-bottom: 1.5rem; }
+    .modal-actions { display: flex; gap: .75rem; justify-content: flex-end; margin-top: 1.5rem; flex-wrap: wrap; align-items: center; }
+    .modal-actions-left { margin-right: auto; }
+    .tag-group { margin-bottom: 1rem; }
+    .tag-group-label { font-size: .78rem; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin-bottom: .5rem; }
+    .tag-options { display: flex; flex-wrap: wrap; gap: .4rem; }
+    .tag-option { font-size: .8rem; font-weight: 600; padding: .3rem .7rem; border-radius: 6px; background: var(--bg); border: 1px solid var(--border); color: var(--muted); cursor: pointer; transition: all .15s; user-select: none; }
+    .tag-option:hover    { border-color: var(--green); color: var(--green); }
+    .tag-option.selected { background: rgba(76,175,110,.15); border-color: var(--green); color: var(--green); }
+
+    /* ── CONFIRM ─────────────────────────────────────── */
+    #confirm-backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.8); z-index: 200; align-items: center; justify-content: center; padding: 1rem; }
+    #confirm-backdrop.open { display: flex; }
+    .confirm-box { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; max-width: 360px; width: 100%; }
+    .confirm-box p { margin-bottom: 1.2rem; line-height: 1.5; }
+    .confirm-actions { display: flex; gap: .75rem; justify-content: flex-end; }
+
+    /* ── MOBILE ──────────────────────────────────────── */
+    @media (max-width: 640px) {
+      .topbar { padding: 0 1rem; }
+      .topbar-logo { font-size: 1.3rem; }
+      #user-email { display: none; }
+      .topbar-team-name { max-width: 100px; font-size: .75rem; }
+      .nav-tabs { padding: 0 .5rem; }
+      .nav-tab  { padding: .75rem .7rem; font-size: .8rem; letter-spacing: .04em; }
+      .page { padding: 1rem; }
+      .page-header { margin-bottom: 1rem; }
+      .login-card, .team-select-card { padding: 2rem 1.5rem; }
+      .player-grid { grid-template-columns: 1fr; }
+      .match-card-body { gap: .75rem; padding: .75rem 1rem; }
+      .match-time { font-size: 1.1rem; }
+      .match-time-block { min-width: 50px; }
+      .lineup-top { flex-direction: column; align-items: stretch; gap: 1rem; }
+      .lineup-match-field { min-width: unset; max-width: unset; }
+      .lineup-formation-group { flex: unset; }
+      .formation-select { width: 100%; }
+      .pitch-col { position: sticky; top: 0; z-index: 10; }
+      .pitch-rows { min-height: 300px; gap: 3px; }
+      .pos-slot { min-width: 44px; padding: 3px 3px; }
+      .pos-label { font-size: .52rem; }
+      .chip-starter { font-size: .9rem; padding: 2px 3px; }
+      .chip-sub     { font-size: .9rem; padding: 2px 3px; }
+      .chip-unavailable { font-size: .9rem; padding: 2px 3px; }
+      .player-pool { max-height: none; }
+      .absence-row { grid-template-columns: 1fr 1fr; row-gap: .4rem; }
+      .absence-row select { grid-column: 1 / -1; }
+      .abs-rm { grid-column: 2; justify-self: end; }
+      .modal { padding: 1.5rem 1.25rem; }
+      .modal-actions { flex-direction: column-reverse; }
+      .modal-actions .btn-primary, .modal-actions .btn-secondary { width: 100%; text-align: center; }
+      .modal-actions-left { margin-right: 0; width: 100%; }
+      .modal-actions-left .btn-danger { width: 100%; }
+      .confirm-box { padding: 1.25rem; }
+      .confirm-actions { flex-direction: column-reverse; }
+      .confirm-actions button { width: 100%; text-align: center; }
+      .field-row { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── LOGIN ─────────────────────────────────────────── -->
+<div id="view-login" class="view active">
+  <div class="login-card">
+    <div class="login-logo">LAGUTTAGNING</div>
+    <div class="login-sub">Tränarverktyg — logga in för att fortsätta</div>
+    <div id="login-error" class="error-msg"></div>
+    <div class="field"><label for="email">E-post</label><input type="email" id="email" placeholder="tränare@klubb.se" autocomplete="email" /></div>
+    <div class="field"><label for="password">Lösenord</label><input type="password" id="password" placeholder="••••••••" autocomplete="current-password" /></div>
+    <button class="btn-primary full" id="btn-login">LOGGA IN</button>
+  </div>
+</div>
+
+<!-- ── TEAM SELECT ───────────────────────────────────── -->
+<div id="view-team-select" class="view">
+  <div class="team-select-card">
+    <div class="team-select-title">VÄLJ LAG</div>
+    <div class="team-select-sub">Du är kopplad till flera lag</div>
+    <div class="team-list" id="team-list"></div>
+  </div>
+</div>
+
+<!-- ── APP ───────────────────────────────────────────── -->
+<div id="view-app" class="view">
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="topbar-logo" id="topbar-logo">UTTAGNING</div>
+      <div class="topbar-team-name" id="topbar-team-name"></div>
+    </div>
+    <div class="topbar-user">
+      <span id="user-email"></span>
+      <div class="settings-wrap">
+        <button class="btn-settings" id="btn-settings" title="Inställningar">⚙</button>
+        <div class="settings-dropdown" id="settings-dropdown">
+          <div class="settings-label">Tema</div>
+          <div class="theme-toggle">
+            <span id="theme-label">Mörkt</span>
+            <div class="toggle-switch" id="theme-toggle"></div>
+          </div>
+          <div id="switch-team-wrapper" style="display:none;border-top:1px solid var(--border);margin:.75rem 0 0">
+            <div class="settings-label" style="margin-top:.75rem">Lag</div>
+            <button class="btn-readme" id="btn-switch-team">Byt lag ↗</button>
+          </div>
+          <div style="border-top:1px solid var(--border);margin:.75rem 0"></div>
+          <div class="settings-label">Hjälp</div>
+          <button class="btn-readme" id="btn-readme">Snabbguide ↗</button>
+          <div id="admin-section-wrapper" style="display:none;border-top:1px solid var(--border);margin:.75rem 0 0">
+            <div class="settings-label" style="margin-top:.75rem">Admin</div>
+            <button class="btn-admin" id="btn-admin">Hantera lag ↗</button>
+          </div>
+        </div>
+      </div>
+      <button class="btn-logout" id="btn-logout">Logga ut</button>
+    </div>
+  </div>
+  <div class="nav-tabs">
+    <button class="nav-tab active" data-page="players">SPELARE</button>
+    <button class="nav-tab" data-page="matches">MATCHER</button>
+    <button class="nav-tab" data-page="lineup">UTTAGNING</button>
+    <button class="nav-tab" data-page="overview">ÖVERSIKT</button>
+    <button class="nav-tab" data-page="history">HISTORIK</button>
+  </div>
+
+  <!-- SPELARE -->
+  <div id="page-players" class="page active">
+    <div class="page-header">
+      <div class="page-title">SPELARE <span id="player-count"></span></div>
+      <button class="btn-primary" id="btn-add-player">+ LÄGG TILL</button>
+    </div>
+    <div class="filter-bar">
+      <button class="filter-btn active" data-filter="all">Alla</button>
+      <button class="filter-btn" data-filter="available">Tillgänglig</button>
+      <button class="filter-btn" data-filter="injured">Skadad</button>
+      <button class="filter-btn" data-filter="sick">Sjuk</button>
+      <button class="filter-btn" data-filter="unavailable">Förhinder</button>
+    </div>
+    <div class="player-grid" id="player-grid"></div>
+  </div>
+
+  <!-- MATCHER -->
+  <div id="page-matches" class="page">
+    <div class="page-header">
+      <div class="page-title">MATCHER <span id="match-count"></span></div>
+      <div style="display:flex;gap:.75rem">
+        <button class="btn-secondary" id="btn-import-fogis">Importera från Fogis</button>
+        <button class="btn-primary" id="btn-add-match">+ LÄGG TILL</button>
+      </div>
+    </div>
+    <div class="filter-bar" id="match-teamlabel-filter" style="margin-bottom:1rem;display:none"></div>
+    <div class="match-list" id="match-list"></div>
+  </div>
+
+  <!-- HISTORIK -->
+  <div id="page-history" class="page">
+    <div class="page-header"><div class="page-title">HISTORIK</div></div>
+    <div class="history-layout">
+      <div class="history-list" id="history-list"></div>
+      <div class="history-pitch-col" id="history-pitch-col">
+        <div class="lineup-placeholder">Välj en match för att se uppställningen.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- UTTAGNING -->
+  <div id="page-lineup" class="page">
+    <div class="page-header">
+      <div class="page-title">UTTAGNING</div>
+      <div style="display:flex;align-items:center;gap:1rem">
+        <button class="btn-secondary" id="btn-clear-lineup" style="display:none">Rensa uppställning</button>
+        <button class="btn-secondary" id="btn-copy-lineup" style="display:none">Kopiera lista</button>
+        <div class="save-indicator" id="save-indicator"></div>
+      </div>
+    </div>
+    <div class="filter-bar" id="lineup-teamlabel-filter" style="margin-bottom:.75rem;display:none"></div>
+    <div class="lineup-top">
+      <div class="field lineup-match-field" style="margin-bottom:0">
+        <label>Match</label>
+        <div class="match-picker" id="match-picker">
+          <div class="match-picker-trigger" id="match-picker-trigger">
+            <span id="match-picker-label" style="color:var(--muted)">— Välj match —</span>
+            <span class="match-picker-arrow">▾</span>
+          </div>
+          <div class="match-picker-dropdown" id="match-picker-dropdown"></div>
+        </div>
+      </div>
+      <div class="lineup-formation-group" id="formation-group" style="display:none">
+        <div class="field-label">Formation</div>
+        <select id="formation-select" class="formation-select"></select>
+        <div class="custom-formation-row" id="custom-formation-row">
+          <input type="text" id="custom-formation-input" placeholder="t.ex. 3-2-3" maxlength="15" />
+          <button class="btn-primary" id="btn-save-custom-formation" style="font-size:.9rem;padding:.6rem 1rem">Lägg till</button>
+          <button class="btn-secondary" id="btn-cancel-custom-formation" style="font-size:.9rem;padding:.6rem 1rem">Avbryt</button>
+          <div class="custom-formation-error" id="custom-formation-error"></div>
+        </div>
+        <button class="btn-delete-custom" id="btn-delete-custom-formation">Ta bort denna formation</button>
+      </div>
+    </div>
+    <div id="lineup-body"><div class="lineup-placeholder">Välj en match ovan för att sätta laget.</div></div>
+  </div>
+
+  <!-- ÖVERSIKT -->
+  <div id="page-overview" class="page">
+    <div class="page-header">
+      <div class="page-title">ÖVERSIKT</div>
+      <div class="overview-week-nav">
+        <button class="btn-secondary" id="btn-week-prev" style="padding:.4rem .9rem">←</button>
+        <span id="overview-week-label" style="font-size:.9rem;color:var(--muted);min-width:160px;text-align:center"></span>
+        <button class="btn-secondary" id="btn-week-next" style="padding:.4rem .9rem">→</button>
+      </div>
+    </div>
+    <div class="filter-bar" id="overview-teamlabel-filter" style="margin-bottom:1rem;display:none"></div>
+    <div id="overview-body"></div>
+  </div>
+
+</div><!-- /view-app -->
+
+<!-- ── PLAYER MODAL ──────────────────────────────────── -->
+<div id="player-modal" class="modal-backdrop">
+  <div class="modal">
+    <div class="modal-title" id="player-modal-title">LÄGG TILL SPELARE</div>
+    <div class="field"><label for="player-name">Namn</label><input type="text" id="player-name" placeholder="Förnamn Efternamn" /></div>
+    <div class="field"><label for="player-display-name">Visningsnamn <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--muted)">(valfritt — används på planen)</span></label><input type="text" id="player-display-name" placeholder="T.ex. Andersson" /></div>
+    <div class="field">
+      <label>Positioner</label>
+      <div class="tag-group">
+        <div class="tag-group-label">Målvakt</div>
+        <div class="tag-options"><span class="tag-option" data-pos="GK">GK</span></div>
+      </div>
+      <div class="tag-group">
+        <div class="tag-group-label">Back</div>
+        <div class="tag-options">
+          <span class="tag-option" data-pos="LB">LB</span><span class="tag-option" data-pos="CB">CB</span>
+          <span class="tag-option" data-pos="RB">RB</span><span class="tag-option" data-pos="WB">WB</span>
+        </div>
+      </div>
+      <div class="tag-group">
+        <div class="tag-group-label">Mitt</div>
+        <div class="tag-options">
+          <span class="tag-option" data-pos="DM">DM</span><span class="tag-option" data-pos="LM">LM</span>
+          <span class="tag-option" data-pos="CM">CM</span><span class="tag-option" data-pos="RM">RM</span>
+          <span class="tag-option" data-pos="AM">AM</span>
+        </div>
+      </div>
+      <div class="tag-group">
+        <div class="tag-group-label">Anfall</div>
+        <div class="tag-options">
+          <span class="tag-option" data-pos="LW">LW</span><span class="tag-option" data-pos="RW">RW</span>
+          <span class="tag-option" data-pos="CF">CF</span><span class="tag-option" data-pos="ST">ST</span>
+        </div>
+      </div>
+    </div>
+    <div class="absence-section">
+      <div class="absence-section-label">Frånvaro</div>
+      <div class="absence-rows" id="modal-absence-rows"></div>
+      <button type="button" class="btn-add-absence" id="btn-add-absence">+ Lägg till frånvaro</button>
+    </div>
+    <div class="modal-actions">
+      <div class="modal-actions-left"><button class="btn-danger" id="btn-delete-player" style="display:none">Ta bort</button></div>
+      <button class="btn-secondary" id="btn-player-cancel">Avbryt</button>
+      <button class="btn-primary" id="btn-player-save">SPARA</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── MATCH MODAL ───────────────────────────────────── -->
+<div id="match-modal" class="modal-backdrop">
+  <div class="modal">
+    <div class="modal-title" id="match-modal-title">LÄGG TILL MATCH</div>
+    <div class="field-row">
+      <div class="field"><label for="match-date">Datum</label><input type="date" id="match-date" /></div>
+      <div class="field"><label for="match-time">Tid</label><input type="time" id="match-time" /></div>
+    </div>
+    <div class="field"><label for="match-opponent">Motståndare</label><input type="text" id="match-opponent" placeholder="Motståndarlagets namn" /></div>
+    <div class="field"><label for="match-location">Plats</label><input type="text" id="match-location" placeholder="Hemma / Borta / Plannamn" /></div>
+    <div class="field-row">
+      <div class="field">
+        <label for="match-format">Format</label>
+        <select id="match-format"><option value="7v7">7v7</option><option value="9v9" selected>9v9</option><option value="11v11">11v11</option></select>
+      </div>
+      <div class="field">
+        <label for="match-homeway">Hemma/Borta</label>
+        <select id="match-homeway"><option value="">— Ej angivet —</option><option value="home">Hemma</option><option value="away">Borta</option></select>
+      </div>
+    </div>
+    <div class="field">
+      <label for="match-difficulty">Svårighetsgrad</label>
+      <select id="match-difficulty">
+        <option value="green">🟢 Grön</option><option value="blue">🔵 Blå</option>
+        <option value="red">🔴 Röd</option><option value="black">⚫ Svart</option>
+      </select>
+    </div>
+    <div class="field"><label for="match-serie">Serie <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--muted)">(valfritt)</span></label><input type="text" id="match-serie" placeholder="T.ex. Pojk 9m9 Svart Regional" /></div>
+    <div class="field">
+      <label for="match-teamlabel">Lag</label>
+      <select id="match-teamlabel"></select>
+    </div>
+    <div class="modal-actions">
+      <div class="modal-actions-left"><button class="btn-danger" id="btn-delete-match" style="display:none">Ta bort</button></div>
+      <button class="btn-secondary" id="btn-match-cancel">Avbryt</button>
+      <button class="btn-primary" id="btn-match-save">SPARA</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── FOGIS IMPORT MODAL ─────────────────────────────── -->
+<div id="fogis-modal" class="modal-backdrop">
+  <div class="modal" style="max-width:620px">
+    <div class="modal-title">IMPORTERA FRÅN FOGIS</div>
+    <div class="field">
+      <label for="fogis-team-name">Lagets namn i Fogis</label>
+      <input type="text" id="fogis-team-name" placeholder="T.ex. Irsta IF P12 Svart" autocomplete="off" />
+    </div>
+    <div class="field">
+      <label for="fogis-teamlabel">Lag (visas i appen)</label>
+      <select id="fogis-teamlabel"></select>
+    </div>
+    <div class="field">
+      <label for="fogis-text">Klistra in text från Fogis</label>
+      <textarea id="fogis-text" rows="6" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:var(--font-body);font-size:.85rem;padding:.75rem 1rem;resize:vertical;outline:none;width:100%;transition:border-color .2s" placeholder="Klistra in matchlistan här..."></textarea>
+    </div>
+    <button class="btn-secondary" id="btn-fogis-parse" style="margin-bottom:1rem">Analysera</button>
+    <div id="fogis-preview"></div>
+    <div class="modal-actions">
+      <button class="btn-secondary" id="btn-fogis-cancel">Avbryt</button>
+      <button class="btn-primary" id="btn-fogis-import" style="display:none">IMPORTERA MATCHER</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── README MODAL ──────────────────────────────────── -->
+<div id="readme-modal" class="modal-backdrop">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-title">SNABBGUIDE</div>
+    <div class="readme-content">
+      <div class="readme-section"><div class="readme-heading">Spelare</div><p>Lägg till alla spelare med namn, visningsnamn och positionstaggar. Visningsnamnet används på spelplanen. Förhinder läggs in per spelare med start- och slutdatum — en spelare kan ha flera förhinder inlagda samtidigt, t.ex. en skada och ett planerat förhinder längre fram. Appen varnar automatiskt vid uttagning om en spelare har förhinder på matchdatumet.</p></div>
+      <div class="readme-section"><div class="readme-heading">Matcher</div><p>Skapa matcherna för säsongen med datum, tid, motståndare och svårighetsgrad. Hemma/Borta kan anges för att hålla koll på domarbokningar.</p></div>
+      <div class="readme-section"><div class="readme-heading" style="font-size:.95rem">Importera från Fogis</div><p>Matcher kan importeras direkt från Fogis för att slippa lägga in dem manuellt. Gå till fogis.svenskfotboll.se, navigera till ditt lags matcher och välj utskriftsvyn ("Visa listan i utskriftsvänligt format"). Markera och kopiera all text på sidan, klistra sedan in den i importverktyget under MATCHER → "Importera från Fogis". Ange lagets exakta namn som det visas i Fogis (t.ex. "Irsta IF P12 Svart") och välj vilket lag i appen importen ska gälla. Appen känner igen motståndare, datum, tider och spelplatser automatiskt. Om du importerar igen när fler tider och platser blivit inlagda uppdateras befintliga matcher utan att uppställningar påverkas.</p></div>
+      <div class="readme-section"><div class="readme-heading">Uttagning</div><p>Välj match och formation. Klicka en position på planen och sedan en spelare i listan — spelaren placeras direkt. Vill du lägga till en reserv på samma position klickar du bara in ytterligare en spelare där. Spelare med förhinder visas röda. Spelare uttagna i andra matcher samma vecka märks ut automatiskt. Allt sparas direkt.</p></div>
+      <div class="readme-section"><div class="readme-heading">Översikt</div><p>Veckoöversikt som visar alla spelare mot alla matcher. Grön prick = uttagen, röd = förhinder.</p></div>
+      <div class="readme-section"><div class="readme-heading">Historik</div><p>Se gamla uppställningar från avklarade matcher.</p></div>
+      <div class="readme-section"><div class="readme-heading">Byta lag</div><p>Om du är kopplad till flera lag visas en lagvalsskärm när du loggar in. Du kan också byta lag när som helst via kugghjulet uppe till höger — välj "Byt lag" för att komma tillbaka till lagvalsskärmen.</p></div>
+      <div class="readme-section"><div class="readme-heading">Kopiera lista</div><p>På uttagningssidan — kopierar en alfabetisk namnlista att klistra in i exempelvis en chattgrupp.</p></div>
+    </div>
+    <div class="modal-actions"><button class="btn-primary" id="btn-readme-close">STÄNG</button></div>
+  </div>
+</div>
+
+<!-- ── ADMIN MODAL ───────────────────────────────────── -->
+<div id="admin-modal" class="modal-backdrop">
+  <div class="modal" style="max-width:600px">
+    <div class="modal-title">HANTERA LAG</div>
+
+    <!-- Create team -->
+    <div class="admin-section">
+      <div class="admin-section-title">Skapa nytt lag</div>
+      <div class="field-row">
+        <div class="field" style="margin-bottom:0"><label for="new-team-name">Lagnamn</label><input type="text" id="new-team-name" placeholder="T.ex. Irsta P13" /></div>
+        <div class="field" style="margin-bottom:0">
+          <label for="new-team-birth-year">Födelseår</label>
+          <input type="number" id="new-team-birth-year" placeholder="T.ex. 2013" min="2000" max="2030" style="width:100%" />
+        </div>
+      </div>
+      <div style="margin-top:.75rem"><button class="btn-primary" id="btn-create-team" style="font-size:1rem;padding:.7rem 1.2rem">Skapa lag</button></div>
+      <div id="create-team-msg" style="font-size:.82rem;margin-top:.5rem;min-height:1.2em"></div>
+    </div>
+
+    <!-- Add user to team -->
+    <div class="admin-section">
+      <div class="admin-section-title">Lägg till tränare i lag</div>
+      <div class="field"><label for="add-user-email">E-postadress</label><input type="email" id="add-user-email" placeholder="tränare@exempel.se" autocomplete="off" /></div>
+      <div class="field" style="margin-bottom:.75rem">
+        <label for="add-user-team">Lag</label>
+        <select id="add-user-team"></select>
+      </div>
+      <button class="btn-primary" id="btn-add-user-to-team" style="font-size:1rem;padding:.7rem 1.2rem">Lägg till &amp; skicka lösenordslänk</button>
+      <div id="add-user-msg" style="font-size:.82rem;margin-top:.5rem;min-height:1.2em"></div>
+    </div>
+
+    <!-- Bulk delete matches by team label -->
+    <div class="admin-section">
+      <div class="admin-section-title">Ta bort matcher per lag</div>
+      <p style="font-size:.82rem;color:var(--muted);margin-bottom:.75rem">Ta bort alla matcher med ett visst lagnamn i nuvarande lag.</p>
+      <div class="field" style="margin-bottom:.75rem">
+        <label for="bulk-delete-label">Lagnamn</label>
+        <select id="bulk-delete-label"></select>
+      </div>
+      <button class="btn-danger" id="btn-bulk-delete-matches" style="font-size:1rem;padding:.7rem 1.2rem">Ta bort matcher</button>
+      <div id="bulk-delete-msg" style="font-size:.82rem;margin-top:.5rem;min-height:1.2em"></div>
+    </div>
+
+    <!-- Rename team label on matches -->
+    <div class="admin-section">
+      <div class="admin-section-title">Byt lagnamn på matcher</div>
+      <p style="font-size:.82rem;color:var(--muted);margin-bottom:.75rem">Byt ut ett felstavat lagnamn på alla matcher i nuvarande lag.</p>
+      <div class="field-row">
+        <div class="field" style="margin-bottom:0">
+          <label for="rename-from">Nuvarande namn</label>
+          <input type="text" id="rename-from" placeholder="T.ex. IrstaP13" autocomplete="off" />
+        </div>
+        <div class="field" style="margin-bottom:0">
+          <label for="rename-to">Nytt namn</label>
+          <input type="text" id="rename-to" placeholder="T.ex. Irsta P13" autocomplete="off" />
+        </div>
+      </div>
+      <div style="margin-top:.75rem"><button class="btn-primary" id="btn-rename-teamlabel" style="font-size:1rem;padding:.7rem 1.2rem">Byt namn</button></div>
+      <div id="rename-teamlabel-msg" style="font-size:.82rem;margin-top:.5rem;min-height:1.2em"></div>
+    </div>
+
+    <!-- Team overview -->
+    <div class="admin-section">
+      <div class="admin-section-title">Alla lag</div>
+      <div class="admin-team-list" id="admin-team-list"></div>
+    </div>
+
+    <div class="modal-actions"><button class="btn-secondary" id="btn-admin-close">Stäng</button></div>
+  </div>
+</div>
+
+<!-- ── CONFIRM ───────────────────────────────────────── -->
+<div id="confirm-backdrop">
+  <div class="confirm-box">
+    <p id="confirm-text"></p>
+    <div class="confirm-actions">
+      <button class="btn-secondary" id="confirm-cancel">Avbryt</button>
+      <button class="btn-danger" id="confirm-ok">Ta bort</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── FIREBASE ──────────────────────────────────────── -->
+<script type="module">
+  import { initializeApp }           from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail, createUserWithEmailAndPassword }
+                                     from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+  import { getFirestore, collection, doc, getDoc, getDocs, onSnapshot, addDoc, updateDoc, deleteDoc, setDoc, serverTimestamp }
+                                     from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey:"AIzaSyDtWJUooasHwd3PKnx_vHvbE4rzU5iGS40", authDomain:"laguttagning.firebaseapp.com",
+    projectId:"laguttagning", storageBucket:"laguttagning.firebasestorage.app",
+    messagingSenderId:"946370451262", appId:"1:946370451262:web:b2722c39a375a931183e6f"
+  };
+  const fbApp = initializeApp(firebaseConfig);
+  const auth  = getAuth(fbApp);
+  const db    = getFirestore(fbApp, 'laguttagning-dev');
+
+  const ADMIN_UID = 'QLpq1rXHz2gjiipKFCnxEKk5xWx2';
+
+  // ── Formations ────────────────────────────────────
+  const FORMATIONS = {
+    '7v7':  ['2-3-1','3-2-1','2-2-2','3-1-2'],
+    '9v9':  ['3-3-2','3-2-3','4-2-2','4-3-1','3-4-1','2-4-2','4-1-3','2-3-3','1-4-3','2-1-4-1','2-1-3-2'],
+    '11v11':['4-4-2','4-3-3','4-2-3-1','3-5-2','3-4-3','4-1-4-1','4-3-2-1','5-3-2','5-4-1','4-5-1','3-4-2-1','4-1-2-1-2','4-2-2-2','3-3-3-1']
+  };
+  const ROW_LABELS = {
+    def:{1:['CB'],2:['LCB','RCB'],3:['LB','CB','RB'],4:['LB','CB','CB','RB'],5:['LB','CB','CB','CB','RB']},
+    mid:{1:['CM'],2:['LCM','RCM'],3:['LM','CM','RM'],4:['LM','CM','CM','RM'],5:['LM','CM','CM','CM','RM']},
+    att:{1:['ST'],2:['LW','RW'],3:['LW','ST','RW'],4:['LW','CF','CF','RW']}
+  };
+  const WEEKDAY    = ['Sön','Mån','Tis','Ons','Tor','Fre','Lör'];
+  const DIFF_LABEL = { green:'Grön', blue:'Blå', red:'Röd', black:'Svart' };
+  const ABS_LABEL  = { injured:'Skadad', sick:'Sjuk', unavailable:'Förhinder' };
+
+  // ── App state ─────────────────────────────────────
+  let currentUser      = null;
+  let currentTeamId    = null;
+  let currentTeamName  = '';
+  let userTeams        = [];   // [{ id, name, format }]
+  let isAdmin          = false;
+  let players          = [];
+  let matches          = [];
+  let activeFilter     = 'all';
+  let editingPlayerId  = null;
+  let editingMatchId   = null;
+  let unsubPlayers     = null;
+  let unsubMatches     = null;
+  let unsubLineup      = null;
+  let unsubAllLineups  = null;
+  let unsubCustomFormations = null;
+  let currentLineupMatchId  = null;
+  let lineupFormation       = '';
+  let lineupSlots           = {};
+  let selectedSlot          = null;
+  let allLineups            = {};
+  let customFormations      = [];
+  let modalAbsences         = [];
+  let overviewWeekOffset    = 0;
+  let selectedHistoryMatchId= null;
+
+  // ── Team collection helper ────────────────────────
+  function teamCol(name) { return collection(db, 'teams', currentTeamId, name); }
+  function teamDoc(name, id) { return doc(db, 'teams', currentTeamId, name, id); }
+
+  // ── Helpers ───────────────────────────────────────
+  function showView(n) {
+    document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+    document.getElementById('view-'+n).classList.add('active');
+  }
+  function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function formatDate(ds) { if (!ds) return ''; return new Date(ds+'T12:00:00').toLocaleDateString('sv-SE',{day:'numeric',month:'short'}); }
+  function shortName(player) {
+    if (player.displayName) return player.displayName;
+    const name = player.name||''; if (!name) return '?';
+    const p = name.trim().split(/\s+/);
+    return p.length===1 ? p[0] : p[0]+' '+p[p.length-1][0]+'.';
+  }
+  function todayStr() { return new Date().toISOString().slice(0,10); }
+
+  // ── Absence helpers ───────────────────────────────
+  function absenceActiveOnDate(abs, dateStr) {
+    if (!abs.from || !dateStr) return false;
+    if (dateStr < abs.from) return false;
+    if (abs.to && dateStr > abs.to) return false;
+    return true;
+  }
+  function getAbsenceOnDate(player, dateStr) { return (player.absences||[]).find(a=>absenceActiveOnDate(a,dateStr))||null; }
+  function isPlayerUnavailableOnDate(player, dateStr) {
+    return !!getAbsenceOnDate(player, dateStr);
+  }
+  function absencePillHtml(abs, cls) {
+    const toLabel = abs.to ? ` t.o.m ${formatDate(abs.to)}` : ' (tills vidare)';
+    const note    = abs.note ? ` · ${abs.note}` : '';
+    return `<span class="absence-pill ${cls}">${ABS_LABEL[abs.type]||abs.type}${toLabel}${note}</span>`;
+  }
+
+  // ── Conflict helpers ──────────────────────────────
+  function isoWeekKey(ds) {
+    if (!ds) return null;
+    const d=new Date(ds+'T12:00:00'), isoDay=(d.getDay()+6)%7;
+    const thu=new Date(d); thu.setDate(d.getDate()-isoDay+3);
+    const ys=new Date(thu.getFullYear(),0,1), wk=Math.ceil(((thu-ys)/86400000+1)/7);
+    return `${thu.getFullYear()}-W${String(wk).padStart(2,'0')}`;
+  }
+  function getConflicts(pid) {
+    if (!currentLineupMatchId) return [];
+    const cur=matches.find(m=>m.id===currentLineupMatchId), curWeek=isoWeekKey(cur?.date);
+    return Object.entries(allLineups)
+      .filter(([mid])=>mid!==currentLineupMatchId)
+      .filter(([,lu])=>Object.values(lu.slots||{}).some(arr=>arr.includes(pid)))
+      .map(([mid])=>{ const m=matches.find(x=>x.id===mid); return {m, isTimeCrash:m&&cur&&m.date===cur.date}; })
+      .filter(({m})=>m&&isoWeekKey(m.date)===curWeek)
+      .map(({m,isTimeCrash})=>{
+        const d=m.date?new Date(m.date+'T12:00:00'):null;
+        return {label:`${d?WEEKDAY[d.getDay()]:'?'}${m.time?' '+m.time:''} ${m.opponent||''}`.trim(), isTimeCrash};
+      });
+  }
+
+  // ── Formation helpers ─────────────────────────────
+  function parseFormationRows(formStr) {
+    const nums=formStr.split('-').map(Number), n=nums.length;
+    const rows=[{rowIdx:0,count:1,labels:['GK']}];
+    nums.forEach((count,i)=>{
+      const type=i===0?'def':(i===n-1?'att':'mid');
+      const lmap=ROW_LABELS[type];
+      const labels=lmap[count]||Array.from({length:count},(_,j)=>type[0].toUpperCase()+(j+1));
+      rows.push({rowIdx:i+1,count,labels});
+    });
+    return rows;
+  }
+  function getSlotLabel(key) {
+    if (!lineupFormation) return key;
+    const m=key.match(/r(\d+)-(\d+)/); if (!m) return key;
+    const rows=parseFormationRows(lineupFormation), row=rows[parseInt(m[1])];
+    return row?(row.labels[parseInt(m[2])]||key):key;
+  }
+  function allFormationsForFormat(format) {
+    const custom=customFormations.filter(c=>c.format===format).map(c=>({f:c.formation,custom:true,id:c.id}));
+    return [...(FORMATIONS[format]||[]).map(f=>({f,custom:false})),...custom];
+  }
+  function validateCustomFormation(input, format) {
+    const f=input.trim();
+    if (!f||!/^\d+(-\d+)+$/.test(f)) return 'Skriv t.ex. 3-2-3';
+    const parts=f.split('-').map(Number);
+    const required={'7v7':6,'9v9':8,'11v11':10}[format];
+    const sum=parts.reduce((a,b)=>a+b,0);
+    if (sum!==required) return `Summerar till ${sum} — ska vara ${required} för ${format}`;
+    if (parts.length>5) return 'Max 5 rader';
+    if (parts.some(p=>p<1)) return 'Minst 1 per rad';
+    if (parts.some(p=>p>5)) return 'Max 5 per rad';
+    if (allFormationsForFormat(format).map(x=>x.f).includes(f)) return 'Finns redan';
+    return null;
+  }
+
+  // ── SLOT_TO_TAGS ──────────────────────────────────
+  const SLOT_TO_TAGS = {
+    'GK':['GK'],'CB':['CB'],'LCB':['CB'],'RCB':['CB'],
+    'LB':['LB','WB'],'RB':['RB','WB'],'WB':['WB','LB','RB'],
+    'DM':['DM','CM'],'CM':['CM','DM'],'LCM':['CM','LM'],'RCM':['CM','RM'],
+    'LM':['LM','CM'],'RM':['RM','CM'],'AM':['AM','CM'],
+    'LW':['LW'],'RW':['RW'],'ST':['ST','CF'],'CF':['CF','ST'],
+  };
+  function posMatchScore(player) {
+    if (!selectedSlot) return 1;
+    const label=getSlotLabel(selectedSlot), relevant=SLOT_TO_TAGS[label]||[];
+    if (!relevant.length) return 1;
+    return (player.positions||[]).some(t=>relevant.includes(t))?0:1;
+  }
+
+  // ── Tab nav ───────────────────────────────────────
+  document.querySelectorAll('.nav-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+      document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+      tab.classList.add('active');
+      document.getElementById('page-'+tab.dataset.page).classList.add('active');
+      // Reset filters to own team on tab switch
+      activeMatchTeamFilter    = [currentTeamName];
+      activeOverviewTeamFilter = [currentTeamName];
+      activeLineupTeamFilter   = currentTeamName;
+      if (tab.dataset.page==='lineup')   refreshMatchSelector();
+      if (tab.dataset.page==='matches')  renderMatches();
+      if (tab.dataset.page==='overview') { overviewWeekOffset=0; renderOverview(); }
+      if (tab.dataset.page==='history')  renderHistory();
+    });
+  });
+
+  document.getElementById('btn-switch-team').addEventListener('click', () => {
+    document.getElementById('settings-dropdown').classList.remove('open');
+    stopListeners();
+    currentTeamId=null; currentTeamName='';
+    currentLineupMatchId=null; lineupFormation=''; lineupSlots={}; selectedSlot=null;
+    players=[]; matches=[]; allLineups={}; customFormations=[];
+    overviewWeekOffset=0; selectedHistoryMatchId=null;
+    showTeamSelect(null);
+  });
+
+  // ── Auth ──────────────────────────────────────────
+  onAuthStateChanged(auth, async user => {
+    document.body.classList.add('auth-ready');
+    currentUser = user;
+    if (user) {
+      document.getElementById('user-email').textContent = user.email;
+      isAdmin = user.uid === ADMIN_UID;
+      document.getElementById('admin-section-wrapper').style.display = isAdmin ? 'block' : 'none';
+      await loadUserTeams();
+      await loadTheme();
+    } else {
+      showView('login');
+      stopListeners();
+      resetAppState();
+      applyTheme(true);
+    }
+  });
+
+  async function loadUserTeams() {
+    try {
+      const snap = await getDoc(doc(db,'userSettings',currentUser.uid));
+      const teamIds = snap.exists() ? (snap.data().teams||[]) : [];
+      const lastTeam = snap.exists() ? snap.data().lastTeam : null;
+
+      // Load team metadata in parallel
+      const teamSnaps = await Promise.all(teamIds.map(tid => getDoc(doc(db,'teams',tid))));
+      userTeams = teamSnaps.filter(s => s.exists()).map(s => ({ id:s.id, ...s.data() }));
+
+      if (userTeams.length === 0) {
+        showView('login');
+        const loginError = document.getElementById('login-error');
+        loginError.textContent = 'Ditt konto är inte kopplat till något lag. Kontakta administratören.';
+        loginError.classList.add('visible');
+        await signOut(auth);
+        return;
+      }
+
+      if (userTeams.length === 1) {
+        enterTeam(userTeams[0].id, userTeams[0].name);
+      } else {
+        // Always show team select when multiple teams exist
+        // lastTeam is used to highlight preferred but user still chooses
+        showTeamSelect(lastTeam);
+      }
+    } catch(err) {
+      console.error('loadUserTeams error:', err);
+    }
+  }
+
+  function showTeamSelect(lastTeam) {
+    const list = document.getElementById('team-list');
+    list.innerHTML = userTeams.map(t => `
+      <div class="team-item" data-id="${t.id}" style="${t.id===lastTeam?'border-color:var(--green)':''}">
+        <div>
+          <div class="team-item-name">${escHtml(t.name)}${t.id===lastTeam?' <span style="font-size:.72rem;color:var(--green)">(senaste)</span>':''}</div>
+          <div class="team-item-format">${t.birthYear?`${t.birthYear} · ${svffFormat(t.birthYear)}`:(t.format||'')}</div>
+        </div>
+        <span class="team-item-arrow">→</span>
+      </div>`).join('');
+    list.querySelectorAll('.team-item').forEach(item => {
+      item.addEventListener('click', () => {
+        const t = userTeams.find(x=>x.id===item.dataset.id);
+        if (t) enterTeam(t.id, t.name);
+      });
+    });
+    showView('team-select');
+  }
+
+  async function enterTeam(teamId, teamName) {
+    currentTeamId   = teamId;
+    currentTeamName = teamName;
+    document.getElementById('topbar-team-name').textContent = teamName;
+    document.getElementById('switch-team-wrapper').style.display = userTeams.length > 1 ? 'block' : 'none';
+
+    // Save lastTeam and email
+    try { await setDoc(doc(db,'userSettings',currentUser.uid),{lastTeam:teamId, email:currentUser.email},{merge:true}); } catch(e){}
+
+    showView('app');
+    // Reset lineup UI
+    document.getElementById('lineup-body').innerHTML = '<div class="lineup-placeholder">Välj en match ovan för att sätta laget.</div>';
+    document.getElementById('formation-group').style.display = 'none';
+    const pickerLabel = document.getElementById('match-picker-label');
+    if (pickerLabel) { pickerLabel.textContent = '— Välj match —'; pickerLabel.style.color = 'var(--muted)'; }
+    // Reset player filter
+    activeFilter = 'all';
+    activeMatchTeamFilter = [currentTeamName];
+    activeOverviewTeamFilter = [currentTeamName];
+    activeLineupTeamFilter = currentTeamName;
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b.dataset.filter === 'all'));
+    // Reset history
+    selectedHistoryMatchId = null;
+    const historyPitchCol = document.getElementById('history-pitch-col');
+    if (historyPitchCol) historyPitchCol.innerHTML = '<div class="lineup-placeholder">Välj en match för att se uppställningen.</div>';
+    // Close any open modals
+    document.getElementById('player-modal').classList.remove('open');
+    document.getElementById('match-modal').classList.remove('open');
+    // Default to lineup tab
+    document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+    document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+    document.querySelector('[data-page="lineup"]').classList.add('active');
+    document.getElementById('page-lineup').classList.add('active');
+
+    startPlayerListener();
+    startMatchListener();
+    startAllLineupsListener();
+    startCustomFormationsListener();
+    refreshMatchSelector();
+  }
+
+  function stopListeners() {
+    [unsubPlayers,unsubMatches,unsubLineup,unsubAllLineups,unsubCustomFormations].forEach(f=>f&&f());
+    unsubPlayers=unsubMatches=unsubLineup=unsubAllLineups=unsubCustomFormations=null;
+  }
+
+  function resetAppState() {
+    players=[]; matches=[]; allLineups={}; customFormations=[];
+    overviewWeekOffset=0; selectedHistoryMatchId=null;
+    currentTeamId=null; currentTeamName=''; userTeams=[];
+    currentLineupMatchId=null; lineupFormation=''; lineupSlots={}; selectedSlot=null;
+  }
+
+  // Login
+  const loginError = document.getElementById('login-error');
+  document.getElementById('btn-login').addEventListener('click', async () => {
+    loginError.classList.remove('visible');
+    const email=document.getElementById('email').value.trim(), pass=document.getElementById('password').value;
+    if (!email||!pass) { loginError.textContent='Fyll i e-post och lösenord.'; loginError.classList.add('visible'); return; }
+    const btn=document.getElementById('btn-login'); btn.disabled=true; btn.textContent='LOGGAR IN...';
+    try { await signInWithEmailAndPassword(auth,email,pass); }
+    catch(err) {
+      const msgs={'auth/invalid-credential':'Fel e-post eller lösenord.','auth/user-not-found':'Ingen användare.','auth/wrong-password':'Fel lösenord.','auth/too-many-requests':'För många försök.','auth/invalid-email':'Ogiltig e-post.'};
+      loginError.textContent=msgs[err.code]||'Inloggning misslyckades.'; loginError.classList.add('visible');
+    } finally { btn.disabled=false; btn.textContent='LOGGA IN'; }
+  });
+  document.getElementById('password').addEventListener('keydown', e=>{ if(e.key==='Enter') document.getElementById('btn-login').click(); });
+
+  // Logout
+  document.getElementById('btn-logout').addEventListener('click', () => {
+    showConfirm('Vill du logga ut?','Logga ut','btn-danger', ()=>signOut(auth));
+  });
+
+  // ── PLAYERS ───────────────────────────────────────
+  function startPlayerListener() {
+    if (unsubPlayers) { unsubPlayers(); unsubPlayers=null; }
+    unsubPlayers = onSnapshot(teamCol('players'), snap => {
+      players = snap.docs.map(d => {
+        const p={id:d.id,...d.data()};
+        const today=todayStr();
+        const openEnded=(p.absences||[]).find(a=>!a.to&&absenceActiveOnDate(a,today));
+        p.status = openEnded ? openEnded.type : 'available';
+        return p;
+      });
+      players.sort((a,b)=>(a.name||'').localeCompare(b.name||'','sv'));
+      renderPlayers();
+      if (currentLineupMatchId&&lineupFormation) renderPlayerPool();
+      if (document.getElementById('page-overview')?.classList.contains('active')) renderOverview();
+    });
+  }
+
+  const statusLabel={available:'Tillgänglig',injured:'Skadad',sick:'Sjuk',unavailable:'Förhinder'};
+  const statusClass={available:'status-available',injured:'status-injured',sick:'status-sick',unavailable:'status-unavailable'};
+
+  function renderPlayers() {
+    const today=todayStr();
+    let filtered=players;
+    if (activeFilter!=='all') {
+      filtered=players.filter(p=>{
+        if (activeFilter==='available') return !isPlayerUnavailableOnDate(p,today);
+        if (p.status===activeFilter) return true;
+        return getAbsenceOnDate(p,today)?.type===activeFilter;
+      });
+    }
+    document.getElementById('player-count').textContent=`(${players.length})`;
+    const grid=document.getElementById('player-grid');
+    if (filtered.length===0) { grid.innerHTML=`<div class="empty-state"><p>${activeFilter==='all'?'Inga spelare ännu':'Inga spelare med den statusen'}</p><p>Lägg till spelare med knappen ovan.</p></div>`; return; }
+    grid.innerHTML=filtered.map(p=>{
+      const todayAbs=getAbsenceOnDate(p,today), dispStatus=todayAbs?todayAbs.type:(p.status||'available');
+      const activeAbs=(p.absences||[]).filter(a=>absenceActiveOnDate(a,today));
+      const upcomingAbs=(p.absences||[]).filter(a=>a.from>today).slice(0,2);
+      const pillsHtml=[
+        ...activeAbs.map(a=>absencePillHtml(a,'absence-pill-active')),
+        ...upcomingAbs.map(a=>{
+          const fl=formatDate(a.from), tl=a.to?` – ${formatDate(a.to)}`:'', n=a.note?` · ${a.note}`:'';
+          return `<span class="absence-pill absence-pill-upcoming">Från ${fl}${tl}: ${ABS_LABEL[a.type]||a.type}${n}</span>`;
+        })
+      ].join('');
+      return `<div class="player-card" data-id="${p.id}">
+        <div class="player-card-name">${escHtml(p.name||'—')}${p.displayName?` <span style="color:var(--muted);font-weight:400;font-size:.85rem">(${escHtml(p.displayName)})</span>`:''}</div>
+        <div class="player-tags">${(p.positions||[]).map(pos=>`<span class="tag">${pos}</span>`).join('')}</div>
+        <span class="status-badge ${statusClass[dispStatus]||'status-available'}">${statusLabel[dispStatus]||'Tillgänglig'}</span>
+        ${pillsHtml?`<div class="absence-pills">${pillsHtml}</div>`:''}
+      </div>`;
+    }).join('');
+    grid.querySelectorAll('.player-card').forEach(c=>c.addEventListener('click',()=>openPlayerEdit(c.dataset.id)));
+  }
+
+  document.querySelectorAll('.filter-btn').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active'); activeFilter=btn.dataset.filter; renderPlayers();
+    });
+  });
+
+  // Player modal
+  const playerModal=document.getElementById('player-modal');
+  const tagOptions=document.querySelectorAll('.tag-option');
+
+  function renderModalAbsences() {
+    const container=document.getElementById('modal-absence-rows'); if (!container) return;
+    container.innerHTML=modalAbsences.map((a,i)=>`
+      <div class="absence-row" data-idx="${i}">
+        <select class="abs-type">
+          <option value="injured"${a.type==='injured'?' selected':''}>Skadad</option>
+          <option value="sick"${a.type==='sick'?' selected':''}>Sjuk</option>
+          <option value="unavailable"${a.type==='unavailable'?' selected':''}>Förhinder</option>
+        </select>
+        <input type="date" class="abs-from" value="${escHtml(a.from||'')}" />
+        <input type="date" class="abs-to"   value="${escHtml(a.to||'')}" />
+        <input type="text" class="abs-note" value="${escHtml(a.note||'')}" placeholder="Notering (valfritt)" />
+        <button class="abs-rm" data-idx="${i}">×</button>
+      </div>`).join('');
+    container.querySelectorAll('.abs-rm').forEach(btn=>btn.addEventListener('click',()=>{modalAbsences.splice(parseInt(btn.dataset.idx),1);renderModalAbsences();}));
+    container.querySelectorAll('.absence-row').forEach(row=>{
+      const i=parseInt(row.dataset.idx);
+      row.querySelector('.abs-type').addEventListener('change',e=>{modalAbsences[i].type=e.target.value;});
+      row.querySelector('.abs-from').addEventListener('change',e=>{modalAbsences[i].from=e.target.value;});
+      row.querySelector('.abs-to').addEventListener('change',e=>{modalAbsences[i].to=e.target.value;});
+      row.querySelector('.abs-note').addEventListener('input',e=>{modalAbsences[i].note=e.target.value;});
+    });
+  }
+
+  document.getElementById('btn-add-absence').addEventListener('click',()=>{modalAbsences.push({type:'unavailable',from:'',to:'',note:''});renderModalAbsences();});
+
+  document.getElementById('btn-add-player').addEventListener('click',()=>{
+    editingPlayerId=null; modalAbsences=[];
+    document.getElementById('player-modal-title').textContent='LÄGG TILL SPELARE';
+    document.getElementById('player-name').value='';
+    document.getElementById('player-display-name').value='';
+    tagOptions.forEach(t=>t.classList.remove('selected'));
+    document.getElementById('btn-delete-player').style.display='none';
+    renderModalAbsences(); playerModal.classList.add('open'); document.getElementById('player-name').focus();
+  });
+
+  function openPlayerEdit(id) {
+    const p=players.find(pl=>pl.id===id); if (!p) return;
+    editingPlayerId=id; modalAbsences=JSON.parse(JSON.stringify(p.absences||[]));
+    document.getElementById('player-modal-title').textContent='REDIGERA SPELARE';
+    document.getElementById('player-name').value=p.name||'';
+    document.getElementById('player-display-name').value=p.displayName||'';
+    tagOptions.forEach(t=>t.classList.toggle('selected',(p.positions||[]).includes(t.dataset.pos)));
+    document.getElementById('btn-delete-player').style.display='inline-flex';
+    renderModalAbsences(); playerModal.classList.add('open'); document.getElementById('player-name').focus();
+  }
+
+  function closePlayerModal() { playerModal.classList.remove('open'); }
+  document.getElementById('btn-player-cancel').addEventListener('click',closePlayerModal);
+  playerModal.addEventListener('click',e=>{if(e.target===playerModal)closePlayerModal();});
+  tagOptions.forEach(t=>t.addEventListener('click',()=>t.classList.toggle('selected')));
+
+  document.getElementById('btn-player-save').addEventListener('click', async ()=>{
+    const name=document.getElementById('player-name').value.trim(); if (!name) {document.getElementById('player-name').focus();return;}
+    const positions=[...tagOptions].filter(t=>t.classList.contains('selected')).map(t=>t.dataset.pos);
+    const cleanAbsences=modalAbsences.filter(a=>a.from).map(a=>({type:a.type||'unavailable',from:a.from,to:a.to||'',note:a.note||''}));
+    const openEnded=cleanAbsences.find(a=>!a.to&&absenceActiveOnDate(a,todayStr()));
+    const status=openEnded?openEnded.type:'available';
+    const data={name,displayName:document.getElementById('player-display-name').value.trim()||'',status,positions,absences:cleanAbsences,updatedBy:currentUser?.email||'okänd',updatedAt:serverTimestamp()};
+    const btn=document.getElementById('btn-player-save'); btn.disabled=true;
+    try {
+      if (editingPlayerId) await updateDoc(teamDoc('players',editingPlayerId),data);
+      else                 await addDoc(teamCol('players'),data);
+      closePlayerModal();
+    } catch(err){console.error(err);alert('Något gick fel.');}
+    finally{btn.disabled=false;}
+  });
+
+  let activeMatchTeamFilter    = []; // empty = all
+  let activeOverviewTeamFilter = []; // empty = all
+  let activeLineupTeamFilter   = ''; // single value, empty = all
+
+  function getTeamLabels() {
+    const labels = [...new Set(matches.map(m=>m.teamlabel).filter(Boolean))].sort();
+    return labels;
+  }
+
+  function populateTeamLabelSelect(selectId, currentValue) {
+    const sel = document.getElementById(selectId); if (!sel) return;
+    const labels = getTeamLabels();
+    const currentTeam = userTeams.find(t=>t.id===currentTeamId);
+    const ownName = currentTeam?.name || 'Eget lag';
+    const allOptions = [ownName, ...labels.filter(l=>l!==ownName)];
+    sel.innerHTML = allOptions.map(l=>`<option value="${escHtml(l)}"${l===currentValue?' selected':''}>${escHtml(l)}</option>`).join('')
+      + '<option value="__new__">＋ Lägg till annat lag...</option>';
+    sel.onchange = () => {
+      if (sel.value === '__new__') {
+        // Insert a temporary text input next to the select
+        sel.value = currentValue || ownName;
+        const existing = document.getElementById(`${selectId}-new-input`);
+        if (existing) { existing.focus(); return; }
+        const wrapper = sel.parentElement;
+        const inp = document.createElement('input');
+        inp.type = 'text'; inp.placeholder = 'T.ex. Irsta P11'; inp.id = `${selectId}-new-input`;        inp.style.cssText = 'margin-top:.4rem;background:var(--bg);border:1px solid var(--green);border-radius:8px;color:var(--text);font-family:var(--font-body);font-size:.95rem;padding:.6rem 1rem;outline:none;width:100%';
+        wrapper.appendChild(inp);
+        inp.focus();
+        inp.onkeydown = e => {
+          if (e.key === 'Enter' && inp.value.trim()) {
+            const newLabel = inp.value.trim();
+            const opt = document.createElement('option');
+            opt.value = newLabel; opt.textContent = newLabel; opt.selected = true;
+            sel.insertBefore(opt, sel.lastElementChild);
+            sel.value = newLabel;
+            inp.remove();
+          }
+          if (e.key === 'Escape') inp.remove();
+        };
+      }
+    };
+  }
+
+  // ── MATCHES ───────────────────────────────────────
+  function startMatchListener() {
+    if (unsubMatches) { unsubMatches(); unsubMatches=null; }
+    unsubMatches=onSnapshot(teamCol('matches'),snap=>{
+      matches=snap.docs.map(d=>({id:d.id,...d.data()}));
+      matches.sort((a,b)=>(`${a.date||''}T${a.time||'00:00'}`).localeCompare(`${b.date||''}T${b.time||'00:00'}`));
+      renderMatches(); refreshMatchSelector();
+      if (document.getElementById('page-overview')?.classList.contains('active')) renderOverview();
+    });
+  }
+
+  function renderMatches() {
+    document.getElementById('match-count').textContent=`(${matches.length})`;
+    const list=document.getElementById('match-list');
+
+    // Build multi-select filter bar
+    const labels = getTeamLabels();
+    const filterBar = document.getElementById('match-teamlabel-filter');
+    if (labels.length > 0) {
+      filterBar.style.display = 'flex';
+      filterBar.innerHTML = `<button class="filter-btn${activeMatchTeamFilter.length===0?' active':''}" data-label="__all__">Alla</button>`
+        + labels.map(l=>`<button class="filter-btn${activeMatchTeamFilter.includes(l)?' active':''}" data-label="${escHtml(l)}">${escHtml(l)}</button>`).join('');
+      filterBar.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          if (btn.dataset.label === '__all__') {
+            activeMatchTeamFilter = [];
+          } else {
+            const l = btn.dataset.label;
+            if (activeMatchTeamFilter.includes(l)) activeMatchTeamFilter = activeMatchTeamFilter.filter(x=>x!==l);
+            else activeMatchTeamFilter = [...activeMatchTeamFilter, l];
+          }
+          renderMatches();
+        });
+      });
+    } else {
+      filterBar.style.display = 'none';
+    }
+
+    // Filter matches
+    const filtered = activeMatchTeamFilter.length === 0
+      ? matches
+      : matches.filter(m => activeMatchTeamFilter.includes(m.teamlabel||''));
+
+    if (filtered.length===0){list.innerHTML=`<div class="empty-state" style="grid-column:unset"><p>Inga matcher</p><p>${activeMatchTeamFilter.length?'Inga matcher för valda lag.':'Lägg till en match med knappen ovan.'}</p></div>`;return;}
+    const groups={};
+    filtered.forEach(m=>{const k=m.date||'okänt';if(!groups[k])groups[k]=[];groups[k].push(m);});
+    let html='';
+    Object.keys(groups).sort().forEach(dk=>{
+      const d=dk!=='okänt'?new Date(dk+'T12:00:00'):null;
+      const weekNum=d?isoWeekKey(dk).split('-W')[1]:null;
+      const weekLabel=weekNum?` · Vecka ${weekNum}`:'';
+      html+=`<div class="date-group-header">${d?`${WEEKDAY[d.getDay()]} ${d.toLocaleDateString('sv-SE',{day:'numeric',month:'long',year:'numeric'})}${weekLabel}`:'Okänt datum'}</div>`;
+      groups[dk].forEach(m=>{
+        const currentTeam=userTeams.find(t=>t.id===currentTeamId);
+        const ownName=currentTeam?.name||'';
+        const isOwn=!m.teamlabel||m.teamlabel===ownName;
+        html+=`<div class="match-card${isOwn?'':' match-card-other'}" data-id="${m.id}"><div class="match-diff-bar diff-${m.difficulty||'green'}"></div>
+          <div class="match-card-body">
+            <div class="match-time-block"><div class="match-time">${escHtml(m.time||'??:??')}</div></div>
+            <div class="match-main">
+              <div class="match-opponent">${escHtml(m.opponent||'—')}</div>
+              ${m.location?`<div class="match-location">${escHtml(m.location)}</div>`:''}
+              ${m.serie?`<div class="match-location" style="color:var(--muted)">${escHtml(m.serie)}</div>`:''}
+            </div>
+            <div class="match-badges">
+              ${m.teamlabel?`<span class="badge" style="color:var(--info);border-color:rgba(92,158,224,.3);background:rgba(92,158,224,.08)">${escHtml(m.teamlabel)}</span>`:''}
+              <span class="badge badge-format">${escHtml(m.format||'')}</span>
+              ${m.homeway?`<span class="badge" style="color:var(--muted);border-color:var(--border)">${m.homeway==='home'?'Hemma':'Borta'}</span>`:''}
+              <span class="badge badge-diff-${m.difficulty||'green'}">${DIFF_LABEL[m.difficulty]||''}</span>
+            </div>
+          </div></div>`;
+      });
+    });
+    list.innerHTML=html;
+    list.querySelectorAll('.match-card').forEach(c=>c.addEventListener('click',()=>openMatchEdit(c.dataset.id)));
+  }
+
+  const matchModal=document.getElementById('match-modal');
+  document.getElementById('btn-add-match').addEventListener('click',()=>{
+    editingMatchId=null;
+    document.getElementById('match-modal-title').textContent='LÄGG TILL MATCH';
+    ['match-date','match-time','match-opponent','match-location','match-serie'].forEach(id=>document.getElementById(id).value='');
+    const currentTeam=userTeams.find(t=>t.id===currentTeamId);
+    const defaultFormat=currentTeam?.birthYear?svffFormat(currentTeam.birthYear):(currentTeam?.format||'9v9');
+    document.getElementById('match-format').value=defaultFormat;
+    document.getElementById('match-difficulty').value='green';
+    document.getElementById('match-homeway').value='';
+    populateTeamLabelSelect('match-teamlabel', currentTeam?.name||'');
+    document.getElementById('btn-delete-match').style.display='none';
+    matchModal.classList.add('open'); document.getElementById('match-opponent').focus();
+  });
+
+  function openMatchEdit(id) {
+    const m=matches.find(x=>x.id===id); if (!m) return;
+    editingMatchId=id;
+    document.getElementById('match-modal-title').textContent='REDIGERA MATCH';
+    document.getElementById('match-date').value=m.date||'';
+    document.getElementById('match-time').value=m.time||'';
+    document.getElementById('match-opponent').value=m.opponent||'';
+    document.getElementById('match-location').value=m.location||'';
+    document.getElementById('match-format').value=m.format||'9v9';
+    document.getElementById('match-difficulty').value=m.difficulty||'green';
+    document.getElementById('match-homeway').value=m.homeway||'';
+    document.getElementById('match-serie').value=m.serie||'';
+    populateTeamLabelSelect('match-teamlabel', m.teamlabel||'');
+    document.getElementById('btn-delete-match').style.display='inline-flex';
+    matchModal.classList.add('open'); document.getElementById('match-opponent').focus();
+  }
+
+  function closeMatchModal(){matchModal.classList.remove('open');}
+  document.getElementById('btn-match-cancel').addEventListener('click',closeMatchModal);
+  matchModal.addEventListener('click',e=>{if(e.target===matchModal)closeMatchModal();});
+
+  document.getElementById('btn-match-save').addEventListener('click', async()=>{
+    const date=document.getElementById('match-date').value; if (!date){document.getElementById('match-date').focus();return;}
+    const teamlabel=document.getElementById('match-teamlabel').value;
+    if (!teamlabel||teamlabel==='__new__'){alert('Välj ett lag.');return;}
+    const data={date,time:document.getElementById('match-time').value||'',opponent:document.getElementById('match-opponent').value.trim()||'',location:document.getElementById('match-location').value.trim()||'',format:document.getElementById('match-format').value,difficulty:document.getElementById('match-difficulty').value,homeway:document.getElementById('match-homeway').value||'',serie:document.getElementById('match-serie').value.trim()||'',teamlabel,updatedBy:currentUser?.email||'okänd',updatedAt:serverTimestamp()};
+    const btn=document.getElementById('btn-match-save'); btn.disabled=true;
+    try{if(editingMatchId)await updateDoc(teamDoc('matches',editingMatchId),data);else await addDoc(teamCol('matches'),data);closeMatchModal();}
+    catch(err){console.error(err);alert('Något gick fel.');}finally{btn.disabled=false;}
+  });
+
+  document.getElementById('btn-import-fogis').addEventListener('click', () => {
+    const saved = localStorage.getItem(`fogis-team-${currentTeamId}`);
+    if (saved) document.getElementById('fogis-team-name').value = saved;
+    const currentTeam = userTeams.find(t=>t.id===currentTeamId);
+    populateTeamLabelSelect('fogis-teamlabel', currentTeam?.name||'');
+    document.getElementById('fogis-text').value = '';
+    document.getElementById('fogis-preview').innerHTML = '';
+    document.getElementById('btn-fogis-import').style.display = 'none';
+    document.getElementById('fogis-modal').classList.add('open');
+  });
+
+  document.getElementById('btn-fogis-cancel').addEventListener('click', () => document.getElementById('fogis-modal').classList.remove('open'));
+  document.getElementById('fogis-modal').addEventListener('click', e => { if (e.target === document.getElementById('fogis-modal')) document.getElementById('fogis-modal').classList.remove('open'); });
+
+  function parseFogisText(rawText, myTeamName) {
+    const colourMap = { 'svart':'black', 'röd':'red', 'blå':'blue', 'grön':'green' };
+
+    // Strip header row if present
+    const headerEnd = rawText.search(/(?:Pojk|Flicka|Dam|Herr)\s+\d/i);
+    const text = headerEnd > 0 ? rawText.slice(headerEnd) : rawText;
+
+    // Split into blocks — each starts with the serie header
+    const parts = text.split(/(?=(?:(?:Pojk|Flicka|Dam|Herr)\s+\d|P\d{2}-\d{2}))/i).filter(s => s.trim());
+
+    const results = [];
+    const currentTeam = userTeams.find(t => t.id === currentTeamId);
+    const format = currentTeam?.birthYear ? svffFormat(currentTeam.birthYear) : (currentTeam?.format || '9v9');
+
+    for (const block of parts) {
+      // 1. Extract serie — everything up to the start of the match-id (7+ consecutive digits)
+      const serieMatch = block.match(/^((?:(?:Pojk|Flicka|Dam|Herr)|P\d{2}-\d{2}).*?)(?=\d{7})/i);
+      if (!serieMatch) continue;
+      const serie = serieMatch[1].trim().replace(/\.$/, '');
+
+      // 2. Extract difficulty from serie — use space/start/end as boundaries since \b doesn't handle å/ä/ö
+      let difficulty = 'green';
+      const serieLower = serie.toLowerCase();
+      for (const [word, val] of Object.entries(colourMap)) {
+        if (new RegExp(`(^|\\s)${word}(\\s|$)`).test(serieLower)) { difficulty = val; break; }
+      }
+
+      // 3. Extract match-id (fogisId) and strip it + other leading non-letter chars
+      const afterSerieRaw = block.slice(serieMatch[0].length);
+      const fogisIdMatch  = afterSerieRaw.match(/^([\d\s]+)/);
+      const fogisId       = fogisIdMatch ? fogisIdMatch[1].replace(/\s+/g,'') : '';
+      const afterSerie    = afterSerieRaw.replace(/^[^A-ZÅÄÖa-zåäö]+/, '');
+
+      // 4. Find date (YYYY-MM-DD) — this is our anchor
+      const dateMatch = afterSerie.match(/(\d{4}-\d{2}-\d{2})/);
+      if (!dateMatch) continue;
+      const date = dateMatch[1];
+      const dateIdx = afterSerie.indexOf(date);
+
+      // 5. Teams text = everything between stripped numbers and date
+      const teamsText = afterSerie.slice(0, dateIdx);
+
+      // 6. Find my team name in teams text (case-insensitive)
+      const myLower  = myTeamName.toLowerCase();
+      const texLower = teamsText.toLowerCase();
+      const myIdx    = texLower.indexOf(myLower);
+      let opponent = '', homeway = '';
+      if (myIdx === 0) {
+        homeway  = 'home';
+        opponent = teamsText.slice(myTeamName.length);
+      } else if (myIdx > 0) {
+        homeway  = 'away';
+        opponent = teamsText.slice(0, myIdx);
+      } else {
+        continue; // Can't identify teams — skip
+      }
+
+      // 7. Extract time
+      const afterDate = afterSerie.slice(dateIdx + date.length);
+      const timeMatch = afterDate.match(/^\s*(\d{2}:\d{2})/);
+      const time = timeMatch ? timeMatch[1] : '';
+
+      // 8. Extract location — text after time, before digits or "Google"
+      let location = '';
+      if (time) {
+        const afterTime = afterDate.slice(afterDate.indexOf(time) + time.length);
+        const locMatch  = afterTime.match(/^([^0-9G\nK]+?)(?=\d|Google|Krockar|$)/);
+        if (locMatch) location = locMatch[1].trim();
+      }
+
+      results.push({ fogisId, date, time, opponent: opponent.trim(), location, homeway, difficulty, serie, format });
+    }
+    return results;
+  }
+
+  let fogisMatches = [];
+
+  document.getElementById('btn-fogis-parse').addEventListener('click', () => {
+    const myTeam = document.getElementById('fogis-team-name').value.trim();
+    const text   = document.getElementById('fogis-text').value.trim();
+    const preview = document.getElementById('fogis-preview');
+
+    if (!myTeam) { preview.innerHTML = '<div class="fogis-parse-error">Ange lagets namn i Fogis.</div>'; return; }
+    if (!text)   { preview.innerHTML = '<div class="fogis-parse-error">Klistra in text från Fogis.</div>'; return; }
+
+    // Save team name for next time
+    localStorage.setItem(`fogis-team-${currentTeamId}`, myTeam);
+
+    fogisMatches = parseFogisText(text, myTeam);
+
+    if (!fogisMatches.length) {
+      preview.innerHTML = '<div class="fogis-parse-error">Inga matcher hittades. Kontrollera att du klistrat in rätt text och att lagnamnet stämmer.</div>';
+      document.getElementById('btn-fogis-import').style.display = 'none';
+      return;
+    }
+
+    preview.innerHTML = `<div style="font-size:.82rem;color:var(--muted);margin-bottom:.5rem">${fogisMatches.length} matcher hittade — kontrollera och justera vid behov</div>
+      <div style="overflow-x:auto">
+      <table class="fogis-preview-table" id="fogis-editable-table">
+        <thead><tr><th>Datum</th><th>Tid</th><th>Motståndare</th><th>H/B</th><th>Plats</th><th>Svårighet</th><th>Serie</th></tr></thead>
+        <tbody>${fogisMatches.map((m,i) => {
+          const d = new Date(m.date+'T12:00:00');
+          const dateStr = `${WEEKDAY[d.getDay()]} ${d.toLocaleDateString('sv-SE',{day:'numeric',month:'short'})}`;
+          const inputStyle = 'background:var(--bg);border:1px solid var(--border);border-radius:4px;color:var(--text);font-family:var(--font-body);font-size:.8rem;padding:.2rem .4rem;outline:none;width:100%';
+          return `<tr data-idx="${i}">
+            <td><span style="font-size:.78rem">${dateStr}</span></td>
+            <td><input class="fp-time" value="${escHtml(m.time||'')}" placeholder="HH:MM" style="${inputStyle};width:60px" /></td>
+            <td><input class="fp-opponent" value="${escHtml(m.opponent)}" style="${inputStyle};min-width:140px" /></td>
+            <td><select class="fp-homeway" style="${inputStyle};width:80px">
+              <option value="home"${m.homeway==='home'?' selected':''}>Hemma</option>
+              <option value="away"${m.homeway==='away'?' selected':''}>Borta</option>
+            </select></td>
+            <td><input class="fp-location" value="${escHtml(m.location||'')}" style="${inputStyle};min-width:120px" /></td>
+            <td><select class="fp-difficulty" style="${inputStyle};width:80px">
+              <option value="green"${m.difficulty==='green'?' selected':''}>🟢 Grön</option>
+              <option value="blue"${m.difficulty==='blue'?' selected':''}>🔵 Blå</option>
+              <option value="red"${m.difficulty==='red'?' selected':''}>🔴 Röd</option>
+              <option value="black"${m.difficulty==='black'?' selected':''}>⚫ Svart</option>
+            </select></td>
+            <td style="font-size:.72rem;color:var(--muted)">${escHtml(m.serie)}</td>
+          </tr>`;
+        }).join('')}</tbody>
+      </table></div>`;
+    document.getElementById('btn-fogis-import').style.display = 'inline-flex';
+  });
+
+  document.getElementById('btn-fogis-import').addEventListener('click', async () => {
+    const btn = document.getElementById('btn-fogis-import');
+    btn.disabled = true; btn.textContent = 'IMPORTERAR...';
+    try {
+      let created = 0, updated = 0;
+      const inlineInput = document.getElementById('fogis-teamlabel-new-input');
+      const teamlabel = inlineInput?.value.trim() || document.getElementById('fogis-teamlabel').value;
+
+      // Read edited values from preview table
+      const table = document.getElementById('fogis-editable-table');
+      if (table) {
+        table.querySelectorAll('tbody tr').forEach(row => {
+          const i = parseInt(row.dataset.idx);
+          if (isNaN(i) || !fogisMatches[i]) return;
+          fogisMatches[i].time     = row.querySelector('.fp-time')?.value.trim()     || '';
+          fogisMatches[i].opponent = row.querySelector('.fp-opponent')?.value.trim() || '';
+          fogisMatches[i].homeway  = row.querySelector('.fp-homeway')?.value         || 'home';
+          fogisMatches[i].location = row.querySelector('.fp-location')?.value.trim() || '';
+          fogisMatches[i].difficulty = row.querySelector('.fp-difficulty')?.value    || 'green';
+        });
+      }
+      for (const m of fogisMatches) {
+        const data = { ...m, teamlabel, updatedBy: currentUser?.email||'okänd', updatedAt: serverTimestamp() };
+        if (m.fogisId) {
+          // Check if match with this fogisId already exists
+          const existing = matches.find(x => x.fogisId === m.fogisId);
+          if (existing) {
+            await updateDoc(teamDoc('matches', existing.id), data);
+            updated++;
+          } else {
+            await addDoc(teamCol('matches'), data);
+            created++;
+          }
+        } else {
+          await addDoc(teamCol('matches'), data);
+          created++;
+        }
+      }
+      document.getElementById('fogis-modal').classList.remove('open');
+      fogisMatches = [];
+      const msg = [created && `${created} skapade`, updated && `${updated} uppdaterade`].filter(Boolean).join(', ');
+      setTimeout(() => alert(`Import klar: ${msg}.`), 300);
+    } catch(err) {
+      console.error(err); alert('Något gick fel vid import: '+err.message);
+    } finally {
+      btn.disabled = false; btn.textContent = 'IMPORTERA MATCHER';
+    }
+  });
+  let pendingDelete=null, pendingConfirmCb=null;
+  const confirmBackdrop=document.getElementById('confirm-backdrop');
+  const confirmOkBtn=document.getElementById('confirm-ok');
+
+  function showConfirm(text,okLabel,okClass,callback) {
+    document.getElementById('confirm-text').textContent=text;
+    confirmOkBtn.textContent=okLabel; confirmOkBtn.className=okClass;
+    pendingConfirmCb=callback; confirmBackdrop.classList.add('open');
+  }
+  function openConfirm(type,id,name) {
+    pendingDelete={type,id};
+    showConfirm(`Vill du ta bort ${name}? Det går inte att ångra.`,'Ta bort','btn-danger', async()=>{
+      const{type,id}=pendingDelete;
+      await deleteDoc(teamDoc(type==='player'?'players':'matches',id));
+      if(type==='player')closePlayerModal();else closeMatchModal();
+      pendingDelete=null;
+    });
+  }
+  document.getElementById('btn-delete-player').addEventListener('click',()=>{const p=players.find(pl=>pl.id===editingPlayerId);if(p)openConfirm('player',editingPlayerId,p.name);});
+  document.getElementById('btn-delete-match').addEventListener('click',()=>{const m=matches.find(x=>x.id===editingMatchId);if(m)openConfirm('match',editingMatchId,m.opponent||'matchen');});
+  document.getElementById('confirm-cancel').addEventListener('click',()=>{confirmBackdrop.classList.remove('open');pendingDelete=null;pendingConfirmCb=null;});
+  confirmOkBtn.addEventListener('click', async()=>{
+    if(!pendingConfirmCb)return;
+    confirmOkBtn.disabled=true;
+    try{await pendingConfirmCb();confirmBackdrop.classList.remove('open');}
+    catch(err){console.error(err);alert('Något gick fel.');}
+    finally{confirmOkBtn.disabled=false;pendingConfirmCb=null;}
+  });
+
+  // ── ALL LINEUPS ───────────────────────────────────
+  function startAllLineupsListener() {
+    if (unsubAllLineups){unsubAllLineups();unsubAllLineups=null;}
+    unsubAllLineups=onSnapshot(teamCol('lineups'),snap=>{
+      allLineups={};
+      snap.docs.forEach(d=>{allLineups[d.id]=d.data();});
+      if(currentLineupMatchId&&lineupFormation)renderPlayerPool();
+      if(document.getElementById('page-overview')?.classList.contains('active'))renderOverview();
+      refreshMatchSelector();
+    });
+  }
+
+  // ── CUSTOM FORMATIONS ─────────────────────────────
+  function startCustomFormationsListener() {
+    if (unsubCustomFormations){unsubCustomFormations();unsubCustomFormations=null;}
+    unsubCustomFormations=onSnapshot(teamCol('customFormations'),snap=>{
+      customFormations=snap.docs.map(d=>({id:d.id,...d.data()}));
+      const match=currentMatch();
+      if(match)renderFormationPicker(match.format||'9v9');
+    });
+  }
+
+  // ── LINEUP ────────────────────────────────────────
+  function refreshMatchSelector() {
+    const trigger=document.getElementById('match-picker-trigger');
+    const dropdown=document.getElementById('match-picker-dropdown');
+    const label=document.getElementById('match-picker-label');
+    if(!trigger)return;
+
+    // Build filter bar
+    const filterBar=document.getElementById('lineup-teamlabel-filter');
+    const labels=getTeamLabels();
+    if(labels.length>0){
+      filterBar.style.display='flex';
+      filterBar.innerHTML=`<button class="filter-btn${!activeLineupTeamFilter?' active':''}" data-label="">Alla</button>`
+        +labels.map(l=>`<button class="filter-btn${activeLineupTeamFilter===l?' active':''}" data-label="${escHtml(l)}">${escHtml(l)}</button>`).join('');
+      filterBar.querySelectorAll('.filter-btn').forEach(btn=>{
+        btn.addEventListener('click',()=>{
+          activeLineupTeamFilter=btn.dataset.label;
+          refreshMatchSelector();
+        });
+      });
+    } else {
+      filterBar.style.display='none';
+    }
+
+    const today=todayStr();
+    let upcoming=matches.filter(m=>m.date>=today);
+    if(activeLineupTeamFilter) upcoming=upcoming.filter(m=>(m.teamlabel||'')===activeLineupTeamFilter);
+    if(!upcoming.length){
+      dropdown.innerHTML='<div class="match-picker-empty">Inga kommande matcher.</div>';
+    } else {
+      const groups={};
+      upcoming.forEach(m=>{const k=m.date||'okänt';if(!groups[k])groups[k]=[];groups[k].push(m);});
+      let html='';
+      Object.keys(groups).sort().forEach(dk=>{
+        const d=dk!=='okänt'?new Date(dk+'T12:00:00'):null;
+        const weekNum=d?isoWeekKey(dk).split('-W')[1]:null;
+        const dayLabel=d?`${WEEKDAY[d.getDay()]} ${d.toLocaleDateString('sv-SE',{day:'numeric',month:'long'})} · Vecka ${weekNum}`:'Okänt datum';
+        html+=`<div class="match-picker-group-label">${dayLabel}</div>`;
+        groups[dk].forEach(m=>{
+          const sel=m.id===currentLineupMatchId?' selected':'';
+          const lu=allLineups[m.id], cnt=lu?[...new Set(Object.values(lu.slots||{}).flat())].length:0;
+          html+=`<div class="match-picker-item${sel}" data-id="${m.id}">
+            <div class="match-picker-bar diff-${m.difficulty||'green'}"></div>
+            <div class="match-picker-body">
+              <div class="match-picker-time">${escHtml(m.time||'?')}</div>
+              <div class="match-picker-info"><div class="match-picker-opp">${escHtml(m.opponent||'—')}</div>${m.teamlabel?`<div style="font-size:.7rem;color:var(--info);margin-top:1px">${escHtml(m.teamlabel)}</div>`:''}</div>
+              <div class="match-picker-fmt">${escHtml(m.format||'')}</div>
+              ${cnt>0?`<div class="match-picker-cnt">${cnt}</div>`:''}
+            </div>
+          </div>`;
+        });
+      });
+      dropdown.innerHTML=html;
+      dropdown.querySelectorAll('.match-picker-item').forEach(item=>{
+        item.addEventListener('click',()=>{selectLineupMatch(item.dataset.id);closePicker();});
+      });
+    }
+    const cur=matches.find(m=>m.id===currentLineupMatchId);
+    if(cur){
+      const d=cur.date?new Date(cur.date+'T12:00:00'):null;
+      const dayStr=d?`${WEEKDAY[d.getDay()]} ${d.toLocaleDateString('sv-SE',{day:'numeric',month:'short'})}`:'';
+      label.textContent=`${cur.time||'?'} · ${cur.opponent||'—'} (${dayStr})`;
+      label.style.color='var(--text)';
+    } else {
+      label.textContent='— Välj match —'; label.style.color='var(--muted)';
+    }
+  }
+
+  function closePicker(){document.getElementById('match-picker-trigger')?.classList.remove('open');document.getElementById('match-picker-dropdown')?.classList.remove('open');}
+  document.getElementById('match-picker-trigger').addEventListener('click',()=>{
+    const trigger=document.getElementById('match-picker-trigger'),dropdown=document.getElementById('match-picker-dropdown');
+    if(trigger.classList.contains('open')){closePicker();}else{trigger.classList.add('open');dropdown.classList.add('open');}
+  });
+  document.addEventListener('click',e=>{if(!document.getElementById('match-picker')?.contains(e.target))closePicker();});
+
+  function selectLineupMatch(matchId) {
+    if(unsubLineup){unsubLineup();unsubLineup=null;}
+    currentLineupMatchId=matchId||null; selectedSlot=null; lineupFormation=''; lineupSlots={};
+    if(!matchId){document.getElementById('formation-group').style.display='none';document.getElementById('lineup-body').innerHTML='<div class="lineup-placeholder">Välj en match ovan för att sätta laget.</div>';return;}
+    const match=matches.find(m=>m.id===matchId); if(!match)return;
+    const currentTeam=userTeams.find(t=>t.id===currentTeamId);
+    const ownName=currentTeam?.name||'';
+    const isOtherTeam=match.teamlabel&&match.teamlabel!==ownName;
+    const warning=isOtherTeam?`<div style="background:rgba(92,158,224,.1);border:1px solid rgba(92,158,224,.25);border-radius:8px;padding:.6rem 1rem;font-size:.82rem;color:var(--info);margin-bottom:1rem">📋 Du tittar på en match för <strong>${escHtml(match.teamlabel)}</strong> — uttagningen påverkar inte deras trupp.</div>`:'';
+    document.getElementById('lineup-body').innerHTML=warning+'<div class="lineup-placeholder">Laddar...</div>';
+    refreshMatchSelector();
+    renderFormationPicker(match.format||'9v9');
+    unsubLineup=onSnapshot(teamDoc('lineups',matchId),snap=>{
+      if(snap.exists()){
+        const data=snap.data();
+        const valid=[...(FORMATIONS[match.format||'9v9']||[]),...customFormations.filter(c=>c.format===(match.format||'9v9')).map(c=>c.formation)];
+        if(valid.includes(data.formation)){lineupFormation=data.formation;lineupSlots=data.slots||{};}
+        else{lineupFormation='';lineupSlots={};}
+      }else{lineupFormation='';lineupSlots={};}
+      renderFormationPicker(match.format||'9v9');
+      renderLineupBody();
+      updateCopyButton();
+    });
+  }
+
+  function currentMatch(){return matches.find(m=>m.id===currentLineupMatchId)||null;}
+
+  function renderFormationPicker(format) {
+    const group=document.getElementById('formation-group'), sel=document.getElementById('formation-select');
+    group.style.display='flex';
+    const all=allFormationsForFormat(format), customForFormat=all.filter(x=>x.custom);
+    sel.innerHTML='<option value="">— Välj formation —</option>'+all.map(x=>`<option value="${x.f}"${x.f===lineupFormation?' selected':''}>${x.custom?'★ ':''}${x.f}</option>`).join('')+'<option value="__custom__">＋ Lägg till annan...</option>';
+    sel.onchange=()=>{
+      if(sel.value==='__custom__'){sel.value=lineupFormation||'';document.getElementById('custom-formation-row').classList.add('visible');document.getElementById('custom-formation-input').focus();}
+      else{document.getElementById('custom-formation-row').classList.remove('visible');document.getElementById('custom-formation-error').textContent='';selectFormation(sel.value);}
+    };
+    const delBtn=document.getElementById('btn-delete-custom-formation');
+    const selectedCustom=customForFormat.find(x=>x.f===lineupFormation);
+    if(selectedCustom){delBtn.classList.add('visible');delBtn.dataset.id=selectedCustom.id;}else{delBtn.classList.remove('visible');}
+  }
+
+  function selectFormation(f) {
+    if(!f||f===lineupFormation)return;
+    const hasPlayers=Object.values(lineupSlots).some(arr=>arr.length>0);
+    if(hasPlayers){showConfirm('Byta formation raderar nuvarande uppställning. Vill du fortsätta?','Byt formation','btn-primary',()=>applyFormation(f));}
+    else{applyFormation(f);}
+  }
+  function applyFormation(f){lineupFormation=f;lineupSlots={};selectedSlot=null;saveLineup();renderFormationPicker(currentMatch()?.format||'9v9');renderLineupBody();}
+
+  function renderLineupBody() {
+    const body=document.getElementById('lineup-body');
+    if(!currentLineupMatchId){body.innerHTML='<div class="lineup-placeholder">Välj en match ovan.</div>';return;}
+    const match=currentMatch();
+    const currentTeam=userTeams.find(t=>t.id===currentTeamId);
+    const ownName=currentTeam?.name||'';
+    const isOtherTeam=match?.teamlabel&&match.teamlabel!==ownName;
+    const warning=isOtherTeam?`<div style="background:rgba(92,158,224,.1);border:1px solid rgba(92,158,224,.25);border-radius:8px;padding:.6rem 1rem;font-size:.82rem;color:var(--info);margin-bottom:1rem">📋 Du tittar på en match för <strong>${escHtml(match.teamlabel)}</strong> — uttagningen påverkar inte deras trupp.</div>`:'';
+    if(!lineupFormation){body.innerHTML=warning+'<div class="lineup-placeholder">Välj en formation ovan för att fortsätta.</div>';return;}
+    body.innerHTML=warning+`<div class="lineup-main">
+      <div class="pitch-col"><div class="pitch" id="pitch"><div class="pitch-rows" id="pitch-rows"></div></div></div>
+      <div class="pool-col"><div class="pool-header">SPELARE</div><div class="pool-hint" id="pool-hint">Välj en position på planen för att lägga till spelare</div><div class="player-pool" id="player-pool"></div></div>
+    </div>`;
+    renderPitch(); renderPlayerPool();
+  }
+
+  function renderPitch() {
+    const pitchRows=document.getElementById('pitch-rows'); if(!pitchRows)return;
+    const rows=parseFormationRows(lineupFormation);
+    pitchRows.innerHTML=[...rows].reverse().map(row=>{
+      return `<div class="pitch-row">${Array.from({length:row.count},(_,pi)=>{
+        const key=`r${row.rowIdx}-${pi}`,label=row.labels[pi]||'',pids=lineupSlots[key]||[],sel=selectedSlot===key;
+        const chips=pids.map((pid,ci)=>{
+          const pl=players.find(p=>p.id===pid),name=pl?escHtml(shortName(pl)):'?';
+          const matchDate=currentMatch()?.date||null;
+          const unavail=pl&&isPlayerUnavailableOnDate(pl,matchDate||todayStr());
+          const cls=unavail?'chip-unavailable':(ci===0?'chip-starter':'chip-sub');
+          return `<div class="${cls}"><span class="chip-name">${name}</span><button class="chip-rm" data-slot="${key}" data-pid="${pid}">×</button></div>`;
+        }).join('');
+        return `<div class="pos-slot${sel?' selected':''}" data-slot="${key}"><div class="pos-label">${label}</div><div class="pos-players">${chips}</div>${pids.length===0?'<div class="pos-empty">+</div>':''}</div>`;
+      }).join('')}</div>`;
+    }).join('');
+    pitchRows.querySelectorAll('.pos-slot').forEach(el=>el.addEventListener('click',e=>{if(!e.target.classList.contains('chip-rm'))selectSlot(el.dataset.slot);}));
+    pitchRows.querySelectorAll('.chip-rm').forEach(btn=>btn.addEventListener('click',e=>{e.stopPropagation();removeFromSlot(btn.dataset.slot,btn.dataset.pid);}));
+  }
+
+  function renderPlayerPool() {
+    const pool=document.getElementById('player-pool'); if(!pool)return;
+    const match=currentMatch(), matchDate=match?.date||null;
+    const assignedMap={};
+    Object.entries(lineupSlots).forEach(([k,pids])=>pids.forEach(pid=>{assignedMap[pid]=k;}));
+
+    function renderPoolItem(p) {
+      const assignedSlot=assignedMap[p.id];
+      const absOnMatchDate=matchDate?getAbsenceOnDate(p,matchDate):null;
+      const staticUnavail=p.status&&p.status!=='available';
+      const isUnavail=matchDate?isPlayerUnavailableOnDate(p,matchDate):(p.status&&p.status!=='available');
+      const inSelected=selectedSlot&&(lineupSlots[selectedSlot]||[]).includes(p.id);
+      const conflicts=getConflicts(p.id);
+      let dotCls=isUnavail?'dot-absent':(assignedSlot?'dot-assigned':'dot-available');
+      if(conflicts.length&&!isUnavail&&!assignedSlot)dotCls='dot-assigned';
+      const cls='pool-item'+(inSelected?' in-selected':'')+(isUnavail?' pool-unavailable':'');
+      const slotLabel=assignedSlot?getSlotLabel(assignedSlot):'';
+      const tags=(p.positions||[]).join(' ');
+      let absReasonHtml='';
+      if(isUnavail){
+        if(absOnMatchDate)absReasonHtml=`<div class="pool-absent-reason">${ABS_LABEL[absOnMatchDate.type]||absOnMatchDate.type}${absOnMatchDate.to?` t.o.m ${formatDate(absOnMatchDate.to)}`:' (tills vidare)'}${absOnMatchDate.note?' · '+absOnMatchDate.note:''}</div>`;
+        else if(staticUnavail)absReasonHtml=`<div class="pool-absent-reason">${statusLabel[p.status]||p.status}</div>`;
+      }
+      const conflictBadgesHtml=conflicts.length?`<div style="display:flex;flex-direction:column;gap:2px">${conflicts.map(c=>`<span class="conflict-badge ${c.isTimeCrash?'conflict-time':'conflict-week'}">${c.isTimeCrash?'⚡ ':''}${escHtml(c.label)}</span>`).join('')}</div>`:'';
+      return `<div class="${cls}" data-pid="${p.id}">
+        <div class="pool-dot ${dotCls}"></div>
+        <div class="pool-info"><div class="pool-name">${escHtml(shortName(p))}</div>${tags?`<div class="pool-tags">${escHtml(tags)}</div>`:''}${absReasonHtml}</div>
+        <div class="pool-right">${assignedSlot&&!inSelected?`<span class="pool-badge">${escHtml(slotLabel)}</span>`:''} ${inSelected?'<span class="pool-check">✓</span>':''} ${conflictBadgesHtml}</div>
+      </div>`;
+    }
+
+    const availAll=players.filter(p=>!isPlayerUnavailableOnDate(p,matchDate||todayStr()));
+    const availMatch=availAll.filter(p=>posMatchScore(p)===0).sort((a,b)=>shortName(a).localeCompare(shortName(b),'sv'));
+    const availRest=availAll.filter(p=>posMatchScore(p)!==0).sort((a,b)=>shortName(a).localeCompare(shortName(b),'sv'));
+    const unavail=players.filter(p=>isPlayerUnavailableOnDate(p,matchDate||todayStr())).sort((a,b)=>shortName(a).localeCompare(shortName(b),'sv'));
+    let html='';
+    if(availMatch.length&&availRest.length){
+      html+=availMatch.map(renderPoolItem).join('');
+      html+='<div style="border-top:1px solid var(--border);margin:.4rem 0"></div>';
+      html+=availRest.map(renderPoolItem).join('');
+    }else{html+=[...availMatch,...availRest].map(renderPoolItem).join('');}
+    if(unavail.length){html+='<div class="pool-section-label">Ej tillgängliga</div>'+unavail.map(renderPoolItem).join('');}
+    pool.innerHTML=html;
+    pool.querySelectorAll('.pool-item').forEach(el=>{el.addEventListener('click',()=>{if(selectedSlot)toggleInSlot(el.dataset.pid);});});
+  }
+
+  function selectSlot(key) {
+    selectedSlot=key;
+    const n=(lineupSlots[key]||[]).length,label=getSlotLabel(key);
+    const hint=document.getElementById('pool-hint');
+    if(hint)hint.textContent=`Lägger till i: ${label} · ${n===0?'Ingen ännu':(n===1?'1 spelare':n+' spelare')}`;
+    renderPitch(); renderPlayerPool();
+    const pool=document.getElementById('player-pool'); if(pool)pool.scrollTop=0;
+    if(window.innerWidth<=640){
+      const pitchEl=document.querySelector('.pitch'),poolCol=document.querySelector('.pool-col');
+      if(pitchEl&&poolCol){const ph=pitchEl.getBoundingClientRect().height,pt=poolCol.getBoundingClientRect().top+window.scrollY;window.scrollTo({top:pt-ph-8,behavior:'smooth'});}
+    }
+  }
+
+  function toggleInSlot(pid) {
+    if(!selectedSlot)return;
+    const cur=lineupSlots[selectedSlot]||[];
+    if(cur.includes(pid)){const updated=cur.filter(id=>id!==pid);if(updated.length)lineupSlots[selectedSlot]=updated;else delete lineupSlots[selectedSlot];}
+    else{Object.keys(lineupSlots).forEach(k=>{if(k!==selectedSlot){lineupSlots[k]=lineupSlots[k].filter(id=>id!==pid);if(!lineupSlots[k].length)delete lineupSlots[k];}});lineupSlots[selectedSlot]=[...cur,pid];}
+    saveLineup(); selectSlot(selectedSlot);
+  }
+
+  function removeFromSlot(slotKey,pid) {
+    if(!lineupSlots[slotKey])return;
+    lineupSlots[slotKey]=lineupSlots[slotKey].filter(id=>id!==pid);
+    if(!lineupSlots[slotKey].length)delete lineupSlots[slotKey];
+    saveLineup(); renderPitch(); renderPlayerPool();
+  }
+
+  // Custom formations
+  document.getElementById('btn-save-custom-formation').addEventListener('click', async()=>{
+    const match=currentMatch(); if(!match)return;
+    const input=document.getElementById('custom-formation-input'),errEl=document.getElementById('custom-formation-error');
+    const f=input.value.trim(), error=validateCustomFormation(f,match.format||'9v9');
+    if(error){errEl.textContent=error;return;}
+    errEl.textContent='';
+    try{
+      await addDoc(teamCol('customFormations'),{format:match.format||'9v9',formation:f,createdBy:currentUser?.email||'okänd'});
+      input.value=''; document.getElementById('custom-formation-row').classList.remove('visible');
+      lineupFormation=f; lineupSlots={}; saveLineup();
+    }catch(err){console.error(err);errEl.textContent='Kunde inte spara.';}
+  });
+  document.getElementById('btn-cancel-custom-formation').addEventListener('click',()=>{document.getElementById('custom-formation-row').classList.remove('visible');document.getElementById('custom-formation-error').textContent='';document.getElementById('custom-formation-input').value='';});
+  document.getElementById('custom-formation-input').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('btn-save-custom-formation').click();if(e.key==='Escape')document.getElementById('btn-cancel-custom-formation').click();});
+  document.getElementById('btn-delete-custom-formation').addEventListener('click',()=>{
+    const btn=document.getElementById('btn-delete-custom-formation'); if(!btn.dataset.id)return;
+    const fName=lineupFormation;
+    showConfirm(`Ta bort formationen ${fName}? Den försvinner för alla tränare.`,'Ta bort','btn-danger',async()=>{
+      await deleteDoc(doc(db,'teams',currentTeamId,'customFormations',btn.dataset.id));
+      lineupFormation=''; lineupSlots={};
+      renderFormationPicker(currentMatch()?.format||'9v9'); renderLineupBody();
+    });
+  });
+
+  // Copy lineup
+  document.getElementById('btn-copy-lineup').addEventListener('click',()=>{
+    const match=currentMatch();
+    const allPids=[...new Set(Object.values(lineupSlots).flat())];
+    if(!allPids.length){alert('Inga spelare uttagna ännu.');return;}
+    const names=allPids.map(pid=>players.find(p=>p.id===pid)).filter(Boolean).map(p=>p.name||'').sort((a,b)=>a.localeCompare(b,'sv'));
+    const d=match?.date?new Date(match.date+'T12:00:00'):null;
+    const dateStr=d?`${WEEKDAY[d.getDay()]} ${d.toLocaleDateString('sv-SE',{day:'numeric',month:'long'})}`:'';
+    const header=[match?.opponent,dateStr,match?.time].filter(Boolean).join(' · ');
+    const text=(header?header+'\n\n':'')+names.join('\n');
+    navigator.clipboard.writeText(text).then(()=>{const btn=document.getElementById('btn-copy-lineup');btn.textContent='Kopierat ✓';setTimeout(()=>{btn.textContent='Kopiera lista';},2000);}).catch(()=>alert('Kunde inte kopiera.'));
+  });
+
+  function updateCopyButton() {
+    const btn=document.getElementById('btn-copy-lineup'); if(!btn)return;
+    const hasLineup=currentLineupMatchId&&lineupFormation&&Object.keys(lineupSlots).length>0;
+    btn.style.display=hasLineup?'inline-flex':'none';
+    document.getElementById('btn-clear-lineup').style.display=hasLineup?'inline-flex':'none';
+  }
+
+  document.getElementById('btn-clear-lineup').addEventListener('click', () => {
+    showConfirm(
+      'Rensa hela uppställningen för den här matchen?',
+      'Rensa', 'btn-danger',
+      () => { lineupSlots={}; saveLineup(); renderLineupBody(); }
+    );
+  });
+
+  async function saveLineup() {
+    if(!currentLineupMatchId||!lineupFormation)return;
+    const ind=document.getElementById('save-indicator'); if(ind)ind.textContent='Sparar...';
+    try{
+      await setDoc(teamDoc('lineups',currentLineupMatchId),{formation:lineupFormation,slots:lineupSlots,updatedBy:currentUser?.email||'okänd',updatedAt:serverTimestamp()});
+      if(ind){ind.textContent='Sparat ✓';setTimeout(()=>{if(ind)ind.textContent='';},2000);}
+    }catch(err){console.error(err);if(ind)ind.textContent='Fel vid sparning';}
+    updateCopyButton();
+  }
+
+  // ── HISTORY ───────────────────────────────────────
+  function renderHistory() {
+    const listEl=document.getElementById('history-list'); if(!listEl)return;
+    const today=todayStr();
+    const past=matches.filter(m=>m.date&&m.date<today).sort((a,b)=>(`${b.date}T${b.time||'00:00'}`).localeCompare(`${a.date}T${a.time||'00:00'}`));
+    if(!past.length){listEl.innerHTML='<div style="color:var(--muted);font-size:.9rem">Inga avklarade matcher ännu.</div>';return;}
+    listEl.innerHTML=past.map(m=>{
+      const d=new Date(m.date+'T12:00:00'),sel=m.id===selectedHistoryMatchId?' selected':'';
+      const lu=allLineups[m.id],cnt=lu?[...new Set(Object.values(lu.slots||{}).flat())].length:0;
+      return `<div class="history-match-card${sel}" data-id="${m.id}"><div class="match-diff-bar diff-${m.difficulty||'green'}"></div>
+        <div class="history-match-body">
+          <div class="history-match-opponent">${escHtml(m.opponent||'—')}</div>
+          <div class="history-match-meta">${WEEKDAY[d.getDay()]} ${d.toLocaleDateString('sv-SE',{day:'numeric',month:'short',year:'numeric'})}${m.time?' · '+m.time:''}${m.teamlabel?' · '+escHtml(m.teamlabel):''}${cnt?' · '+cnt+' spelare':' · Ingen uppställning'}</div>
+        </div></div>`;
+    }).join('');
+    listEl.querySelectorAll('.history-match-card').forEach(card=>{card.addEventListener('click',()=>{selectedHistoryMatchId=card.dataset.id;renderHistory();renderHistoryPitch();});});
+    if(!selectedHistoryMatchId&&past.length){selectedHistoryMatchId=past[0].id;renderHistory();renderHistoryPitch();}
+  }
+
+  function renderHistoryPitch() {
+    const col=document.getElementById('history-pitch-col'); if(!col)return;
+    const match=matches.find(m=>m.id===selectedHistoryMatchId); if(!match)return;
+    const lu=allLineups[match.id];
+    const d=match.date?new Date(match.date+'T12:00:00'):null;
+    const dateStr=d?`${WEEKDAY[d.getDay()]} ${d.toLocaleDateString('sv-SE',{day:'numeric',month:'long',year:'numeric'})}`:'';
+    const infoHtml=`<div class="history-match-info"><h3>${escHtml(match.opponent||'—')}</h3><p>${dateStr}${match.time?' · '+match.time:''}${match.format?' · '+match.format:''}</p></div>`;
+    if(!lu||!lu.formation){col.innerHTML=infoHtml+'<div class="history-no-lineup">Ingen uppställning sparad för den här matchen.</div>';return;}
+    const slots=lu.slots||{},rows=parseFormationRows(lu.formation);
+    const pitchHtml=[...rows].reverse().map(row=>`<div class="pitch-row">${Array.from({length:row.count},(_,pi)=>{
+      const key=`r${row.rowIdx}-${pi}`,pids=slots[key]||[],label=row.labels[pi]||'';
+      const chips=pids.map((pid,ci)=>{const pl=players.find(p=>p.id===pid),name=pl?escHtml(shortName(pl)):'?';return `<div class="${ci===0?'chip-starter':'chip-sub'}"><span class="chip-name">${name}</span></div>`;}).join('');
+      return `<div class="pos-slot" style="cursor:default"><div class="pos-label">${label}</div><div class="pos-players">${chips}</div>${pids.length===0?'<div class="pos-empty">+</div>':''}</div>`;
+    }).join('')}</div>`).join('');
+    col.innerHTML=infoHtml+`<div class="history-pitch-wrap"><div style="font-size:.75rem;color:var(--muted);margin-bottom:.75rem">Formation: ${escHtml(lu.formation)}</div><div class="pitch"><div class="pitch-rows" style="min-height:420px">${pitchHtml}</div></div></div>`;
+  }
+
+  // ── OVERVIEW ──────────────────────────────────────
+  function getWeekMatches(offset, filterLabels) {
+    const filteredMatches = filterLabels && filterLabels.length > 0
+      ? matches.filter(m => filterLabels.includes(m.teamlabel||''))
+      : matches;
+    const weekKeys=[...new Set(filteredMatches.map(m=>isoWeekKey(m.date)).filter(Boolean))].sort();
+    if(!weekKeys.length)return{weekKey:null,weekMatches:[],idx:0,total:0};
+    const today=todayStr(),todayWeek=isoWeekKey(today);
+    const futureWeeks=weekKeys.filter(w=>w>=todayWeek);
+    const baseIdx=futureWeeks.length?weekKeys.indexOf(futureWeeks[0]):weekKeys.length-1;
+    const idx=Math.max(0,Math.min(weekKeys.length-1,baseIdx+offset));
+    const weekKey=weekKeys[idx];
+    const weekMatches=filteredMatches.filter(m=>isoWeekKey(m.date)===weekKey).sort((a,b)=>(`${a.date}T${a.time||'00:00'}`).localeCompare(`${b.date}T${b.time||'00:00'}`));
+    return{weekKey,weekMatches,idx,total:weekKeys.length};
+  }
+
+  function weekKeyToLabel(wk) {
+    if(!wk)return'';
+    const[year,w]=wk.split('-W');
+    const jan4=new Date(parseInt(year),0,4),monday=new Date(jan4);
+    monday.setDate(jan4.getDate()-((jan4.getDay()+6)%7)+(parseInt(w)-1)*7);
+    const sunday=new Date(monday);sunday.setDate(monday.getDate()+6);
+    return`Vecka ${w} · ${monday.toLocaleDateString('sv-SE',{day:'numeric',month:'short'})} – ${sunday.toLocaleDateString('sv-SE',{day:'numeric',month:'short',year:'numeric'})}`;
+  }
+
+  function renderOverview() {
+    const body=document.getElementById('overview-body'),label=document.getElementById('overview-week-label');
+    if(!body)return;
+    const{weekKey,weekMatches,idx,total}=getWeekMatches(overviewWeekOffset, activeOverviewTeamFilter);
+    document.getElementById('btn-week-prev').disabled=!idx;
+    document.getElementById('btn-week-next').disabled=idx>=total-1;
+    label.textContent=weekKey?weekKeyToLabel(weekKey):'—';
+
+    // Team label filter bar
+    const overviewFilterBar = document.getElementById('overview-teamlabel-filter');
+    const allLabels = getTeamLabels();
+    if (allLabels.length > 0) {
+      overviewFilterBar.style.display = 'flex';
+      overviewFilterBar.innerHTML = `<button class="filter-btn${activeOverviewTeamFilter.length===0?' active':''}" data-label="__all__">Alla</button>`
+        + allLabels.map(l=>`<button class="filter-btn${activeOverviewTeamFilter.includes(l)?' active':''}" data-label="${escHtml(l)}">${escHtml(l)}</button>`).join('');
+      overviewFilterBar.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          if (btn.dataset.label === '__all__') activeOverviewTeamFilter = [];
+          else {
+            const l = btn.dataset.label;
+            if (activeOverviewTeamFilter.includes(l)) activeOverviewTeamFilter = activeOverviewTeamFilter.filter(x=>x!==l);
+            else activeOverviewTeamFilter = [...activeOverviewTeamFilter, l];
+          }
+          renderOverview();
+        });
+      });
+    } else {
+      overviewFilterBar.style.display = 'none';
+    }
+
+    if(!weekMatches.length){body.innerHTML='<div class="overview-empty">Inga matcher denna vecka.</div>';return;}
+    const today=todayStr(),DIFF_EMOJI={green:'🟢',blue:'🔵',red:'🔴',black:'⚫'};
+    const sortedPlayers=[...players].sort((a,b)=>shortName(a).localeCompare(shortName(b),'sv'));
+    const matchLineups=weekMatches.map(m=>{const lu=allLineups[m.id];return{match:m,pids:new Set(lu?[...new Set(Object.values(lu.slots||{}).flat())]:[])}; });
+    let html='<div class="overview-table-wrap"><table class="overview-table"><thead><tr><th>Spelare</th>';
+    matchLineups.forEach(({match:m})=>{
+      const d=m.date?new Date(m.date+'T12:00:00'):null;
+      const dayStr=d?`${WEEKDAY[d.getDay()]} ${d.toLocaleDateString('sv-SE',{day:'numeric',month:'short'})}`:' ?';
+      html+=`<th class="match-col"><span class="match-col-time">${escHtml(m.time||'?')}</span><span class="match-col-opp">${escHtml(m.opponent||'—')}</span><span class="match-col-opp">${dayStr}</span><span class="match-col-diff">${DIFF_EMOJI[m.difficulty]||''}</span></th>`;
+    });
+    html+='</tr></thead><tbody>';
+    sortedPlayers.forEach(p=>{
+      html+=`<tr><td class="player-name-col">${escHtml(shortName(p))}</td>`;
+      matchLineups.forEach(({match:m,pids})=>{
+        const absent=isPlayerUnavailableOnDate(p,m.date||today),selected=pids.has(p.id);
+        let cell;
+        if(absent)cell='<span class="ov-dot-absent" title="Ej tillgänglig">●</span>';
+        else if(selected)cell='<span class="ov-dot-selected" title="Uttagen">●</span>';
+        else cell='<span class="ov-dot-empty">·</span>';
+        html+=`<td class="dot-col">${cell}</td>`;
+      });
+      html+='</tr>';
+    });
+    html+='</tbody></table></div>';
+    html+=`<div style="display:flex;gap:1.5rem;margin-top:1rem;font-size:.78rem;color:var(--muted)">
+      <span><span style="color:var(--green)">●</span> Uttagen</span>
+      <span><span style="color:var(--danger)">●</span> Ej tillgänglig</span>
+      <span><span style="color:var(--border)">·</span> Ej uttagen</span>
+    </div>`;
+    body.innerHTML=html;
+  }
+
+  document.getElementById('btn-week-prev').addEventListener('click',()=>{overviewWeekOffset--;renderOverview();});
+  document.getElementById('btn-week-next').addEventListener('click',()=>{overviewWeekOffset++;renderOverview();});
+
+  // ── THEME ─────────────────────────────────────────
+  function applyTheme(light) {
+    document.body.classList.toggle('theme-light',light);
+    document.documentElement.classList.toggle('theme-light-early',light);
+    localStorage.setItem('theme', light ? 'light' : 'dark');
+    const toggle=document.getElementById('theme-toggle'),label=document.getElementById('theme-label');
+    if(toggle)toggle.classList.toggle('on',light);
+    if(label)label.textContent=light?'Ljust':'Mörkt';
+  }
+  async function saveTheme(light) {
+    if(!currentUser)return;
+    try{await setDoc(doc(db,'userSettings',currentUser.uid),{theme:light?'light':'dark'},{merge:true});}catch(e){}
+  }
+  async function loadTheme() {
+    if(!currentUser)return;
+    try{
+      const snap=await getDoc(doc(db,'userSettings',currentUser.uid));
+      // Default to light if no preference stored
+      const isLight = snap.exists() ? snap.data().theme !== 'dark' : true;
+      applyTheme(isLight);
+    }catch(e){}
+  }
+
+  document.getElementById('btn-settings').addEventListener('click',e=>{e.stopPropagation();document.getElementById('settings-dropdown').classList.toggle('open');});
+  document.addEventListener('click',e=>{if(!document.querySelector('.settings-wrap')?.contains(e.target))document.getElementById('settings-dropdown')?.classList.remove('open');});
+  document.getElementById('theme-toggle').addEventListener('click',()=>{
+    const isLight=!document.body.classList.contains('theme-light');
+    applyTheme(isLight); saveTheme(isLight);
+    setTimeout(()=>{document.getElementById('settings-dropdown')?.classList.remove('open');},1500);
+  });
+
+  // ── README ────────────────────────────────────────
+  document.getElementById('btn-readme').addEventListener('click',()=>{document.getElementById('settings-dropdown').classList.remove('open');document.getElementById('readme-modal').classList.add('open');});
+  document.getElementById('btn-readme-close').addEventListener('click',()=>{document.getElementById('readme-modal').classList.remove('open');});
+  document.getElementById('readme-modal').addEventListener('click',e=>{if(e.target===document.getElementById('readme-modal'))document.getElementById('readme-modal').classList.remove('open');});
+
+  // ── ADMIN ─────────────────────────────────────────
+  const adminModal=document.getElementById('admin-modal');
+
+  async function openAdminModal() {
+    document.getElementById('settings-dropdown').classList.remove('open');
+    document.getElementById('add-user-email').value = '';
+    adminModal.classList.add('open');
+    await refreshAdminTeamList();
+    document.getElementById('add-user-team').selectedIndex = -1;
+    // Populate bulk delete dropdown
+    const labels = getTeamLabels();
+    const bulkSel = document.getElementById('bulk-delete-label');
+    bulkSel.innerHTML = labels.length
+      ? '<option value="">— Välj lag —</option>' + labels.map(l=>`<option value="${escHtml(l)}">${escHtml(l)}</option>`).join('')
+      : '<option value="">Inga lag-etiketter finns</option>';
+  }
+
+  async function refreshAdminTeamList() {
+    // Populate team dropdown for add-user
+    const teamsSnap=await getDocs(collection(db,'teams'));
+    const allTeams=teamsSnap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.name||'').localeCompare(b.name||'','sv'));
+
+    const teamSel=document.getElementById('add-user-team');
+    teamSel.innerHTML='<option value="">— Välj lag —</option>'+allTeams.map(t=>`<option value="${t.id}">${escHtml(t.name)}</option>`).join('');
+
+    // Team overview list
+    const listEl=document.getElementById('admin-team-list');
+    // Get all userSettings to find members
+    const usersSnap=await getDocs(collection(db,'userSettings'));
+    const membersByTeam={};
+    usersSnap.docs.forEach(d=>{
+      const data=d.data();
+      (data.teams||[]).forEach(tid=>{
+        if(!membersByTeam[tid])membersByTeam[tid]=[];
+        membersByTeam[tid].push(data.email||d.id);
+      });
+    });
+
+    listEl.innerHTML=allTeams.map(t=>`
+      <div class="admin-team-item">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start">
+          <div class="admin-team-item-name">${escHtml(t.name)}</div>
+          <button class="btn-danger" style="font-size:.72rem;padding:.2rem .6rem;border-radius:6px" data-action="delete-team" data-teamid="${t.id}" data-teamname="${escHtml(t.name)}">Ta bort</button>
+        </div>
+        <div class="admin-team-item-meta">
+          ${t.birthYear?`Födelseår: ${t.birthYear} · `:''}Format: ${t.format||'?'}
+          ${!t.birthYear?` <button class="btn-readme" style="font-size:.72rem" data-action="show-year-input" data-teamid="${t.id}">Lägg till födelseår</button>`:''}
+        </div>
+        <div id="edit-year-${t.id}" style="display:none;align-items:center;gap:.5rem;margin-top:.4rem">
+          <input type="number" placeholder="Födelseår" min="2000" max="2030" style="width:100px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--font-body);font-size:.8rem;padding:.3rem .5rem;outline:none" id="year-input-${t.id}" />
+          <button class="btn-primary" style="font-size:.8rem;padding:.3rem .7rem" data-action="save-year" data-teamid="${t.id}">Spara</button>
+        </div>
+        <div class="admin-member-list">${(membersByTeam[t.id]||[]).map(e=>`<span class="admin-member-chip">${escHtml(e)}</span>`).join('')||'<span style="font-size:.75rem;color:var(--muted)">Inga tränare</span>'}</div>
+      </div>`).join('');
+  }
+
+  document.getElementById('btn-admin').addEventListener('click', openAdminModal);
+  document.getElementById('btn-bulk-delete-matches').addEventListener('click', () => {
+    const label = document.getElementById('bulk-delete-label').value;
+    const msgEl = document.getElementById('bulk-delete-msg');
+    if (!label) { msgEl.style.color='var(--danger)'; msgEl.textContent='Välj ett lag.'; return; }
+    const toDelete = matches.filter(m => (m.teamlabel||'') === label);
+    if (!toDelete.length) { msgEl.style.color='var(--danger)'; msgEl.textContent=`Hittade inga matcher med lagnamnet "${label}".`; return; }
+    showConfirm(
+      `Ta bort alla ${toDelete.length} matcher för "${label}"? Uppställningar för dessa matcher raderas också.`,
+      'Ta bort', 'btn-danger',
+      async () => {
+        const btn = document.getElementById('btn-bulk-delete-matches'); btn.disabled = true;
+        msgEl.style.color='var(--muted)'; msgEl.textContent=`Raderar ${toDelete.length} matcher...`;
+        try {
+          for (const m of toDelete) {
+            await deleteDoc(teamDoc('matches', m.id));
+            // Also delete lineup if exists
+            try { await deleteDoc(teamDoc('lineups', m.id)); } catch(e) {}
+          }
+          msgEl.style.color='var(--green)'; msgEl.textContent=`Klart! ${toDelete.length} matcher raderade.`;
+          // Refresh bulk delete dropdown
+          const labels = getTeamLabels();
+          const bulkSel = document.getElementById('bulk-delete-label');
+          bulkSel.innerHTML = labels.length
+            ? '<option value="">— Välj lag —</option>' + labels.map(l=>`<option value="${escHtml(l)}">${escHtml(l)}</option>`).join('')
+            : '<option value="">Inga lag-etiketter finns</option>';
+          setTimeout(()=>{ msgEl.textContent=''; }, 4000);
+        } catch(err) {
+          console.error(err); msgEl.style.color='var(--danger)'; msgEl.textContent='Något gick fel: '+err.message;
+        } finally { btn.disabled = false; }
+      }
+    );
+  });
+
+  document.getElementById('btn-admin-close').addEventListener('click',()=>adminModal.classList.remove('open'));
+
+  document.getElementById('btn-rename-teamlabel').addEventListener('click', async () => {
+    const from = document.getElementById('rename-from').value.trim();
+    const to   = document.getElementById('rename-to').value.trim();
+    const msgEl = document.getElementById('rename-teamlabel-msg');
+    if (!from || !to) { msgEl.style.color='var(--danger)'; msgEl.textContent='Fyll i båda fälten.'; return; }
+    if (from === to)  { msgEl.style.color='var(--danger)'; msgEl.textContent='Namnen är identiska.'; return; }
+    const toUpdate = matches.filter(m => m.teamlabel === from);
+    if (!toUpdate.length) { msgEl.style.color='var(--danger)'; msgEl.textContent=`Hittade inga matcher med lagnamnet "${from}".`; return; }
+    const btn = document.getElementById('btn-rename-teamlabel'); btn.disabled = true;
+    msgEl.style.color='var(--muted)'; msgEl.textContent=`Uppdaterar ${toUpdate.length} matcher...`;
+    try {
+      for (const m of toUpdate) {
+        await updateDoc(teamDoc('matches', m.id), { teamlabel: to });
+      }
+      document.getElementById('rename-from').value = '';
+      document.getElementById('rename-to').value = '';
+      msgEl.style.color='var(--green)'; msgEl.textContent=`Klart! ${toUpdate.length} matcher uppdaterade.`;
+      setTimeout(()=>{ msgEl.textContent=''; }, 4000);
+    } catch(err) {
+      console.error(err); msgEl.style.color='var(--danger)'; msgEl.textContent='Något gick fel: '+err.message;
+    } finally { btn.disabled = false; }
+  });
+  adminModal.addEventListener('click',e=>{if(e.target===adminModal)adminModal.classList.remove('open');});
+
+  // ── SvFF format calculation ───────────────────────
+  function svffFormat(birthYear) {
+    const age = new Date().getFullYear() - birthYear;
+    if (age <= 9)  return '5v5';
+    if (age <= 12) return '7v7';
+    if (age <= 14) return '9v9';
+    return '11v11';
+  }
+
+  document.getElementById('btn-create-team').addEventListener('click', async()=>{
+    const name=document.getElementById('new-team-name').value.trim();
+    const birthYear=parseInt(document.getElementById('new-team-birth-year').value);
+    const msgEl=document.getElementById('create-team-msg');
+    if(!name){msgEl.style.color='var(--danger)';msgEl.textContent='Ange ett lagnamn.';return;}
+    if(!birthYear||birthYear<2000||birthYear>2030){msgEl.style.color='var(--danger)';msgEl.textContent='Ange ett giltigt födelseår.';return;}
+    const format=svffFormat(birthYear);
+    try{
+      await addDoc(collection(db,'teams'),{name,birthYear,format,createdBy:currentUser.uid,createdAt:serverTimestamp()});
+      document.getElementById('new-team-name').value='';
+      document.getElementById('new-team-birth-year').value='';
+      msgEl.style.color='var(--green)'; msgEl.textContent=`Laget "${name}" skapades! (${format} baserat på födelseår ${birthYear})`;
+      await refreshAdminTeamList();
+      setTimeout(()=>{msgEl.textContent='';},4000);
+    }catch(err){console.error(err);msgEl.style.color='var(--danger)';msgEl.textContent='Något gick fel.';}
+  });
+
+  // ── Admin team list event delegation ─────────────
+  document.getElementById('admin-team-list').addEventListener('click', async e => {
+    const showYearBtn = e.target.closest('[data-action="show-year-input"]');
+    const saveYearBtn = e.target.closest('[data-action="save-year"]');
+    const deleteBtn   = e.target.closest('[data-action="delete-team"]');
+
+    if (showYearBtn) {
+      const teamId = showYearBtn.dataset.teamid;
+      document.getElementById(`edit-year-${teamId}`).style.display = 'flex';
+    }
+
+    if (saveYearBtn) {
+      const teamId   = saveYearBtn.dataset.teamid;
+      const input    = document.getElementById(`year-input-${teamId}`);
+      const birthYear= parseInt(input?.value);
+      if (!birthYear||birthYear<2000||birthYear>2030) { alert('Ange ett giltigt födelseår.'); return; }
+      const format = svffFormat(birthYear);
+      try {
+        await updateDoc(doc(db,'teams',teamId), {birthYear, format});
+        await refreshAdminTeamList();
+      } catch(err) { console.error(err); alert('Något gick fel.'); }
+    }
+
+    if (deleteBtn) {
+      const teamId   = deleteBtn.dataset.teamid;
+      const teamName = deleteBtn.dataset.teamname;
+      showConfirm(
+        `Ta bort laget "${teamName}"? All data (spelare, matcher, uppställningar) raderas permanent.`,
+        'Ta bort lag', 'btn-danger',
+        async () => {
+          try {
+            const subcols = ['players','matches','lineups','customFormations'];
+            for (const col of subcols) {
+              const snap = await getDocs(collection(db,'teams',teamId,col));
+              for (const d of snap.docs) await deleteDoc(doc(db,'teams',teamId,col,d.id));
+            }
+            await deleteDoc(doc(db,'teams',teamId));
+            const usersSnap = await getDocs(collection(db,'userSettings'));
+            for (const d of usersSnap.docs) {
+              const teams = d.data().teams||[];
+              if (teams.includes(teamId)) {
+                await updateDoc(doc(db,'userSettings',d.id), { teams: teams.filter(t=>t!==teamId) });
+              }
+            }
+            await refreshAdminTeamList();
+          } catch(err) { console.error(err); alert('Något gick fel: '+err.message); }
+        }
+      );
+    }
+  });
+
+  document.getElementById('btn-add-user-to-team').addEventListener('click', async()=>{
+    const email=document.getElementById('add-user-email').value.trim();
+    const teamId=document.getElementById('add-user-team').value;
+    const msgEl=document.getElementById('add-user-msg');
+    if(!email){msgEl.style.color='var(--danger)';msgEl.textContent='Ange en e-postadress.';return;}
+    if(!teamId){msgEl.style.color='var(--danger)';msgEl.textContent='Välj ett lag.';return;}
+
+    const btn=document.getElementById('btn-add-user-to-team'); btn.disabled=true;
+    msgEl.style.color='var(--muted)'; msgEl.textContent='Arbetar...';
+
+    try{
+      let uid=null;
+      let isNewUser=false;
+
+      // Try to create new account
+      try{
+        const cred=await createUserWithEmailAndPassword(auth,email,'Temp'+Math.random().toString(36).slice(2)+'!');
+        uid=cred.user.uid;
+        isNewUser=true;
+      }catch(e){
+        if(e.code==='auth/email-already-in-use'){
+          // Existing user — find uid via email field in userSettings
+          const usersSnap=await getDocs(collection(db,'userSettings'));
+          const found=usersSnap.docs.find(d=>d.data().email===email);
+          if(found) uid=found.id;
+          else {
+            // Email field might not exist yet — inform admin
+            msgEl.style.color='var(--danger)';
+            msgEl.textContent='Användaren finns men har inte loggat in i nya versionen än. Be dem logga in först, sedan försök igen.';
+            btn.disabled=false; return;
+          }
+        } else { throw e; }
+      }
+
+      if(!uid){msgEl.style.color='var(--danger)';msgEl.textContent='Kunde inte hitta eller skapa användaren.';btn.disabled=false;return;}
+
+      // Add team to user's settings
+      const userRef=doc(db,'userSettings',uid);
+      const userSnap=await getDoc(userRef);
+      const existingTeams=userSnap.exists()?(userSnap.data().teams||[]):[];
+      if(!existingTeams.includes(teamId)){
+        await setDoc(userRef,{teams:[...existingTeams,teamId],email},{merge:true});
+      }
+
+      // Send password reset/welcome email
+      await sendPasswordResetEmail(auth,email);
+
+      document.getElementById('add-user-email').value='';
+      msgEl.style.color='var(--green)';
+      msgEl.textContent=isNewUser
+        ? `Nytt konto skapat! Lösenordslänk skickad till ${email}.`
+        : `Klart! ${email} har lagts till och fått en lösenordslänk.`;
+      await refreshAdminTeamList();
+      setTimeout(()=>{msgEl.textContent='';},5000);
+    }catch(err){
+      console.error(err);
+      msgEl.style.color='var(--danger)'; msgEl.textContent='Något gick fel: '+err.message;
+    } finally{btn.disabled=false;}
+  });
+
+</script>
+</body>
+</html>

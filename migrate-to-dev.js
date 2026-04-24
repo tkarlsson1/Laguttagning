@@ -7,10 +7,10 @@ const fbApp = admin.initializeApp({
 });
 
 const prodDb = admin.firestore();
-prodDb.settings({});
 
 const devDb = new admin.firestore.Firestore({
   credential: admin.credential.cert(serviceAccount),
+  projectId: serviceAccount.project_id,
   databaseId: 'laguttagning-dev'
 });
 

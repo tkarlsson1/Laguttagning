@@ -1392,8 +1392,7 @@
   function populateTeamLabelSelect(selectId, currentValue) {
     const sel = document.getElementById(selectId); if (!sel) return;
     const labels = getTeamLabels();
-    const currentTeam = userTeams.find(t=>t.id===currentTeamId);
-    const ownName = currentTeam?.name || 'Eget lag';
+    const ownName = currentTeamName || 'Eget lag';
     const allOptions = [ownName, ...labels.filter(l=>l!==ownName)];
     sel.innerHTML = allOptions.map(l=>`<option value="${escHtml(l)}"${l===currentValue?' selected':''}>${escHtml(l)}</option>`).join('')
       + '<option value="__new__">＋ Lägg till annat lag...</option>';
@@ -1477,9 +1476,7 @@
       const weekLabel=weekNum?` · Vecka ${weekNum}`:'';
       html+=`<div class="date-group-header">${d?`${WEEKDAY[d.getDay()]} ${d.toLocaleDateString('sv-SE',{day:'numeric',month:'long',year:'numeric'})}${weekLabel}`:'Okänt datum'}</div>`;
       groups[dk].forEach(m=>{
-        const currentTeam=userTeams.find(t=>t.id===currentTeamId);
-        const ownName=currentTeam?.name||'';
-        const isOwn=!m.teamlabel||m.teamlabel===ownName;
+        const isOwn=!m.teamlabel||m.teamlabel===currentTeamName;
         html+=`<div class="match-card${isOwn?'':' match-card-other'}" data-id="${m.id}"><div class="match-diff-bar diff-${m.difficulty||'green'}"></div>
           <div class="match-card-body">
             <div class="match-time-block"><div class="match-time">${escHtml(m.time||'??:??')}</div></div>
@@ -1864,9 +1861,7 @@
     currentLineupMatchId=matchId||null; selectedSlot=null; lineupFormation=''; lineupSlots={};
     if(!matchId){document.getElementById('formation-group').style.display='none';document.getElementById('lineup-body').innerHTML='<div class="lineup-placeholder">Välj en match ovan för att sätta laget.</div>';return;}
     const match=matches.find(m=>m.id===matchId); if(!match)return;
-    const currentTeam=userTeams.find(t=>t.id===currentTeamId);
-    const ownName=currentTeam?.name||'';
-    const isOtherTeam=match.teamlabel&&match.teamlabel!==ownName;
+    const isOtherTeam=match.teamlabel&&match.teamlabel!==currentTeamName;
     const warning=isOtherTeam?`<div style="background:rgba(92,158,224,.1);border:1px solid rgba(92,158,224,.25);border-radius:8px;padding:.6rem 1rem;font-size:.82rem;color:var(--info);margin-bottom:1rem">📋 Du tittar på en match för <strong>${escHtml(match.teamlabel)}</strong> — uttagningen påverkar inte deras trupp.</div>`:'';
     document.getElementById('lineup-body').innerHTML=warning+'<div class="lineup-placeholder">Laddar...</div>';
     refreshMatchSelector();
@@ -1913,8 +1908,7 @@
     if(!currentLineupMatchId){body.innerHTML='<div class="lineup-placeholder">Välj en match ovan.</div>';return;}
     const match=currentMatch();
     const currentTeam=userTeams.find(t=>t.id===currentTeamId);
-    const ownName=currentTeam?.name||'';
-    const isOtherTeam=match?.teamlabel&&match.teamlabel!==ownName;
+    const isOtherTeam=match?.teamlabel&&match.teamlabel!==currentTeamName;
     const warning=isOtherTeam?`<div style="background:rgba(92,158,224,.1);border:1px solid rgba(92,158,224,.25);border-radius:8px;padding:.6rem 1rem;font-size:.82rem;color:var(--info);margin-bottom:1rem">📋 Du tittar på en match för <strong>${escHtml(match.teamlabel)}</strong> — uttagningen påverkar inte deras trupp.</div>`:'';
     if(!lineupFormation){body.innerHTML=warning+'<div class="lineup-placeholder">Välj en formation ovan för att fortsätta.</div>';return;}
     body.innerHTML=warning+`<div class="lineup-main">

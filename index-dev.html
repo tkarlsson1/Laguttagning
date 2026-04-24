@@ -777,14 +777,29 @@
 
 <!-- ── ADMIN MODAL ───────────────────────────────────── -->
 <div id="admin-modal" class="modal-backdrop">
-  <div class="modal" style="max-width:600px">
-    <div class="modal-title">HANTERA LAG</div>
+  <div class="modal" style="max-width:640px">
+    <div class="modal-title">ADMINISTRATION</div>
+
+    <!-- Create club -->
+    <div class="admin-section">
+      <div class="admin-section-title">Skapa ny förening</div>
+      <div class="field" style="margin-bottom:.75rem">
+        <label for="new-club-name">Föreningsnamn</label>
+        <input type="text" id="new-club-name" placeholder="T.ex. IK Oden" autocomplete="off" />
+      </div>
+      <button class="btn-primary" id="btn-create-club" style="font-size:1rem;padding:.7rem 1.2rem">Skapa förening</button>
+      <div id="create-club-msg" style="font-size:.82rem;margin-top:.5rem;min-height:1.2em"></div>
+    </div>
 
     <!-- Create team -->
     <div class="admin-section">
       <div class="admin-section-title">Skapa nytt lag</div>
+      <div class="field" style="margin-bottom:.75rem">
+        <label for="new-team-club">Förening</label>
+        <select id="new-team-club"></select>
+      </div>
       <div class="field-row">
-        <div class="field" style="margin-bottom:0"><label for="new-team-name">Lagnamn</label><input type="text" id="new-team-name" placeholder="T.ex. Irsta P13" /></div>
+        <div class="field" style="margin-bottom:0"><label for="new-team-name">Lagnamn</label><input type="text" id="new-team-name" placeholder="T.ex. IK Oden P13" /></div>
         <div class="field" style="margin-bottom:0">
           <label for="new-team-birth-year">Födelseår</label>
           <input type="number" id="new-team-birth-year" placeholder="T.ex. 2013" min="2000" max="2030" style="width:100%" />
@@ -809,7 +824,7 @@
     <!-- Bulk delete matches by team label -->
     <div class="admin-section">
       <div class="admin-section-title">Ta bort matcher per lag</div>
-      <p style="font-size:.82rem;color:var(--muted);margin-bottom:.75rem">Ta bort alla matcher med ett visst lagnamn i nuvarande lag.</p>
+      <p style="font-size:.82rem;color:var(--muted);margin-bottom:.75rem">Ta bort alla matcher med ett visst lagnamn i nuvarande förening.</p>
       <div class="field" style="margin-bottom:.75rem">
         <label for="bulk-delete-label">Lagnamn</label>
         <select id="bulk-delete-label"></select>
@@ -821,24 +836,18 @@
     <!-- Rename team label on matches -->
     <div class="admin-section">
       <div class="admin-section-title">Byt lagnamn på matcher</div>
-      <p style="font-size:.82rem;color:var(--muted);margin-bottom:.75rem">Byt ut ett felstavat lagnamn på alla matcher i nuvarande lag.</p>
+      <p style="font-size:.82rem;color:var(--muted);margin-bottom:.75rem">Byt ut ett felstavat lagnamn på alla matcher i nuvarande förening.</p>
       <div class="field-row">
-        <div class="field" style="margin-bottom:0">
-          <label for="rename-from">Nuvarande namn</label>
-          <input type="text" id="rename-from" placeholder="T.ex. IrstaP13" autocomplete="off" />
-        </div>
-        <div class="field" style="margin-bottom:0">
-          <label for="rename-to">Nytt namn</label>
-          <input type="text" id="rename-to" placeholder="T.ex. Irsta P13" autocomplete="off" />
-        </div>
+        <div class="field" style="margin-bottom:0"><label for="rename-from">Nuvarande namn</label><input type="text" id="rename-from" placeholder="T.ex. IrstaP13" autocomplete="off" /></div>
+        <div class="field" style="margin-bottom:0"><label for="rename-to">Nytt namn</label><input type="text" id="rename-to" placeholder="T.ex. Irsta P13" autocomplete="off" /></div>
       </div>
       <div style="margin-top:.75rem"><button class="btn-primary" id="btn-rename-teamlabel" style="font-size:1rem;padding:.7rem 1.2rem">Byt namn</button></div>
       <div id="rename-teamlabel-msg" style="font-size:.82rem;margin-top:.5rem;min-height:1.2em"></div>
     </div>
 
-    <!-- Team overview -->
+    <!-- Overview -->
     <div class="admin-section">
-      <div class="admin-section-title">Alla lag</div>
+      <div class="admin-section-title">Alla föreningar och lag</div>
       <div class="admin-team-list" id="admin-team-list"></div>
     </div>
 
@@ -2237,63 +2246,180 @@
   document.getElementById('btn-readme-close').addEventListener('click',()=>{document.getElementById('readme-modal').classList.remove('open');});
   document.getElementById('readme-modal').addEventListener('click',e=>{if(e.target===document.getElementById('readme-modal'))document.getElementById('readme-modal').classList.remove('open');});
 
+  // ── SvFF format calculation ───────────────────────
+  function svffFormat(birthYear) {
+    const age = new Date().getFullYear() - birthYear;
+    if (age <= 9)  return '5v5';
+    if (age <= 12) return '7v7';
+    if (age <= 14) return '9v9';
+    return '11v11';
+  }
+
   // ── ADMIN ─────────────────────────────────────────
-  const adminModal=document.getElementById('admin-modal');
+  const adminModal = document.getElementById('admin-modal');
 
   async function openAdminModal() {
     document.getElementById('settings-dropdown').classList.remove('open');
     document.getElementById('add-user-email').value = '';
     adminModal.classList.add('open');
-    await refreshAdminTeamList();
-    document.getElementById('add-user-team').selectedIndex = -1;
+    await refreshAdminPanel();
+  }
+
+  async function refreshAdminPanel() {
+    // Load all clubs and their teams
+    const clubsSnap = await getDocs(collection(db, 'clubs'));
+    const allClubs  = clubsSnap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a,b) => (a.name||'').localeCompare(b.name||'', 'sv'));
+
+    const allTeams = []; // { clubId, clubName, teamId, teamName, birthYear, format }
+    for (const club of allClubs) {
+      const teamsSnap = await getDocs(collection(db, 'clubs', club.id, 'teams'));
+      teamsSnap.docs.forEach(t => {
+        allTeams.push({ clubId: club.id, clubName: club.name, teamId: t.id, teamName: t.data().name, ...t.data() });
+      });
+    }
+
+    // Populate club dropdown for create team
+    const clubSel = document.getElementById('new-team-club');
+    clubSel.innerHTML = '<option value="">— Välj förening —</option>' + allClubs.map(c => `<option value="${c.id}">${escHtml(c.name)}</option>`).join('');
+
+    // Populate team dropdown for add-user (club · lag)
+    const teamSel = document.getElementById('add-user-team');
+    teamSel.innerHTML = '<option value="">— Välj lag —</option>' + allTeams.map(t =>
+      `<option value="${t.clubId}|${t.teamId}">${escHtml(t.clubName)} · ${escHtml(t.teamName)}</option>`
+    ).join('');
+    teamSel.selectedIndex = 0;
+
+    // Load members via userSettings
+    const usersSnap = await getDocs(collection(db, 'userSettings'));
+    const membersByKey = {}; // "clubId|teamId" → [email]
+    usersSnap.docs.forEach(d => {
+      const memberships = d.data().memberships || [];
+      memberships.forEach(m => {
+        const key = `${m.clubId}|${m.teamId}`;
+        if (!membersByKey[key]) membersByKey[key] = [];
+        membersByKey[key].push(d.data().email || d.id);
+      });
+    });
+
     // Populate bulk delete dropdown
     const labels = getTeamLabels();
     const bulkSel = document.getElementById('bulk-delete-label');
     bulkSel.innerHTML = labels.length
-      ? '<option value="">— Välj lag —</option>' + labels.map(l=>`<option value="${escHtml(l)}">${escHtml(l)}</option>`).join('')
+      ? '<option value="">— Välj lag —</option>' + labels.map(l => `<option value="${escHtml(l)}">${escHtml(l)}</option>`).join('')
       : '<option value="">Inga lag-etiketter finns</option>';
-  }
 
-  async function refreshAdminTeamList() {
-    // Populate team dropdown for add-user
-    const teamsSnap=await getDocs(collection(db,'teams'));
-    const allTeams=teamsSnap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.name||'').localeCompare(b.name||'','sv'));
-
-    const teamSel=document.getElementById('add-user-team');
-    teamSel.innerHTML='<option value="">— Välj lag —</option>'+allTeams.map(t=>`<option value="${t.id}">${escHtml(t.name)}</option>`).join('');
-
-    // Team overview list
-    const listEl=document.getElementById('admin-team-list');
-    // Get all userSettings to find members
-    const usersSnap=await getDocs(collection(db,'userSettings'));
-    const membersByTeam={};
-    usersSnap.docs.forEach(d=>{
-      const data=d.data();
-      (data.teams||[]).forEach(tid=>{
-        if(!membersByTeam[tid])membersByTeam[tid]=[];
-        membersByTeam[tid].push(data.email||d.id);
-      });
-    });
-
-    listEl.innerHTML=allTeams.map(t=>`
-      <div class="admin-team-item">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start">
-          <div class="admin-team-item-name">${escHtml(t.name)}</div>
-          <button class="btn-danger" style="font-size:.72rem;padding:.2rem .6rem;border-radius:6px" data-action="delete-team" data-teamid="${t.id}" data-teamname="${escHtml(t.name)}">Ta bort</button>
-        </div>
-        <div class="admin-team-item-meta">
-          ${t.birthYear?`Födelseår: ${t.birthYear} · `:''}Format: ${t.format||'?'}
-          ${!t.birthYear?` <button class="btn-readme" style="font-size:.72rem" data-action="show-year-input" data-teamid="${t.id}">Lägg till födelseår</button>`:''}
-        </div>
-        <div id="edit-year-${t.id}" style="display:none;align-items:center;gap:.5rem;margin-top:.4rem">
-          <input type="number" placeholder="Födelseår" min="2000" max="2030" style="width:100px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--font-body);font-size:.8rem;padding:.3rem .5rem;outline:none" id="year-input-${t.id}" />
-          <button class="btn-primary" style="font-size:.8rem;padding:.3rem .7rem" data-action="save-year" data-teamid="${t.id}">Spara</button>
-        </div>
-        <div class="admin-member-list">${(membersByTeam[t.id]||[]).map(e=>`<span class="admin-member-chip">${escHtml(e)}</span>`).join('')||'<span style="font-size:.75rem;color:var(--muted)">Inga tränare</span>'}</div>
-      </div>`).join('');
+    // Build overview list grouped by club
+    const listEl = document.getElementById('admin-team-list');
+    let html = '';
+    for (const club of allClubs) {
+      const clubTeams = allTeams.filter(t => t.clubId === club.id);
+      html += `<div style="margin-bottom:1rem">
+        <div style="font-size:.8rem;font-weight:600;color:var(--warn);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.4rem">${escHtml(club.name)}</div>
+        ${clubTeams.map(t => {
+          const key = `${t.clubId}|${t.teamId}`;
+          const members = membersByKey[key] || [];
+          return `<div class="admin-team-item" style="margin-bottom:.4rem">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start">
+              <div class="admin-team-item-name">${escHtml(t.teamName)}</div>
+            </div>
+            <div class="admin-team-item-meta">${t.birthYear ? `Födelseår: ${t.birthYear} · ` : ''}Format: ${t.format || '?'}</div>
+            <div class="admin-member-list">${members.map(e => `<span class="admin-member-chip">${escHtml(e)}</span>`).join('') || '<span style="font-size:.75rem;color:var(--muted)">Inga tränare</span>'}</div>
+          </div>`;
+        }).join('')}
+      </div>`;
+    }
+    listEl.innerHTML = html || '<div style="color:var(--muted);font-size:.85rem">Inga föreningar ännu.</div>';
   }
 
   document.getElementById('btn-admin').addEventListener('click', openAdminModal);
+  document.getElementById('btn-admin-close').addEventListener('click', () => adminModal.classList.remove('open'));
+  adminModal.addEventListener('click', e => { if (e.target === adminModal) adminModal.classList.remove('open'); });
+
+  // Create club
+  document.getElementById('btn-create-club').addEventListener('click', async () => {
+    const name   = document.getElementById('new-club-name').value.trim();
+    const msgEl  = document.getElementById('create-club-msg');
+    if (!name) { msgEl.style.color='var(--danger)'; msgEl.textContent='Ange ett föreningsnamn.'; return; }
+    try {
+      const clubId = name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+      await setDoc(doc(db, 'clubs', clubId), { name, createdBy: currentUser.uid, createdAt: serverTimestamp() });
+      document.getElementById('new-club-name').value = '';
+      msgEl.style.color = 'var(--green)'; msgEl.textContent = `Föreningen "${name}" skapades!`;
+      await refreshAdminPanel();
+      setTimeout(() => { msgEl.textContent = ''; }, 3000);
+    } catch(err) { console.error(err); msgEl.style.color='var(--danger)'; msgEl.textContent='Något gick fel: '+err.message; }
+  });
+
+  // Create team
+  document.getElementById('btn-create-team').addEventListener('click', async () => {
+    const clubId    = document.getElementById('new-team-club').value;
+    const name      = document.getElementById('new-team-name').value.trim();
+    const birthYear = parseInt(document.getElementById('new-team-birth-year').value);
+    const msgEl     = document.getElementById('create-team-msg');
+    if (!clubId)    { msgEl.style.color='var(--danger)'; msgEl.textContent='Välj en förening.'; return; }
+    if (!name)      { msgEl.style.color='var(--danger)'; msgEl.textContent='Ange ett lagnamn.'; return; }
+    if (!birthYear||birthYear<2000||birthYear>2030) { msgEl.style.color='var(--danger)'; msgEl.textContent='Ange ett giltigt födelseår.'; return; }
+    const format = svffFormat(birthYear);
+    try {
+      const teamId = name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+      await setDoc(doc(db, 'clubs', clubId, 'teams', teamId), { name, birthYear, format, createdBy: currentUser.uid, createdAt: serverTimestamp() });
+      document.getElementById('new-team-name').value = '';
+      document.getElementById('new-team-birth-year').value = '';
+      msgEl.style.color='var(--green)'; msgEl.textContent=`Laget "${name}" skapades! (${format})`;
+      await refreshAdminPanel();
+      setTimeout(() => { msgEl.textContent = ''; }, 4000);
+    } catch(err) { console.error(err); msgEl.style.color='var(--danger)'; msgEl.textContent='Något gick fel: '+err.message; }
+  });
+
+  // Add user to team
+  document.getElementById('btn-add-user-to-team').addEventListener('click', async () => {
+    const email    = document.getElementById('add-user-email').value.trim();
+    const teamVal  = document.getElementById('add-user-team').value; // "clubId|teamId"
+    const msgEl    = document.getElementById('add-user-msg');
+    if (!email)   { msgEl.style.color='var(--danger)'; msgEl.textContent='Ange en e-postadress.'; return; }
+    if (!teamVal) { msgEl.style.color='var(--danger)'; msgEl.textContent='Välj ett lag.'; return; }
+    const [clubId, teamId] = teamVal.split('|');
+
+    const btn = document.getElementById('btn-add-user-to-team'); btn.disabled = true;
+    msgEl.style.color='var(--muted)'; msgEl.textContent='Arbetar...';
+
+    try {
+      let uid = null, isNewUser = false;
+      try {
+        const cred = await createUserWithEmailAndPassword(auth, email, 'Temp'+Math.random().toString(36).slice(2)+'!');
+        uid = cred.user.uid; isNewUser = true;
+      } catch(e) {
+        if (e.code === 'auth/email-already-in-use') {
+          const usersSnap = await getDocs(collection(db, 'userSettings'));
+          const found = usersSnap.docs.find(d => d.data().email === email);
+          if (found) uid = found.id;
+          else { msgEl.style.color='var(--danger)'; msgEl.textContent='Användaren finns men har inte loggat in ännu. Be dem logga in först.'; btn.disabled=false; return; }
+        } else { throw e; }
+      }
+
+      if (!uid) { msgEl.style.color='var(--danger)'; msgEl.textContent='Kunde inte hitta eller skapa användaren.'; btn.disabled=false; return; }
+
+      // Add membership
+      const userRef  = doc(db, 'userSettings', uid);
+      const userSnap = await getDoc(userRef);
+      const existing = userSnap.exists() ? (userSnap.data().memberships||[]) : [];
+      const alreadyMember = existing.some(m => m.clubId===clubId && m.teamId===teamId);
+      if (!alreadyMember) {
+        await setDoc(userRef, { memberships: [...existing, { clubId, teamId }], email }, { merge: true });
+      }
+
+      await sendPasswordResetEmail(auth, email);
+      document.getElementById('add-user-email').value = '';
+      msgEl.style.color='var(--green)';
+      msgEl.textContent = isNewUser ? `Nytt konto skapat! Lösenordslänk skickad till ${email}.` : `Klart! ${email} har lagts till.`;
+      await refreshAdminPanel();
+      setTimeout(() => { msgEl.textContent = ''; }, 5000);
+    } catch(err) {
+      console.error(err); msgEl.style.color='var(--danger)'; msgEl.textContent='Något gick fel: '+err.message;
+    } finally { btn.disabled = false; }
+  });
+
+  // Bulk delete matches
   document.getElementById('btn-bulk-delete-matches').addEventListener('click', () => {
     const label = document.getElementById('bulk-delete-label').value;
     const msgEl = document.getElementById('bulk-delete-msg');
@@ -2301,7 +2427,7 @@
     const toDelete = matches.filter(m => (m.teamlabel||'') === label);
     if (!toDelete.length) { msgEl.style.color='var(--danger)'; msgEl.textContent=`Hittade inga matcher med lagnamnet "${label}".`; return; }
     showConfirm(
-      `Ta bort alla ${toDelete.length} matcher för "${label}"? Uppställningar för dessa matcher raderas också.`,
+      `Ta bort alla ${toDelete.length} matcher för "${label}"? Uppställningar raderas också.`,
       'Ta bort', 'btn-danger',
       async () => {
         const btn = document.getElementById('btn-bulk-delete-matches'); btn.disabled = true;
@@ -2312,13 +2438,8 @@
             try { await deleteDoc(teamDoc('lineups', m.id)); } catch(e) {}
           }
           msgEl.style.color='var(--green)'; msgEl.textContent=`Klart! ${toDelete.length} matcher raderade.`;
-          // Refresh bulk delete dropdown
-          const labels = getTeamLabels();
-          const bulkSel = document.getElementById('bulk-delete-label');
-          bulkSel.innerHTML = labels.length
-            ? '<option value="">— Välj lag —</option>' + labels.map(l=>`<option value="${escHtml(l)}">${escHtml(l)}</option>`).join('')
-            : '<option value="">Inga lag-etiketter finns</option>';
-          setTimeout(()=>{ msgEl.textContent=''; }, 4000);
+          await refreshAdminPanel();
+          setTimeout(() => { msgEl.textContent = ''; }, 4000);
         } catch(err) {
           console.error(err); msgEl.style.color='var(--danger)'; msgEl.textContent='Något gick fel: '+err.message;
         } finally { btn.disabled = false; }
@@ -2326,11 +2447,10 @@
     );
   });
 
-  document.getElementById('btn-admin-close').addEventListener('click',()=>adminModal.classList.remove('open'));
-
+  // Rename team label
   document.getElementById('btn-rename-teamlabel').addEventListener('click', async () => {
-    const from = document.getElementById('rename-from').value.trim();
-    const to   = document.getElementById('rename-to').value.trim();
+    const from  = document.getElementById('rename-from').value.trim();
+    const to    = document.getElementById('rename-to').value.trim();
     const msgEl = document.getElementById('rename-teamlabel-msg');
     if (!from || !to) { msgEl.style.color='var(--danger)'; msgEl.textContent='Fyll i båda fälten.'; return; }
     if (from === to)  { msgEl.style.color='var(--danger)'; msgEl.textContent='Namnen är identiska.'; return; }
@@ -2339,154 +2459,14 @@
     const btn = document.getElementById('btn-rename-teamlabel'); btn.disabled = true;
     msgEl.style.color='var(--muted)'; msgEl.textContent=`Uppdaterar ${toUpdate.length} matcher...`;
     try {
-      for (const m of toUpdate) {
-        await updateDoc(matchDocRef(m.id), { teamlabel: to });
-      }
+      for (const m of toUpdate) await updateDoc(matchDocRef(m.id), { teamlabel: to });
       document.getElementById('rename-from').value = '';
       document.getElementById('rename-to').value = '';
       msgEl.style.color='var(--green)'; msgEl.textContent=`Klart! ${toUpdate.length} matcher uppdaterade.`;
-      setTimeout(()=>{ msgEl.textContent=''; }, 4000);
+      setTimeout(() => { msgEl.textContent = ''; }, 4000);
     } catch(err) {
       console.error(err); msgEl.style.color='var(--danger)'; msgEl.textContent='Något gick fel: '+err.message;
     } finally { btn.disabled = false; }
-  });
-  adminModal.addEventListener('click',e=>{if(e.target===adminModal)adminModal.classList.remove('open');});
-
-  // ── SvFF format calculation ───────────────────────
-  function svffFormat(birthYear) {
-    const age = new Date().getFullYear() - birthYear;
-    if (age <= 9)  return '5v5';
-    if (age <= 12) return '7v7';
-    if (age <= 14) return '9v9';
-    return '11v11';
-  }
-
-  document.getElementById('btn-create-team').addEventListener('click', async()=>{
-    const name=document.getElementById('new-team-name').value.trim();
-    const birthYear=parseInt(document.getElementById('new-team-birth-year').value);
-    const msgEl=document.getElementById('create-team-msg');
-    if(!name){msgEl.style.color='var(--danger)';msgEl.textContent='Ange ett lagnamn.';return;}
-    if(!birthYear||birthYear<2000||birthYear>2030){msgEl.style.color='var(--danger)';msgEl.textContent='Ange ett giltigt födelseår.';return;}
-    const format=svffFormat(birthYear);
-    try{
-      await addDoc(collection(db,'teams'),{name,birthYear,format,createdBy:currentUser.uid,createdAt:serverTimestamp()});
-      document.getElementById('new-team-name').value='';
-      document.getElementById('new-team-birth-year').value='';
-      msgEl.style.color='var(--green)'; msgEl.textContent=`Laget "${name}" skapades! (${format} baserat på födelseår ${birthYear})`;
-      await refreshAdminTeamList();
-      setTimeout(()=>{msgEl.textContent='';},4000);
-    }catch(err){console.error(err);msgEl.style.color='var(--danger)';msgEl.textContent='Något gick fel.';}
-  });
-
-  // ── Admin team list event delegation ─────────────
-  document.getElementById('admin-team-list').addEventListener('click', async e => {
-    const showYearBtn = e.target.closest('[data-action="show-year-input"]');
-    const saveYearBtn = e.target.closest('[data-action="save-year"]');
-    const deleteBtn   = e.target.closest('[data-action="delete-team"]');
-
-    if (showYearBtn) {
-      const teamId = showYearBtn.dataset.teamid;
-      document.getElementById(`edit-year-${teamId}`).style.display = 'flex';
-    }
-
-    if (saveYearBtn) {
-      const teamId   = saveYearBtn.dataset.teamid;
-      const input    = document.getElementById(`year-input-${teamId}`);
-      const birthYear= parseInt(input?.value);
-      if (!birthYear||birthYear<2000||birthYear>2030) { alert('Ange ett giltigt födelseår.'); return; }
-      const format = svffFormat(birthYear);
-      try {
-        await updateDoc(doc(db,'teams',teamId), {birthYear, format});
-        await refreshAdminTeamList();
-      } catch(err) { console.error(err); alert('Något gick fel.'); }
-    }
-
-    if (deleteBtn) {
-      const teamId   = deleteBtn.dataset.teamid;
-      const teamName = deleteBtn.dataset.teamname;
-      showConfirm(
-        `Ta bort laget "${teamName}"? All data (spelare, matcher, uppställningar) raderas permanent.`,
-        'Ta bort lag', 'btn-danger',
-        async () => {
-          try {
-            const subcols = ['players','matches','lineups','customFormations'];
-            for (const col of subcols) {
-              const snap = await getDocs(collection(db,'teams',teamId,col));
-              for (const d of snap.docs) await deleteDoc(doc(db,'teams',teamId,col,d.id));
-            }
-            await deleteDoc(doc(db,'teams',teamId));
-            const usersSnap = await getDocs(collection(db,'userSettings'));
-            for (const d of usersSnap.docs) {
-              const teams = d.data().teams||[];
-              if (teams.includes(teamId)) {
-                await updateDoc(doc(db,'userSettings',d.id), { teams: teams.filter(t=>t!==teamId) });
-              }
-            }
-            await refreshAdminTeamList();
-          } catch(err) { console.error(err); alert('Något gick fel: '+err.message); }
-        }
-      );
-    }
-  });
-
-  document.getElementById('btn-add-user-to-team').addEventListener('click', async()=>{
-    const email=document.getElementById('add-user-email').value.trim();
-    const teamId=document.getElementById('add-user-team').value;
-    const msgEl=document.getElementById('add-user-msg');
-    if(!email){msgEl.style.color='var(--danger)';msgEl.textContent='Ange en e-postadress.';return;}
-    if(!teamId){msgEl.style.color='var(--danger)';msgEl.textContent='Välj ett lag.';return;}
-
-    const btn=document.getElementById('btn-add-user-to-team'); btn.disabled=true;
-    msgEl.style.color='var(--muted)'; msgEl.textContent='Arbetar...';
-
-    try{
-      let uid=null;
-      let isNewUser=false;
-
-      // Try to create new account
-      try{
-        const cred=await createUserWithEmailAndPassword(auth,email,'Temp'+Math.random().toString(36).slice(2)+'!');
-        uid=cred.user.uid;
-        isNewUser=true;
-      }catch(e){
-        if(e.code==='auth/email-already-in-use'){
-          // Existing user — find uid via email field in userSettings
-          const usersSnap=await getDocs(collection(db,'userSettings'));
-          const found=usersSnap.docs.find(d=>d.data().email===email);
-          if(found) uid=found.id;
-          else {
-            // Email field might not exist yet — inform admin
-            msgEl.style.color='var(--danger)';
-            msgEl.textContent='Användaren finns men har inte loggat in i nya versionen än. Be dem logga in först, sedan försök igen.';
-            btn.disabled=false; return;
-          }
-        } else { throw e; }
-      }
-
-      if(!uid){msgEl.style.color='var(--danger)';msgEl.textContent='Kunde inte hitta eller skapa användaren.';btn.disabled=false;return;}
-
-      // Add team to user's settings
-      const userRef=doc(db,'userSettings',uid);
-      const userSnap=await getDoc(userRef);
-      const existingTeams=userSnap.exists()?(userSnap.data().teams||[]):[];
-      if(!existingTeams.includes(teamId)){
-        await setDoc(userRef,{teams:[...existingTeams,teamId],email},{merge:true});
-      }
-
-      // Send password reset/welcome email
-      await sendPasswordResetEmail(auth,email);
-
-      document.getElementById('add-user-email').value='';
-      msgEl.style.color='var(--green)';
-      msgEl.textContent=isNewUser
-        ? `Nytt konto skapat! Lösenordslänk skickad till ${email}.`
-        : `Klart! ${email} har lagts till och fått en lösenordslänk.`;
-      await refreshAdminTeamList();
-      setTimeout(()=>{msgEl.textContent='';},5000);
-    }catch(err){
-      console.error(err);
-      msgEl.style.color='var(--danger)'; msgEl.textContent='Något gick fel: '+err.message;
-    } finally{btn.disabled=false;}
   });
 
 </script>

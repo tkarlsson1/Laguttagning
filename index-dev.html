@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>v9.8-dev — Uttagning</title>
+  <title>v9.8-dev-clubs — Uttagning</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
@@ -862,7 +862,7 @@
   import { initializeApp }           from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
   import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail, createUserWithEmailAndPassword }
                                      from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-  import { getFirestore, collection, doc, getDoc, getDocs, onSnapshot, addDoc, updateDoc, deleteDoc, setDoc, serverTimestamp }
+  import { getFirestore, collection, doc, getDoc, getDocs, query, where, onSnapshot, addDoc, updateDoc, deleteDoc, setDoc, serverTimestamp }
                                      from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
   const firebaseConfig = {
@@ -893,9 +893,11 @@
 
   // ── App state ─────────────────────────────────────
   let currentUser      = null;
+  let currentClubId    = null;
   let currentTeamId    = null;
   let currentTeamName  = '';
-  let userTeams        = [];   // [{ id, name, format }]
+  let userMemberships  = [];   // [{ clubId, teamId, clubName, teamName }]
+  let userTeams        = [];   // teams within current club
   let isAdmin          = false;
   let players          = [];
   let matches          = [];
@@ -917,9 +919,11 @@
   let overviewWeekOffset    = 0;
   let selectedHistoryMatchId= null;
 
-  // ── Team collection helper ────────────────────────
-  function teamCol(name) { return collection(db, 'teams', currentTeamId, name); }
-  function teamDoc(name, id) { return doc(db, 'teams', currentTeamId, name, id); }
+  // ── Collection helpers ────────────────────────────
+  function teamCol(name) { return collection(db, 'clubs', currentClubId, 'teams', currentTeamId, name); }
+  function teamDoc(name, id) { return doc(db, 'clubs', currentClubId, 'teams', currentTeamId, name, id); }
+  function matchesCol() { return collection(db, 'matches'); }
+  function matchDocRef(id) { return doc(db, 'matches', id); }
 
   // ── Helpers ───────────────────────────────────────
   function showView(n) {
@@ -1047,11 +1051,11 @@
   document.getElementById('btn-switch-team').addEventListener('click', () => {
     document.getElementById('settings-dropdown').classList.remove('open');
     stopListeners();
-    currentTeamId=null; currentTeamName='';
+    currentClubId=null; currentTeamId=null; currentTeamName='';
     currentLineupMatchId=null; lineupFormation=''; lineupSlots={}; selectedSlot=null;
     players=[]; matches=[]; allLineups={}; customFormations=[];
     overviewWeekOffset=0; selectedHistoryMatchId=null;
-    showTeamSelect(null);
+    showTeamSelect(null, null);
   });
 
   // ── Auth ──────────────────────────────────────────
@@ -1062,7 +1066,7 @@
       document.getElementById('user-email').textContent = user.email;
       isAdmin = user.uid === ADMIN_UID;
       document.getElementById('admin-section-wrapper').style.display = isAdmin ? 'block' : 'none';
-      await loadUserTeams();
+      await loadUserMemberships();
       await loadTheme();
     } else {
       showView('login');
@@ -1072,64 +1076,110 @@
     }
   });
 
-  async function loadUserTeams() {
+  async function loadUserMemberships() {
     try {
       const snap = await getDoc(doc(db,'userSettings',currentUser.uid));
-      const teamIds = snap.exists() ? (snap.data().teams||[]) : [];
-      const lastTeam = snap.exists() ? snap.data().lastTeam : null;
+      if (!snap.exists()) { showNoTeamError(); return; }
 
-      // Load team metadata in parallel
-      const teamSnaps = await Promise.all(teamIds.map(tid => getDoc(doc(db,'teams',tid))));
-      userTeams = teamSnaps.filter(s => s.exists()).map(s => ({ id:s.id, ...s.data() }));
+      const data = snap.data();
+      const memberships = data.memberships || [];
 
-      if (userTeams.length === 0) {
-        showView('login');
-        const loginError = document.getElementById('login-error');
-        loginError.textContent = 'Ditt konto är inte kopplat till något lag. Kontakta administratören.';
-        loginError.classList.add('visible');
-        await signOut(auth);
-        return;
+      if (memberships.length === 0) { showNoTeamError(); return; }
+
+      // Load club and team metadata in parallel
+      const clubIds  = [...new Set(memberships.map(m=>m.clubId))];
+      const clubSnaps = await Promise.all(clubIds.map(id => getDoc(doc(db,'clubs',id))));
+      const clubMap  = {};
+      clubSnaps.filter(s=>s.exists()).forEach(s=>{ clubMap[s.id] = s.data(); });
+
+      userMemberships = [];
+      for (const m of memberships) {
+        if (!clubMap[m.clubId]) continue;
+        const teamSnap = await getDoc(doc(db,'clubs',m.clubId,'teams',m.teamId));
+        if (!teamSnap.exists()) continue;
+        userMemberships.push({
+          clubId:   m.clubId,
+          clubName: clubMap[m.clubId].name,
+          teamId:   m.teamId,
+          teamName: teamSnap.data().name,
+          ...teamSnap.data()
+        });
       }
 
-      if (userTeams.length === 1) {
-        enterTeam(userTeams[0].id, userTeams[0].name);
+      if (userMemberships.length === 0) { showNoTeamError(); return; }
+
+      const lastClubId = data.lastClubId;
+      const lastTeamId = data.lastTeamId;
+
+      // Group by club
+      const clubs = [...new Set(userMemberships.map(m=>m.clubId))];
+
+      if (clubs.length === 1) {
+        // One club — check teams within it
+        const teamsInClub = userMemberships.filter(m=>m.clubId===clubs[0]);
+        if (teamsInClub.length === 1) {
+          enterTeam(teamsInClub[0].clubId, teamsInClub[0].teamId, teamsInClub[0].teamName);
+        } else {
+          showTeamSelect(clubs[0], lastTeamId);
+        }
       } else {
-        // Always show team select when multiple teams exist
-        // lastTeam is used to highlight preferred but user still chooses
-        showTeamSelect(lastTeam);
+        // Multiple clubs — show club+team select
+        showTeamSelect(lastClubId, lastTeamId);
       }
     } catch(err) {
-      console.error('loadUserTeams error:', err);
+      console.error('loadUserMemberships error:', err);
     }
   }
 
-  function showTeamSelect(lastTeam) {
+  function showNoTeamError() {
+    showView('login');
+    const loginError = document.getElementById('login-error');
+    loginError.textContent = 'Ditt konto är inte kopplat till något lag. Kontakta administratören.';
+    loginError.classList.add('visible');
+    signOut(auth);
+  }
+
+  function showTeamSelect(lastClubId, lastTeamId) {
     const list = document.getElementById('team-list');
-    list.innerHTML = userTeams.map(t => `
-      <div class="team-item" data-id="${t.id}" style="${t.id===lastTeam?'border-color:var(--green)':''}">
-        <div>
-          <div class="team-item-name">${escHtml(t.name)}${t.id===lastTeam?' <span style="font-size:.72rem;color:var(--green)">(senaste)</span>':''}</div>
-          <div class="team-item-format">${t.birthYear?`${t.birthYear} · ${svffFormat(t.birthYear)}`:(t.format||'')}</div>
-        </div>
-        <span class="team-item-arrow">→</span>
-      </div>`).join('');
+    // Group memberships by club
+    const clubs = [...new Set(userMemberships.map(m=>m.clubId))];
+    let html = '';
+    clubs.forEach(clubId => {
+      const clubTeams = userMemberships.filter(m=>m.clubId===clubId);
+      if (clubs.length > 1) {
+        html += `<div style="font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:.75rem 0 .3rem">${escHtml(clubTeams[0].clubName)}</div>`;
+      }
+      clubTeams.forEach(m => {
+        const isLast = m.clubId===lastClubId && m.teamId===lastTeamId;
+        html += `<div class="team-item" data-club="${m.clubId}" data-team="${m.teamId}" style="${isLast?'border-color:var(--green)':''}">
+          <div>
+            <div class="team-item-name">${escHtml(m.teamName)}${isLast?' <span style="font-size:.72rem;color:var(--green)">(senaste)</span>':''}</div>
+            <div class="team-item-format">${m.birthYear?`${m.birthYear} · ${svffFormat(m.birthYear)}`:(m.format||'')}</div>
+          </div>
+          <span class="team-item-arrow">→</span>
+        </div>`;
+      });
+    });
+    list.innerHTML = html;
     list.querySelectorAll('.team-item').forEach(item => {
       item.addEventListener('click', () => {
-        const t = userTeams.find(x=>x.id===item.dataset.id);
-        if (t) enterTeam(t.id, t.name);
+        const m = userMemberships.find(x=>x.clubId===item.dataset.club&&x.teamId===item.dataset.team);
+        if (m) enterTeam(m.clubId, m.teamId, m.teamName);
       });
     });
     showView('team-select');
   }
 
-  async function enterTeam(teamId, teamName) {
+  async function enterTeam(clubId, teamId, teamName) {
+    currentClubId   = clubId;
     currentTeamId   = teamId;
     currentTeamName = teamName;
+    userTeams = userMemberships.filter(m=>m.clubId===clubId);
     document.getElementById('topbar-team-name').textContent = teamName;
-    document.getElementById('switch-team-wrapper').style.display = userTeams.length > 1 ? 'block' : 'none';
+    document.getElementById('switch-team-wrapper').style.display = userMemberships.length > 1 ? 'block' : 'none';
 
-    // Save lastTeam and email
-    try { await setDoc(doc(db,'userSettings',currentUser.uid),{lastTeam:teamId, email:currentUser.email},{merge:true}); } catch(e){}
+    // Save last selection
+    try { await setDoc(doc(db,'userSettings',currentUser.uid),{lastClubId:clubId, lastTeamId:teamId, email:currentUser.email},{merge:true}); } catch(e){}
 
     showView('app');
     // Reset lineup UI
@@ -1171,7 +1221,8 @@
   function resetAppState() {
     players=[]; matches=[]; allLineups={}; customFormations=[];
     overviewWeekOffset=0; selectedHistoryMatchId=null;
-    currentTeamId=null; currentTeamName=''; userTeams=[];
+    currentClubId=null; currentTeamId=null; currentTeamName='';
+    userTeams=[]; userMemberships=[];
     currentLineupMatchId=null; lineupFormation=''; lineupSlots={}; selectedSlot=null;
   }
 
@@ -1375,7 +1426,8 @@
   // ── MATCHES ───────────────────────────────────────
   function startMatchListener() {
     if (unsubMatches) { unsubMatches(); unsubMatches=null; }
-    unsubMatches=onSnapshot(teamCol('matches'),snap=>{
+    const q = query(matchesCol(), where('clubId','==',currentClubId));
+    unsubMatches=onSnapshot(q,snap=>{
       matches=snap.docs.map(d=>({id:d.id,...d.data()}));
       matches.sort((a,b)=>(`${a.date||''}T${a.time||'00:00'}`).localeCompare(`${b.date||''}T${b.time||'00:00'}`));
       renderMatches(); refreshMatchSelector();
@@ -1489,9 +1541,13 @@
     const date=document.getElementById('match-date').value; if (!date){document.getElementById('match-date').focus();return;}
     const teamlabel=document.getElementById('match-teamlabel').value;
     if (!teamlabel||teamlabel==='__new__'){alert('Välj ett lag.');return;}
-    const data={date,time:document.getElementById('match-time').value||'',opponent:document.getElementById('match-opponent').value.trim()||'',location:document.getElementById('match-location').value.trim()||'',format:document.getElementById('match-format').value,difficulty:document.getElementById('match-difficulty').value,homeway:document.getElementById('match-homeway').value||'',serie:document.getElementById('match-serie').value.trim()||'',teamlabel,updatedBy:currentUser?.email||'okänd',updatedAt:serverTimestamp()};
+    const data={date,time:document.getElementById('match-time').value||'',opponent:document.getElementById('match-opponent').value.trim()||'',location:document.getElementById('match-location').value.trim()||'',format:document.getElementById('match-format').value,difficulty:document.getElementById('match-difficulty').value,homeway:document.getElementById('match-homeway').value||'',serie:document.getElementById('match-serie').value.trim()||'',teamlabel,clubId:currentClubId,teamId:currentTeamId,updatedBy:currentUser?.email||'okänd',updatedAt:serverTimestamp()};
     const btn=document.getElementById('btn-match-save'); btn.disabled=true;
-    try{if(editingMatchId)await updateDoc(teamDoc('matches',editingMatchId),data);else await addDoc(teamCol('matches'),data);closeMatchModal();}
+    try{
+      if(editingMatchId) await updateDoc(matchDocRef(editingMatchId),data);
+      else               await addDoc(matchesCol(),data);
+      closeMatchModal();
+    }
     catch(err){console.error(err);alert('Något gick fel.');}finally{btn.disabled=false;}
   });
 
@@ -1657,20 +1713,13 @@
         });
       }
       for (const m of fogisMatches) {
-        const data = { ...m, teamlabel, updatedBy: currentUser?.email||'okänd', updatedAt: serverTimestamp() };
+        const data = { ...m, teamlabel, clubId: currentClubId, teamId: currentTeamId, updatedBy: currentUser?.email||'okänd', updatedAt: serverTimestamp() };
         if (m.fogisId) {
-          // Check if match with this fogisId already exists
           const existing = matches.find(x => x.fogisId === m.fogisId);
-          if (existing) {
-            await updateDoc(teamDoc('matches', existing.id), data);
-            updated++;
-          } else {
-            await addDoc(teamCol('matches'), data);
-            created++;
-          }
+          if (existing) { await updateDoc(matchDocRef(existing.id), data); updated++; }
+          else          { await addDoc(matchesCol(), data); created++; }
         } else {
-          await addDoc(teamCol('matches'), data);
-          created++;
+          await addDoc(matchesCol(), data); created++;
         }
       }
       document.getElementById('fogis-modal').classList.remove('open');
@@ -1696,7 +1745,8 @@
     pendingDelete={type,id};
     showConfirm(`Vill du ta bort ${name}? Det går inte att ångra.`,'Ta bort','btn-danger', async()=>{
       const{type,id}=pendingDelete;
-      await deleteDoc(teamDoc(type==='player'?'players':'matches',id));
+      if(type==='player') await deleteDoc(teamDoc('players',id));
+      else                await deleteDoc(matchDocRef(id));
       if(type==='player')closePlayerModal();else closeMatchModal();
       pendingDelete=null;
     });
@@ -2264,8 +2314,7 @@
         msgEl.style.color='var(--muted)'; msgEl.textContent=`Raderar ${toDelete.length} matcher...`;
         try {
           for (const m of toDelete) {
-            await deleteDoc(teamDoc('matches', m.id));
-            // Also delete lineup if exists
+            await deleteDoc(matchDocRef(m.id));
             try { await deleteDoc(teamDoc('lineups', m.id)); } catch(e) {}
           }
           msgEl.style.color='var(--green)'; msgEl.textContent=`Klart! ${toDelete.length} matcher raderade.`;
@@ -2297,7 +2346,7 @@
     msgEl.style.color='var(--muted)'; msgEl.textContent=`Uppdaterar ${toUpdate.length} matcher...`;
     try {
       for (const m of toUpdate) {
-        await updateDoc(teamDoc('matches', m.id), { teamlabel: to });
+        await updateDoc(matchDocRef(m.id), { teamlabel: to });
       }
       document.getElementById('rename-from').value = '';
       document.getElementById('rename-to').value = '';

@@ -6,8 +6,13 @@ const fbApp = admin.initializeApp({
   credential: admin.credential.cert(serviceAccount)
 });
 
-const prodDb = admin.firestore(fbApp);                          // default = production
-const devDb  = admin.firestore.getFirestore(fbApp, 'laguttagning-dev');  // named database
+const prodDb = admin.firestore();
+prodDb.settings({});
+
+const devDb = new admin.firestore.Firestore({
+  credential: admin.credential.cert(serviceAccount),
+  databaseId: 'laguttagning-dev'
+});
 
 const SUBCOLLECTIONS = ['players', 'matches', 'lineups', 'customFormations'];
 

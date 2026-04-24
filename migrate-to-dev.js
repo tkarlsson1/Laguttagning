@@ -1,18 +1,13 @@
 const admin = require('firebase-admin');
+const { getFirestore } = require('firebase-admin/firestore');
 const serviceAccount = require('./serviceAccount.json');
 
-// Initialize app — uses default (production) database first
-const fbApp = admin.initializeApp({
+admin.initializeApp({
   credential: admin.credential.cert(serviceAccount)
 });
 
-const prodDb = admin.firestore();
-
-const devDb = new admin.firestore.Firestore({
-  credential: admin.credential.cert(serviceAccount),
-  projectId: serviceAccount.project_id,
-  databaseId: 'laguttagning-dev'
-});
+const prodDb = getFirestore();                    // default = production
+const devDb  = getFirestore('laguttagning-dev');  // named database
 
 const SUBCOLLECTIONS = ['players', 'matches', 'lineups', 'customFormations'];
 
@@ -31,15 +26,15 @@ async function copyCollection(srcRef, dstRef, label) {
 async function migrate() {
   console.log('Starting migration: production → laguttagning-dev\n');
 
-  // ── Copy top-level collections ─────────────────────
+  // ── Top-level collections ──────────────────────────
   console.log('Copying admins...');
   await copyCollection(prodDb.collection('admins'), devDb.collection('admins'), 'admins');
 
   console.log('Copying userSettings...');
   await copyCollection(prodDb.collection('userSettings'), devDb.collection('userSettings'), 'userSettings');
 
-  // ── Copy teams and their subcollections ────────────
-  console.log('Copying teams...');
+  // ── Teams and subcollections ───────────────────────
+  console.log('\nCopying teams...');
   const teamsSnap = await prodDb.collection('teams').get();
   if (teamsSnap.empty) {
     console.log('  No teams found in production!');
@@ -57,8 +52,7 @@ async function migrate() {
     }
   }
 
-  console.log('\nMigration complete!');
-  console.log('Production data is untouched.');
+  console.log('\nMigration complete! Production data is untouched.');
   process.exit(0);
 }
 

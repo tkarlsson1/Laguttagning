@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>v0.102 — Uttagning</title>
+  <title>v0.103 — Uttagning</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
@@ -2138,21 +2138,25 @@
     const sortedPlayers=[...players].sort((a,b)=>shortName(a).localeCompare(shortName(b),'sv'));
     const matchLineups=weekMatches.map(m=>{const lu=allLineups[m.id];return{match:m,pids:new Set(lu?[...new Set(Object.values(lu.slots||{}).flat())]:[])}; });
     let html='<div class="overview-table-wrap"><table class="overview-table"><thead><tr><th>Spelare</th>';
-    matchLineups.forEach(({match:m})=>{
+    matchLineups.forEach(({match:m}, i)=>{
       const d=m.date?new Date(m.date+'T12:00:00'):null;
       const dayStr=d?`${WEEKDAY[d.getDay()]} ${d.toLocaleDateString('sv-SE',{day:'numeric',month:'short'})}`:' ?';
-      html+=`<th class="match-col"><span class="match-col-time">${escHtml(m.time||'?')}</span><span class="match-col-opp">${escHtml(m.opponent||'—')}</span><span class="match-col-opp">${dayStr}</span><span class="match-col-diff">${DIFF_EMOJI[m.difficulty]||''}</span></th>`;
+      const prevDate = i > 0 ? matchLineups[i-1].match.date : null;
+      const dayBorder = i > 0 && m.date !== prevDate ? 'border-left:3px solid var(--text);' : '';
+      html+=`<th class="match-col" style="${dayBorder}"><span class="match-col-time">${escHtml(m.time||'?')}</span><span class="match-col-opp">${escHtml(m.opponent||'—')}</span><span class="match-col-opp">${dayStr}</span></th>`;
     });
     html+='</tr></thead><tbody>';
     sortedPlayers.forEach(p=>{
       html+=`<tr><td class="player-name-col">${escHtml(shortName(p))}</td>`;
-      matchLineups.forEach(({match:m,pids})=>{
+      matchLineups.forEach(({match:m,pids}, i)=>{
         const absent=isPlayerUnavailableOnDate(p,m.date||today),selected=pids.has(p.id);
+        const prevDate = i > 0 ? matchLineups[i-1].match.date : null;
+        const dayBorder = i > 0 && m.date !== prevDate ? 'border-left:3px solid var(--text);' : '';
         let cell;
         if(absent)cell='<span class="ov-dot-absent" title="Ej tillgänglig">●</span>';
         else if(selected)cell='<span class="ov-dot-selected" title="Uttagen">●</span>';
         else cell='<span class="ov-dot-empty">·</span>';
-        html+=`<td class="dot-col">${cell}</td>`;
+        html+=`<td class="dot-col" style="${dayBorder}">${cell}</td>`;
       });
       html+='</tr>';
     });

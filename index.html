@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>v0.121 — Uttagning</title>
+  <title>v0.123 — Uttagning</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
@@ -760,7 +760,10 @@
 <!-- ── FOGIS IMPORT MODAL ─────────────────────────────── -->
 <div id="fogis-modal" class="modal-backdrop">
   <div class="modal" style="max-width:620px">
-    <div class="modal-title">IMPORTERA FRÅN FOGIS</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem">
+      <div class="modal-title" style="margin-bottom:0">IMPORTERA FRÅN FOGIS</div>
+      <button class="btn-readme" id="btn-fogis-readme" style="font-size:.82rem;white-space:nowrap">Snabbguide ↗</button>
+    </div>
     <div class="field">
       <label for="fogis-team-name">Lagets namn i Fogis</label>
       <input type="text" id="fogis-team-name" placeholder="T.ex. Irsta IF P12 Svart" autocomplete="off" />
@@ -2284,7 +2287,14 @@
   });
 
   // ── README ────────────────────────────────────────
-  document.getElementById('btn-readme').addEventListener('click',()=>{document.getElementById('settings-dropdown').classList.remove('open');document.getElementById('readme-modal').classList.add('open');});
+  document.getElementById('btn-fogis-readme').addEventListener('click', () => {
+    document.getElementById('fogis-modal').classList.remove('open');
+    document.getElementById('readme-modal').classList.add('open');
+  });
+  document.getElementById('btn-readme').addEventListener('click', () => {
+    document.getElementById('settings-dropdown').classList.remove('open');
+    document.getElementById('readme-modal').classList.add('open');
+  });
   document.getElementById('btn-readme-close').addEventListener('click',()=>{document.getElementById('readme-modal').classList.remove('open');});
   document.getElementById('readme-modal').addEventListener('click',e=>{if(e.target===document.getElementById('readme-modal'))document.getElementById('readme-modal').classList.remove('open');});
 

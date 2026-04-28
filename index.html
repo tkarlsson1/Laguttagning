@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>v0.127 — Uttagning</title>
+  <title>v0.128 — Uttagning</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
@@ -320,6 +320,7 @@
 
     /* ── MATCH PICKER ────────────────────────────────── */
     .match-picker { position: relative; }
+    .match-picker-list { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; max-height: 340px; overflow-y: auto; }
     .match-picker-trigger { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; color: var(--text); padding: .75rem 1rem; cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: border-color .2s; user-select: none; }
     .match-picker-trigger:hover { border-color: var(--green); }
     .match-picker-trigger.open  { border-color: var(--green); border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
@@ -628,11 +629,7 @@
       <div class="field lineup-match-field" style="margin-bottom:0">
         <label>Match</label>
         <div class="match-picker" id="match-picker">
-          <div class="match-picker-trigger" id="match-picker-trigger">
-            <span id="match-picker-label" style="color:var(--muted)">— Välj match —</span>
-            <span class="match-picker-arrow">▾</span>
-          </div>
-          <div class="match-picker-dropdown" id="match-picker-dropdown"></div>
+          <div class="match-picker-list" id="match-picker-dropdown"></div>
         </div>
       </div>
       <div class="lineup-formation-group" id="formation-group" style="display:none">
@@ -1172,8 +1169,6 @@
     // Reset lineup UI
     document.getElementById('lineup-body').innerHTML = '<div class="lineup-placeholder">Välj en match ovan för att sätta laget.</div>';
     document.getElementById('formation-group').style.display = 'none';
-    const pickerLabel = document.getElementById('match-picker-label');
-    if (pickerLabel) { pickerLabel.textContent = '— Välj match —'; pickerLabel.style.color = 'var(--muted)'; }
     // Reset player filter
     activeFilter = 'all';
     activeMatchTeamFilter = [currentTeamName];
@@ -1774,10 +1769,8 @@
 
   // ── LINEUP ────────────────────────────────────────
   function refreshMatchSelector() {
-    const trigger=document.getElementById('match-picker-trigger');
     const dropdown=document.getElementById('match-picker-dropdown');
-    const label=document.getElementById('match-picker-label');
-    if(!trigger)return;
+    if(!dropdown)return;
 
     // Build filter bar
     const filterBar=document.getElementById('lineup-teamlabel-filter');
@@ -1826,26 +1819,10 @@
       });
       dropdown.innerHTML=html;
       dropdown.querySelectorAll('.match-picker-item').forEach(item=>{
-        item.addEventListener('click',()=>{selectLineupMatch(item.dataset.id);closePicker();});
+        item.addEventListener('click',()=>selectLineupMatch(item.dataset.id));
       });
     }
-    const cur=matches.find(m=>m.id===currentLineupMatchId);
-    if(cur){
-      const d=cur.date?new Date(cur.date+'T12:00:00'):null;
-      const dayStr=d?`${WEEKDAY[d.getDay()]} ${d.toLocaleDateString('sv-SE',{day:'numeric',month:'short'})}`:'';
-      label.textContent=`${cur.time||'?'} · ${cur.opponent||'—'} (${dayStr})`;
-      label.style.color='var(--text)';
-    } else {
-      label.textContent='— Välj match —'; label.style.color='var(--muted)';
-    }
   }
-
-  function closePicker(){document.getElementById('match-picker-trigger')?.classList.remove('open');document.getElementById('match-picker-dropdown')?.classList.remove('open');}
-  document.getElementById('match-picker-trigger').addEventListener('click',()=>{
-    const trigger=document.getElementById('match-picker-trigger'),dropdown=document.getElementById('match-picker-dropdown');
-    if(trigger.classList.contains('open')){closePicker();}else{trigger.classList.add('open');dropdown.classList.add('open');}
-  });
-  document.addEventListener('click',e=>{if(!document.getElementById('match-picker')?.contains(e.target))closePicker();});
 
   function selectLineupMatch(matchId) {
     if(unsubLineup){unsubLineup();unsubLineup=null;}

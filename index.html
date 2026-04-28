@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>v0.117 — Uttagning</title>
+  <title>v0.118 — Uttagning</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
@@ -1088,13 +1088,15 @@
   // ── Auth ──────────────────────────────────────────
   onAuthStateChanged(auth, async user => {
     document.body.classList.add('auth-ready');
+    // Apply theme from localStorage immediately — before any async operations
+    applyTheme(localStorage.getItem('theme') !== 'dark');
     currentUser = user;
     if (user) {
       document.getElementById('user-email').textContent = user.email;
       isAdmin = user.uid === ADMIN_UID;
       document.getElementById('admin-section-wrapper').style.display = isAdmin ? 'block' : 'none';
       await loadUserTeams();
-      await loadTheme();
+      await loadTheme(); // confirms/updates from Firestore silently
     } else {
       showView('login');
       stopListeners();

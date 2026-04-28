@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>v0.115 — Uttagning</title>
+  <title>v0.116 — Uttagning</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
@@ -66,8 +66,10 @@
     body:not(.auth-ready) .view { display: none !important; }
     #app-loader {
       position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
-      background: var(--bg); z-index: 999;
+      background: #0e1110; z-index: 999;
     }
+    html.theme-light-early #app-loader { background: #f4f6f4; }
+    html.theme-light-early #app-loader .loader-pulse { background: #2e7d4a; }
     #app-loader.hidden { display: none; }
     .loader-pulse {
       width: 16px; height: 16px; border-radius: 50%; background: var(--green);

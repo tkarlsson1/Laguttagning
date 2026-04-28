@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>v0.116 — Uttagning</title>
+  <title>v0.117 — Uttagning</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
@@ -954,6 +954,7 @@
   function showView(n) {
     document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
     document.getElementById('view-'+n).classList.add('active');
+    document.getElementById('app-loader').classList.add('hidden');
   }
   function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
   function formatDate(ds) { if (!ds) return ''; return new Date(ds+'T12:00:00').toLocaleDateString('sv-SE',{day:'numeric',month:'short'}); }
@@ -1087,7 +1088,6 @@
   // ── Auth ──────────────────────────────────────────
   onAuthStateChanged(auth, async user => {
     document.body.classList.add('auth-ready');
-    document.getElementById('app-loader').classList.add('hidden');
     currentUser = user;
     if (user) {
       document.getElementById('user-email').textContent = user.email;

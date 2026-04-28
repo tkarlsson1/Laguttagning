@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>v0.126 — Uttagning</title>
+  <title>v0.127 — Uttagning</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
@@ -968,6 +968,7 @@
     return p.length===1 ? p[0] : p[0]+' '+p[p.length-1][0]+'.';
   }
   function todayStr() { return new Date().toISOString().slice(0,10); }
+  function isOwnTeamMatch(m) { return !m.teamlabel || m.teamlabel === currentTeamName; }
 
   // ── Absence helpers ───────────────────────────────
   function absenceActiveOnDate(abs, dateStr) {
@@ -1357,7 +1358,7 @@
     const cleanAbsences=modalAbsences.filter(a=>a.from).map(a=>({type:a.type||'unavailable',from:a.from,to:a.to||'',note:a.note||''}));
     const openEnded=cleanAbsences.find(a=>!a.to&&absenceActiveOnDate(a,todayStr()));
     const status=openEnded?openEnded.type:'available';
-    const data={name,displayName:document.getElementById('player-display-name').value.trim()||'',status,positions,absences:cleanAbsences,updatedBy:currentUser?.email||'okänd',updatedAt:serverTimestamp()};
+    const data={name,displayName:document.getElementById('player-display-name').value.trim()||'',status,positions,absences:cleanAbsences};
     const btn=document.getElementById('btn-player-save'); btn.disabled=true;
     try {
       if (editingPlayerId) await updateDoc(teamDoc('players',editingPlayerId),data);
@@ -1464,9 +1465,7 @@
       const weekLabel=weekNum?` · Vecka ${weekNum}`:'';
       html+=`<div class="date-group-header">${d?`${WEEKDAY[d.getDay()]} ${d.toLocaleDateString('sv-SE',{day:'numeric',month:'long',year:'numeric'})}${weekLabel}`:'Okänt datum'}</div>`;
       groups[dk].forEach(m=>{
-        const currentTeam=userTeams.find(t=>t.id===currentTeamId);
-        const ownName=currentTeam?.name||'';
-        const isOwn=!m.teamlabel||m.teamlabel===ownName;
+        const isOwn=isOwnTeamMatch(m);
         html+=`<div class="match-card${isOwn?'':' match-card-other'}" data-id="${m.id}"><div class="match-diff-bar diff-${m.difficulty||'green'}"></div>
           <div class="match-card-body">
             <div class="match-time-block"><div class="match-time">${escHtml(m.time||'??:??')}</div></div>
@@ -1528,7 +1527,7 @@
     const date=document.getElementById('match-date').value; if (!date){document.getElementById('match-date').focus();return;}
     const teamlabel=document.getElementById('match-teamlabel').value;
     if (!teamlabel||teamlabel==='__new__'){alert('Välj ett lag.');return;}
-    const data={date,time:document.getElementById('match-time').value||'',opponent:document.getElementById('match-opponent').value.trim()||'',location:document.getElementById('match-location').value.trim()||'',format:document.getElementById('match-format').value,difficulty:document.getElementById('match-difficulty').value,homeway:document.getElementById('match-homeway').value||'',serie:document.getElementById('match-serie').value.trim()||'',teamlabel,updatedBy:currentUser?.email||'okänd',updatedAt:serverTimestamp()};
+    const data={date,time:document.getElementById('match-time').value||'',opponent:document.getElementById('match-opponent').value.trim()||'',location:document.getElementById('match-location').value.trim()||'',format:document.getElementById('match-format').value,difficulty:document.getElementById('match-difficulty').value,homeway:document.getElementById('match-homeway').value||'',serie:document.getElementById('match-serie').value.trim()||'',teamlabel};
     const btn=document.getElementById('btn-match-save'); btn.disabled=true;
     try{if(editingMatchId)await updateDoc(teamDoc('matches',editingMatchId),data);else await addDoc(teamCol('matches'),data);closeMatchModal();}
     catch(err){console.error(err);alert('Något gick fel.');}finally{btn.disabled=false;}
@@ -1696,7 +1695,7 @@
         });
       }
       for (const m of fogisMatches) {
-        const data = { ...m, teamlabel, updatedBy: currentUser?.email||'okänd', updatedAt: serverTimestamp() };
+        const data = { ...m, teamlabel };
         if (m.fogisId) {
           // Check if match with this fogisId already exists
           const existing = matches.find(x => x.fogisId === m.fogisId);
@@ -1853,9 +1852,7 @@
     currentLineupMatchId=matchId||null; selectedSlot=null; lineupFormation=''; lineupSlots={};
     if(!matchId){document.getElementById('formation-group').style.display='none';document.getElementById('lineup-body').innerHTML='<div class="lineup-placeholder">Välj en match ovan för att sätta laget.</div>';return;}
     const match=matches.find(m=>m.id===matchId); if(!match)return;
-    const currentTeam=userTeams.find(t=>t.id===currentTeamId);
-    const ownName=currentTeam?.name||'';
-    const isOtherTeam=match.teamlabel&&match.teamlabel!==ownName;
+    const isOtherTeam=!isOwnTeamMatch(match);
     const warning=isOtherTeam?`<div style="background:rgba(92,158,224,.1);border:1px solid rgba(92,158,224,.25);border-radius:8px;padding:.6rem 1rem;font-size:.82rem;color:var(--info);margin-bottom:1rem">📋 Du tittar på en match för <strong>${escHtml(match.teamlabel)}</strong> — uttagningen påverkar inte deras trupp.</div>`:'';
     document.getElementById('lineup-body').innerHTML=warning+'<div class="lineup-placeholder">Laddar...</div>';
     refreshMatchSelector();
@@ -1901,9 +1898,7 @@
     const body=document.getElementById('lineup-body');
     if(!currentLineupMatchId){body.innerHTML='<div class="lineup-placeholder">Välj en match ovan.</div>';return;}
     const match=currentMatch();
-    const currentTeam=userTeams.find(t=>t.id===currentTeamId);
-    const ownName=currentTeam?.name||'';
-    const isOtherTeam=match?.teamlabel&&match.teamlabel!==ownName;
+    const isOtherTeam=match&&!isOwnTeamMatch(match);
     const warning=isOtherTeam?`<div style="background:rgba(92,158,224,.1);border:1px solid rgba(92,158,224,.25);border-radius:8px;padding:.6rem 1rem;font-size:.82rem;color:var(--info);margin-bottom:1rem">📋 Du tittar på en match för <strong>${escHtml(match.teamlabel)}</strong> — uttagningen påverkar inte deras trupp.</div>`:'';
     if(!lineupFormation){body.innerHTML=warning+'<div class="lineup-placeholder">Välj en formation ovan för att fortsätta.</div>';return;}
     body.innerHTML=warning+`<div class="lineup-main">
@@ -2064,7 +2059,7 @@
     if(!currentLineupMatchId||!lineupFormation)return;
     const ind=document.getElementById('save-indicator'); if(ind)ind.textContent='Sparar...';
     try{
-      await setDoc(teamDoc('lineups',currentLineupMatchId),{formation:lineupFormation,slots:lineupSlots,updatedBy:currentUser?.email||'okänd',updatedAt:serverTimestamp()});
+      await setDoc(teamDoc('lineups',currentLineupMatchId),{formation:lineupFormation,slots:lineupSlots});
       if(ind){ind.textContent='Sparat ✓';setTimeout(()=>{if(ind)ind.textContent='';},2000);}
     }catch(err){console.error(err);if(ind)ind.textContent='Fel vid sparning';}
     updateCopyButton();

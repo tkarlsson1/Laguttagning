@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>v0.112 — Uttagning</title>
+  <title>v0.113 — Uttagning</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
@@ -588,6 +588,7 @@
   <!-- HISTORIK -->
   <div id="page-history" class="page">
     <div class="page-header"><div class="page-title">HISTORIK</div></div>
+    <div class="filter-bar" id="history-teamlabel-filter" style="margin-bottom:1rem;display:none"></div>
     <div class="history-layout">
       <div class="history-list" id="history-list"></div>
       <div class="history-pitch-col" id="history-pitch-col">
@@ -1049,6 +1050,7 @@
       activeMatchTeamFilter    = [currentTeamName];
       activeOverviewTeamFilter = [currentTeamName];
       activeLineupTeamFilter   = currentTeamName;
+      activeHistoryTeamFilter  = currentTeamName;
       if (tab.dataset.page==='lineup')   refreshMatchSelector();
       if (tab.dataset.page==='matches')  renderMatches();
       if (tab.dataset.page==='overview') { overviewWeekOffset=0; renderOverview(); }
@@ -1154,6 +1156,7 @@
     activeMatchTeamFilter = [currentTeamName];
     activeOverviewTeamFilter = [currentTeamName];
     activeLineupTeamFilter = currentTeamName;
+    activeHistoryTeamFilter = currentTeamName;
     document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b.dataset.filter === 'all'));
     // Reset history
     selectedHistoryMatchId = null;
@@ -1345,6 +1348,7 @@
   let activeMatchTeamFilter    = []; // empty = all
   let activeOverviewTeamFilter = []; // empty = all
   let activeLineupTeamFilter   = ''; // single value, empty = all
+  let activeHistoryTeamFilter  = ''; // single value, empty = all
 
   function getTeamLabels() {
     const labels = [...new Set(matches.map(m=>m.teamlabel).filter(Boolean))].sort();
@@ -2048,8 +2052,32 @@
   function renderHistory() {
     const listEl=document.getElementById('history-list'); if(!listEl)return;
     const today=todayStr();
-    const past=matches.filter(m=>m.date&&m.date<today).sort((a,b)=>(`${b.date}T${b.time||'00:00'}`).localeCompare(`${a.date}T${a.time||'00:00'}`));
-    if(!past.length){listEl.innerHTML='<div style="color:var(--muted);font-size:.9rem">Inga avklarade matcher ännu.</div>';return;}
+    const allPast=matches.filter(m=>m.date&&m.date<today).sort((a,b)=>(`${b.date}T${b.time||'00:00'}`).localeCompare(`${a.date}T${a.time||'00:00'}`));
+
+    // Filter bar
+    const filterBar=document.getElementById('history-teamlabel-filter');
+    const labels=getTeamLabels();
+    if(labels.length>0){
+      filterBar.style.display='flex';
+      filterBar.innerHTML=`<button class="filter-btn${!activeHistoryTeamFilter?' active':''}" data-label="">Alla</button>`
+        +labels.map(l=>`<button class="filter-btn${activeHistoryTeamFilter===l?' active':''}" data-label="${escHtml(l)}">${escHtml(l)}</button>`).join('');
+      filterBar.querySelectorAll('.filter-btn').forEach(btn=>{
+        btn.addEventListener('click',()=>{
+          activeHistoryTeamFilter=btn.dataset.label;
+          selectedHistoryMatchId=null;
+          document.getElementById('history-pitch-col').innerHTML='<div class="lineup-placeholder">Välj en match för att se uppställningen.</div>';
+          renderHistory();
+        });
+      });
+    } else {
+      filterBar.style.display='none';
+    }
+
+    const past=activeHistoryTeamFilter
+      ? allPast.filter(m=>(m.teamlabel||'')===activeHistoryTeamFilter)
+      : allPast;
+
+    if(!past.length){listEl.innerHTML='<div style="color:var(--muted);font-size:.9rem">Inga avklarade matcher.</div>';return;}
     listEl.innerHTML=past.map(m=>{
       const d=new Date(m.date+'T12:00:00'),sel=m.id===selectedHistoryMatchId?' selected':'';
       const lu=allLineups[m.id],cnt=lu?[...new Set(Object.values(lu.slots||{}).flat())].length:0;

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>v0.104 — Uttagning</title>
+  <title>v0.105 — Uttagning</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
@@ -379,9 +379,11 @@
     .overview-table { border-collapse: collapse; width: 100%; font-size: .88rem; table-layout: fixed; }
     .overview-table th { background: var(--surface); border: 1px solid var(--border); padding: .6rem .5rem; text-align: left; font-weight: 600; font-family: var(--font-body); white-space: nowrap; overflow: hidden; }
     .overview-table th:first-child { width: 120px; }
-    .overview-table th.match-col { text-align: center; width: 70px; max-width: 70px; word-break: break-word; white-space: normal; }
-    .overview-table th .match-col-time { font-family: var(--font-display); font-size: .9rem; letter-spacing: .04em; display: block; }
-    .overview-table th .match-col-opp  { font-size: .65rem; color: var(--muted); font-weight: 400; word-break: break-word; display: block; }
+    .overview-table th.match-col { text-align: center; width: 70px; max-width: 70px; word-break: break-word; white-space: normal; vertical-align: bottom; padding-bottom: 0; display: table-cell; }
+    .overview-table th.match-col > span { display: block; }
+    .overview-table th .match-col-time { font-family: var(--font-display); font-size: .9rem; letter-spacing: .04em; }
+    .overview-table th .match-col-opp  { font-size: .65rem; color: var(--muted); font-weight: 400; word-break: break-word; }
+    .overview-table th .match-col-diff { height: 3px; border-radius: 2px; margin-top: 4px; }
     .overview-table td { border: 1px solid var(--border); padding: .45rem .5rem; background: var(--bg); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .overview-table tr:hover td { background: var(--surface2); }
     .overview-table td.player-name-col { font-weight: 500; }
@@ -2143,7 +2145,7 @@
       const dayStr=d?`${WEEKDAY[d.getDay()]} ${d.toLocaleDateString('sv-SE',{day:'numeric',month:'short'})}`:' ?';
       const prevDate = i > 0 ? matchLineups[i-1].match.date : null;
       const dayBorder = i > 0 && m.date !== prevDate ? 'border-left:2px solid var(--muted);' : '';
-      html+=`<th class="match-col" style="${dayBorder}"><span class="match-col-time">${escHtml(m.time||'?')}</span><span class="match-col-opp">${escHtml(m.opponent||'—')}</span><span class="match-col-opp">${dayStr}</span><span class="match-col-diff" style="display:block;width:100%;height:3px;background:var(--diff-${m.difficulty||'green'});border-radius:2px;margin-top:3px"></span></th>`;
+      html+=`<th class="match-col" style="${dayBorder}"><span class="match-col-time">${escHtml(m.time||'?')}</span><span class="match-col-opp">${escHtml(m.opponent||'—')}</span><span class="match-col-opp">${dayStr}</span><span class="match-col-diff" style="background:var(--diff-${m.difficulty||'green'})"></span></th>`;
     });
     html+='</tr></thead><tbody>';
     sortedPlayers.forEach(p=>{

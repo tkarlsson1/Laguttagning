@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>v9.9 — Uttagning</title>
+  <title>v0.100 — Uttagning</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
@@ -563,6 +563,7 @@
       <button class="filter-btn" data-filter="injured">Skadad</button>
       <button class="filter-btn" data-filter="sick">Sjuk</button>
       <button class="filter-btn" data-filter="unavailable">Förhinder</button>
+      <button class="filter-btn" data-filter="unavailable-all">Ej tillgänglig</button>
     </div>
     <div class="player-grid" id="player-grid"></div>
   </div>
@@ -1225,7 +1226,8 @@
     let filtered=players;
     if (activeFilter!=='all') {
       filtered=players.filter(p=>{
-        if (activeFilter==='available') return !isPlayerUnavailableOnDate(p,today);
+        if (activeFilter==='unavailable-all') return isPlayerUnavailableOnDate(p,today)||(p.status&&p.status!=='available');
+        if (activeFilter==='available') return !isPlayerUnavailableOnDate(p,today)&&(!p.status||p.status==='available');
         if (p.status===activeFilter) return true;
         return getAbsenceOnDate(p,today)?.type===activeFilter;
       });

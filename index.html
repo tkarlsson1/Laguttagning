@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>v0.101 — Uttagning</title>
+  <title>v0.102 — Uttagning</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
@@ -633,10 +633,13 @@
   <div id="page-overview" class="page">
     <div class="page-header">
       <div class="page-title">ÖVERSIKT</div>
-      <div class="overview-week-nav">
-        <button class="btn-secondary" id="btn-week-prev" style="padding:.4rem .9rem">←</button>
-        <span id="overview-week-label" style="font-size:.9rem;color:var(--muted);min-width:160px;text-align:center"></span>
-        <button class="btn-secondary" id="btn-week-next" style="padding:.4rem .9rem">→</button>
+      <div style="display:flex;align-items:center;gap:.75rem">
+        <button class="btn-secondary" id="btn-copy-overview" style="display:none">Kopiera vecka</button>
+        <div class="overview-week-nav">
+          <button class="btn-secondary" id="btn-week-prev" style="padding:.4rem .9rem">←</button>
+          <span id="overview-week-label" style="font-size:.9rem;color:var(--muted);min-width:160px;text-align:center"></span>
+          <button class="btn-secondary" id="btn-week-next" style="padding:.4rem .9rem">→</button>
+        </div>
       </div>
     </div>
     <div class="filter-bar" id="overview-teamlabel-filter" style="margin-bottom:1rem;display:none"></div>
@@ -2128,7 +2131,9 @@
       overviewFilterBar.style.display = 'none';
     }
 
-    if(!weekMatches.length){body.innerHTML='<div class="overview-empty">Inga matcher denna vecka.</div>';return;}
+    if(!weekMatches.length){body.innerHTML='<div class="overview-empty">Inga matcher denna vecka.</div>';document.getElementById('btn-copy-overview').style.display='none';return;}
+    const hasLineups = weekMatches.some(m => allLineups[m.id] && Object.keys(allLineups[m.id].slots||{}).length > 0);
+    document.getElementById('btn-copy-overview').style.display = hasLineups ? 'inline-flex' : 'none';
     const today=todayStr(),DIFF_EMOJI={green:'🟢',blue:'🔵',red:'🔴',black:'⚫'};
     const sortedPlayers=[...players].sort((a,b)=>shortName(a).localeCompare(shortName(b),'sv'));
     const matchLineups=weekMatches.map(m=>{const lu=allLineups[m.id];return{match:m,pids:new Set(lu?[...new Set(Object.values(lu.slots||{}).flat())]:[])}; });
@@ -2162,6 +2167,35 @@
 
   document.getElementById('btn-week-prev').addEventListener('click',()=>{overviewWeekOffset--;renderOverview();});
   document.getElementById('btn-week-next').addEventListener('click',()=>{overviewWeekOffset++;renderOverview();});
+
+  document.getElementById('btn-copy-overview').addEventListener('click', () => {
+    const {weekMatches} = getWeekMatches(overviewWeekOffset, activeOverviewTeamFilter);
+    const lines = [];
+    weekMatches.forEach(m => {
+      const lu = allLineups[m.id];
+      if (!lu) return;
+      const pids = [...new Set(Object.values(lu.slots||{}).flat())];
+      if (!pids.length) return;
+      const d = m.date ? new Date(m.date+'T12:00:00') : null;
+      const dateStr = d ? `${WEEKDAY[d.getDay()]} ${d.toLocaleDateString('sv-SE',{day:'numeric',month:'long'})}` : '';
+      const header = [m.teamlabel||currentTeamName, dateStr, m.time, m.opponent].filter(Boolean).join(' · ');
+      const names = pids
+        .map(pid => players.find(p=>p.id===pid))
+        .filter(Boolean)
+        .map(p => p.name||'')
+        .sort((a,b) => a.localeCompare(b,'sv'));
+      lines.push(header);
+      lines.push(...names);
+      lines.push('');
+    });
+    if (!lines.length) { alert('Inga uttagna spelare denna vecka.'); return; }
+    const text = lines.join('\n').trim();
+    navigator.clipboard.writeText(text).then(() => {
+      const btn = document.getElementById('btn-copy-overview');
+      btn.textContent = 'Kopierat ✓';
+      setTimeout(() => { btn.textContent = 'Kopiera vecka'; }, 2000);
+    }).catch(() => alert('Kunde inte kopiera.'));
+  });
 
   // ── THEME ─────────────────────────────────────────
   function applyTheme(light) {

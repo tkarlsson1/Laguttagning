@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>v9.8 — Uttagning</title>
+  <title>v9.9 — Uttagning</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
@@ -873,6 +873,10 @@
   const fbApp = initializeApp(firebaseConfig);
   const auth  = getAuth(fbApp);
   const db    = getFirestore(fbApp);
+
+  // Secondary app for creating new users without signing out admin
+  const fbAppSecondary = initializeApp(firebaseConfig, 'secondary');
+  const authSecondary  = getAuth(fbAppSecondary);
 
   const ADMIN_UID = 'QLpq1rXHz2gjiipKFCnxEKk5xWx2';
 
@@ -2400,11 +2404,12 @@
       let uid=null;
       let isNewUser=false;
 
-      // Try to create new account
+      // Try to create new account using secondary auth to avoid signing out admin
       try{
-        const cred=await createUserWithEmailAndPassword(auth,email,'Temp'+Math.random().toString(36).slice(2)+'!');
+        const cred=await createUserWithEmailAndPassword(authSecondary,email,'Temp'+Math.random().toString(36).slice(2)+'!');
         uid=cred.user.uid;
         isNewUser=true;
+        await signOut(authSecondary);
       }catch(e){
         if(e.code==='auth/email-already-in-use'){
           // Existing user — find uid via email field in userSettings

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>v0.100 — Uttagning</title>
+  <title>v0.101 — Uttagning</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
@@ -385,10 +385,10 @@
     .overview-table td { border: 1px solid var(--border); padding: .45rem .5rem; background: var(--bg); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .overview-table tr:hover td { background: var(--surface2); }
     .overview-table td.player-name-col { font-weight: 500; }
-    .overview-table td.dot-col { text-align: center; }
-    .ov-dot-selected { font-size: 1.1rem; line-height: 1; color: var(--green); }
-    .ov-dot-absent   { font-size: 1.1rem; line-height: 1; color: var(--danger); }
-    .ov-dot-empty    { color: var(--border); font-size: .9rem; }
+    .overview-table td.dot-col { text-align: center; padding: 0; }
+    .ov-dot-selected { display: block; width: 100%; height: 100%; padding: .45rem .5rem; background: rgba(76,175,110,.2); color: var(--green); font-size: 1.3rem; line-height: 1; }
+    .ov-dot-absent   { display: block; width: 100%; height: 100%; padding: .45rem .5rem; background: rgba(224,92,92,.15); color: var(--danger); font-size: 1.3rem; line-height: 1; }
+    .ov-dot-empty    { display: block; width: 100%; height: 100%; padding: .45rem .5rem; color: var(--border); font-size: .9rem; }
 
     /* ── HISTORY ─────────────────────────────────────── */
     .history-layout { display: grid; grid-template-columns: 280px 1fr; gap: 2rem; align-items: start; }

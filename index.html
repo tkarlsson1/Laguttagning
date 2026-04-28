@@ -3,27 +3,20 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>v0.111 — Uttagning</title>
+  <title>v0.112 — Uttagning</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
   <script>
-    // Apply theme immediately from localStorage to prevent flash
-    // Default is light theme
-    if (localStorage.getItem('theme') !== 'dark') {
-      document.documentElement.classList.add('theme-light-early');
-    }
+    // Apply theme and reveal page immediately from localStorage
+    const _isLight = localStorage.getItem('theme') !== 'dark';
+    if (_isLight) document.documentElement.classList.add('theme-light-early');
+    // Reveal immediately — theme is already correct
+    document.documentElement.style.visibility = '';
   </script>
   <style>
-    /* Apply light theme early before body is ready */
-    html.theme-light-early body { background: #f4f6f4; color: #1a2420; }
-    html.theme-light-early { background: #f4f6f4; }
-    html.theme-light-early .login-card,
-    html.theme-light-early .team-select-card { background: #ffffff; border-color: #d0d8d2; }
-    html.theme-light-early #view-login,
-    html.theme-light-early #view-team-select { background: #f4f6f4; }
-    html.theme-light-early .login-card,
-    html.theme-light-early .team-select-card { background: #ffffff; border-color: #d0d8d2; }
+    html.theme-light-early body,
+    html.theme-light-early { background: #f4f6f4; color: #1a2420; }
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {

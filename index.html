@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>v0.133 — Uttagning</title>
+  <title>v0.134 — Uttagning</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
@@ -2437,7 +2437,13 @@
     const node = buildExportNode(viewMatches, titleText);
     document.body.appendChild(node);
     try {
-      const dataUrl = await htmlToImage.toPng(node, { pixelRatio: 2, backgroundColor: '#ffffff' });
+      const dataUrl = await htmlToImage.toPng(node, {
+        pixelRatio: 2,
+        backgroundColor: '#ffffff',
+        skipFonts: true,
+        cacheBust: true,
+        style: { fontFamily: "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif" }
+      });
       const a = document.createElement('a');
       const safeTitle = titleText.replace(/[^\wåäöÅÄÖ]+/g,'-').replace(/^-|-$/g,'') || 'oversikt';
       a.download = `oversikt-${safeTitle}.png`;

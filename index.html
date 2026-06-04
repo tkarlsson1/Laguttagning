@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>v0.142 — Uttagning</title>
+  <title>v0.143 — Uttagning</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
@@ -1103,7 +1103,7 @@
       activeLineupTeamFilter   = currentTeamName;
       activeHistoryTeamFilter  = currentTeamName;
       if (tab.dataset.page==='lineup')   refreshMatchSelector();
-      if (tab.dataset.page==='matches')  renderMatches();
+      if (tab.dataset.page==='matches')  { renderMatches(); scrollMatchesToToday(); }
       if (tab.dataset.page==='overview') { overviewWeekOffset=0; renderOverview(); }
       if (tab.dataset.page==='history')  renderHistory();
     });
@@ -1486,12 +1486,17 @@
     if (filtered.length===0){list.innerHTML=`<div class="empty-state" style="grid-column:unset"><p>Inga matcher</p><p>${activeMatchTeamFilter.length?'Inga matcher för valda lag.':'Lägg till en match med knappen ovan.'}</p></div>`;return;}
     const groups={};
     filtered.forEach(m=>{const k=m.date||'okänt';if(!groups[k])groups[k]=[];groups[k].push(m);});
+    const todayKey=todayStr();
+    let firstUpcomingMarked=false;
     let html='';
     Object.keys(groups).sort().forEach(dk=>{
       const d=dk!=='okänt'?new Date(dk+'T12:00:00'):null;
       const weekNum=d?isoWeekKey(dk).split('-W')[1]:null;
       const weekLabel=weekNum?` · Vecka ${weekNum}`:'';
-      html+=`<div class="date-group-header">${d?`${WEEKDAY[d.getDay()]} ${d.toLocaleDateString('sv-SE',{day:'numeric',month:'long',year:'numeric'})}${weekLabel}`:'Okänt datum'}</div>`;
+      const isUpcoming=dk!=='okänt'&&dk>=todayKey;
+      const scrollMark=(isUpcoming&&!firstUpcomingMarked)?' data-today-anchor="1"':'';
+      if(isUpcoming&&!firstUpcomingMarked)firstUpcomingMarked=true;
+      html+=`<div class="date-group-header"${scrollMark}>${d?`${WEEKDAY[d.getDay()]} ${d.toLocaleDateString('sv-SE',{day:'numeric',month:'long',year:'numeric'})}${weekLabel}`:'Okänt datum'}</div>`;
       groups[dk].forEach(m=>{
         const isOwn=isOwnTeamMatch(m);
         html+=`<div class="match-card${isOwn?'':' match-card-other'}" data-id="${m.id}"><div class="match-diff-bar diff-${m.difficulty||'green'}"></div>
@@ -1513,6 +1518,14 @@
     });
     list.innerHTML=html;
     list.querySelectorAll('.match-card').forEach(c=>c.addEventListener('click',()=>openMatchEdit(c.dataset.id)));
+  }
+
+  function scrollMatchesToToday() {
+    // Wait for layout, then scroll first upcoming date group into view
+    requestAnimationFrame(() => {
+      const anchor = document.querySelector('#match-list [data-today-anchor="1"]');
+      if (anchor) anchor.scrollIntoView({ behavior: 'auto', block: 'start' });
+    });
   }
 
   const matchModal=document.getElementById('match-modal');

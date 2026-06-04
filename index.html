@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>v0.134 — Uttagning</title>
+  <title>v0.135 — Uttagning</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
@@ -2382,7 +2382,7 @@
     const matchLineups=viewMatches.map(m=>{const lu=allLineups[m.id];return{match:m,pids:new Set(lu?[...new Set(Object.values(lu.slots||{}).flat())]:[])};});
 
     const wrap=document.createElement('div');
-    wrap.style.cssText=`position:fixed;left:-9999px;top:0;width:400px;background:${C.bg};padding:16px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;box-sizing:border-box;`;
+    wrap.style.cssText=`position:absolute;left:0;top:0;width:400px;background:${C.bg};padding:16px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;box-sizing:border-box;z-index:-1;visibility:hidden;pointer-events:none;`;
 
     let h=`<div style="font-size:15px;font-weight:700;color:${C.text};margin-bottom:2px">${escHtml(currentTeamName)}</div>`;
     h+=`<div style="font-size:12px;color:${C.muted};margin-bottom:10px">${escHtml(titleText)}</div>`;
@@ -2437,13 +2437,19 @@
     const node = buildExportNode(viewMatches, titleText);
     document.body.appendChild(node);
     try {
-      const dataUrl = await htmlToImage.toPng(node, {
+      if (document.fonts && document.fonts.ready) { try { await document.fonts.ready; } catch(e){} }
+      const opts = {
         pixelRatio: 2,
         backgroundColor: '#ffffff',
         skipFonts: true,
         cacheBust: true,
-        style: { fontFamily: "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif" }
-      });
+        width: 400,
+        height: node.offsetHeight,
+        style: { visibility: 'visible', fontFamily: "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif" }
+      };
+      // First render primes layout/cache, second is the real capture
+      await htmlToImage.toPng(node, opts);
+      const dataUrl = await htmlToImage.toPng(node, opts);
       const a = document.createElement('a');
       const safeTitle = titleText.replace(/[^\wåäöÅÄÖ]+/g,'-').replace(/^-|-$/g,'') || 'oversikt';
       a.download = `oversikt-${safeTitle}.png`;

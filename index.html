@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>v0.131 — Uttagning</title>
+  <title>v0.132 — Uttagning</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
@@ -758,6 +758,7 @@
       </select>
     </div>
     <div class="field"><label for="match-serie">Serie <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--muted)">(valfritt)</span></label><input type="text" id="match-serie" placeholder="T.ex. Pojk 9m9 Svart Regional" /></div>
+    <div class="field"><label for="match-cup">Cup/turnering <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--muted)">(valfritt)</span></label><input type="text" id="match-cup" list="cup-list" placeholder="T.ex. Sommarcup 2026" autocomplete="off" /><datalist id="cup-list"></datalist></div>
     <div class="field">
       <label for="match-teamlabel">Lag</label>
       <select id="match-teamlabel"></select>
@@ -1011,11 +1012,17 @@
   function getConflicts(pid) {
     if (!currentLineupMatchId) return [];
     const cur=matches.find(m=>m.id===currentLineupMatchId), curWeek=isoWeekKey(cur?.date);
+    const curCup=cur?.cup||'';
     return Object.entries(allLineups)
       .filter(([mid])=>mid!==currentLineupMatchId)
       .filter(([,lu])=>Object.values(lu.slots||{}).some(arr=>arr.includes(pid)))
       .map(([mid])=>{ const m=matches.find(x=>x.id===mid); return {m, isTimeCrash:m&&cur&&m.date===cur.date}; })
-      .filter(({m})=>m&&isoWeekKey(m.date)===curWeek)
+      .filter(({m})=>{
+        if(!m) return false;
+        if(curCup) return (m.cup||'')===curCup;        // cup: only compare within same cup
+        if(m.cup) return false;                         // non-cup current: ignore cup matches
+        return isoWeekKey(m.date)===curWeek;            // non-cup: same-week logic as before
+      })
       .map(({m,isTimeCrash})=>{
         const d=m.date?new Date(m.date+'T12:00:00'):null;
         return {label:`${d?WEEKDAY[d.getDay()]:'?'}${m.time?' '+m.time:''} ${m.opponent||''}`.trim(), isTimeCrash};
@@ -1502,7 +1509,8 @@
   document.getElementById('btn-add-match').addEventListener('click',()=>{
     editingMatchId=null;
     document.getElementById('match-modal-title').textContent='LÄGG TILL MATCH';
-    ['match-date','match-time','match-opponent','match-location','match-serie'].forEach(id=>document.getElementById(id).value='');
+    ['match-date','match-time','match-opponent','match-location','match-serie','match-cup'].forEach(id=>document.getElementById(id).value='');
+    populateCupList();
     const currentTeam=userTeams.find(t=>t.id===currentTeamId);
     const defaultFormat=currentTeam?.birthYear?svffFormat(currentTeam.birthYear):(currentTeam?.format||'9v9');
     document.getElementById('match-format').value=defaultFormat;
@@ -1512,6 +1520,11 @@
     document.getElementById('btn-delete-match').style.display='none';
     matchModal.classList.add('open'); document.getElementById('match-opponent').focus();
   });
+
+  function populateCupList() {
+    const cups=[...new Set(matches.map(m=>m.cup).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'sv'));
+    document.getElementById('cup-list').innerHTML=cups.map(c=>`<option value="${escHtml(c)}"></option>`).join('');
+  }
 
   function openMatchEdit(id) {
     const m=matches.find(x=>x.id===id); if (!m) return;
@@ -1525,6 +1538,8 @@
     document.getElementById('match-difficulty').value=m.difficulty||'green';
     document.getElementById('match-homeway').value=m.homeway||'';
     document.getElementById('match-serie').value=m.serie||'';
+    document.getElementById('match-cup').value=m.cup||'';
+    populateCupList();
     populateTeamLabelSelect('match-teamlabel', m.teamlabel||'');
     document.getElementById('btn-delete-match').style.display='inline-flex';
     matchModal.classList.add('open'); document.getElementById('match-opponent').focus();
@@ -1538,7 +1553,7 @@
     const date=document.getElementById('match-date').value; if (!date){document.getElementById('match-date').focus();return;}
     const teamlabel=document.getElementById('match-teamlabel').value;
     if (!teamlabel||teamlabel==='__new__'){alert('Välj ett lag.');return;}
-    const data={date,time:document.getElementById('match-time').value||'',opponent:document.getElementById('match-opponent').value.trim()||'',location:document.getElementById('match-location').value.trim()||'',format:document.getElementById('match-format').value,difficulty:document.getElementById('match-difficulty').value,homeway:document.getElementById('match-homeway').value||'',serie:document.getElementById('match-serie').value.trim()||'',teamlabel};
+    const data={date,time:document.getElementById('match-time').value||'',opponent:document.getElementById('match-opponent').value.trim()||'',location:document.getElementById('match-location').value.trim()||'',format:document.getElementById('match-format').value,difficulty:document.getElementById('match-difficulty').value,homeway:document.getElementById('match-homeway').value||'',serie:document.getElementById('match-serie').value.trim()||'',cup:document.getElementById('match-cup').value.trim()||'',teamlabel};
     const btn=document.getElementById('btn-match-save'); btn.disabled=true;
     try{if(editingMatchId)await updateDoc(teamDoc('matches',editingMatchId),data);else await addDoc(teamCol('matches'),data);closeMatchModal();}
     catch(err){console.error(err);alert('Något gick fel.');}finally{btn.disabled=false;}

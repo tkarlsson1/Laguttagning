@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>v0.140 — Uttagning</title>
+  <title>v0.141 — Uttagning</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
@@ -668,12 +668,16 @@
           <span id="overview-week-label" style="font-size:.9rem;color:var(--muted);min-width:160px;text-align:center"></span>
           <button class="btn-secondary" id="btn-week-next" style="padding:.4rem .9rem">→</button>
         </div>
-        <div class="overview-range-nav" style="display:flex;align-items:center;gap:.4rem;font-size:.85rem">
-          <span style="color:var(--muted)">Intervall:</span>
-          <input type="date" id="overview-range-from" style="background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--font-body);font-size:.82rem;padding:.3rem .5rem;outline:none" />
-          <span style="color:var(--muted)">–</span>
-          <input type="date" id="overview-range-to" style="background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--font-body);font-size:.82rem;padding:.3rem .5rem;outline:none" />
-          <button class="btn-secondary" id="btn-range-clear" style="padding:.3rem .7rem;font-size:.78rem;display:none">Rensa</button>
+        <div class="overview-range-nav" style="display:flex;flex-direction:column;gap:.4rem;font-size:.85rem">
+          <div style="display:flex;align-items:center;gap:.4rem">
+            <span style="color:var(--muted);width:42px;text-align:right">Från:</span>
+            <input type="date" id="overview-range-from" style="background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--font-body);font-size:.82rem;padding:.3rem .5rem;outline:none" />
+          </div>
+          <div style="display:flex;align-items:center;gap:.4rem">
+            <span style="color:var(--muted);width:42px;text-align:right">Till:</span>
+            <input type="date" id="overview-range-to" style="background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--font-body);font-size:.82rem;padding:.3rem .5rem;outline:none" />
+          </div>
+          <button class="btn-secondary" id="btn-range-clear" style="padding:.3rem .7rem;font-size:.78rem;display:none;align-self:flex-start;margin-left:50px">Rensa</button>
         </div>
       </div>
     </div>

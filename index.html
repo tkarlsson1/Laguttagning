@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>v0.137 — Uttagning</title>
+  <title>v0.139 — Uttagning</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
@@ -409,7 +409,7 @@
     /* Day separator: subtle on mobile, stronger on desktop */
     .overview-table .day-sep { border-left: 2px solid var(--muted); }
     @media (min-width: 781px) {
-      .overview-table .day-sep { border-left: 4px solid var(--text); }
+      .overview-table .day-sep { border-left: 3px solid var(--text); }
     }
     .ov-dot-selected { display: block; width: 100%; height: 100%; padding: .45rem .5rem; background: rgba(76,175,110,.2); color: var(--green); font-size: 1.3rem; line-height: 1; }
     .ov-dot-absent   { display: block; width: 100%; height: 100%; padding: .45rem .5rem; background: rgba(224,92,92,.15); color: var(--danger); font-size: 1.3rem; line-height: 1; }
@@ -2392,7 +2392,7 @@
       const d=m.date?new Date(m.date+'T12:00:00'):null;
       const dayStr=d?`${WEEKDAY[d.getDay()]} ${d.toLocaleDateString('sv-SE',{day:'numeric',month:'short'})}`:'?';
       const prevDate=i>0?matchLineups[i-1].match.date:null;
-      const sep=i>0&&m.date!==prevDate?`border-left:3px solid ${C.text};`:`border-left:1px solid ${C.border};`;
+      const sep=i>0&&m.date!==prevDate?`border-left:2px solid ${C.muted};`:`border-left:1px solid ${C.border};`;
       const labelLine=(m.teamlabel && m.teamlabel!==currentTeamName)?`<div style="font-size:8px;color:${C.muted};margin-top:1px">${escHtml(m.teamlabel)}</div>`:'';
       const cupLine=m.cup?`<div style="font-size:8px;color:${C.sel};margin-top:1px">${escHtml(m.cup)}</div>`:'';
       h+=`<th style="border:1px solid ${C.border};${sep}background:${C.headBg};padding:5px 3px;text-align:center;color:${C.text};vertical-align:top;font-weight:600">
@@ -2409,7 +2409,7 @@
       matchLineups.forEach(({match:m,pids}, i)=>{
         const absent=isPlayerUnavailableOnDate(p,m.date||today),selected=pids.has(p.id);
         const prevDate=i>0?matchLineups[i-1].match.date:null;
-        const sep=i>0&&m.date!==prevDate?`border-left:3px solid ${C.text};`:`border-left:1px solid ${C.border};`;
+        const sep=i>0&&m.date!==prevDate?`border-left:2px solid ${C.muted};`:`border-left:1px solid ${C.border};`;
         let bg='transparent',dot=`<span style="color:${C.empty}">·</span>`;
         if(absent){bg=C.absentBg;dot=`<span style="color:${C.absent};font-size:15px;line-height:1">●</span>`;}
         else if(selected){bg=C.selBg;dot=`<span style="color:${C.sel};font-size:15px;line-height:1">●</span>`;}

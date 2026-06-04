@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>v0.136 — Uttagning</title>
+  <title>v0.137 — Uttagning</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
@@ -2393,14 +2393,14 @@
       const dayStr=d?`${WEEKDAY[d.getDay()]} ${d.toLocaleDateString('sv-SE',{day:'numeric',month:'short'})}`:'?';
       const prevDate=i>0?matchLineups[i-1].match.date:null;
       const sep=i>0&&m.date!==prevDate?`border-left:3px solid ${C.text};`:`border-left:1px solid ${C.border};`;
-      const labelLine=m.teamlabel?`<div style="font-size:8px;color:${C.muted};margin-top:1px">${escHtml(m.teamlabel)}</div>`:'';
+      const labelLine=(m.teamlabel && m.teamlabel!==currentTeamName)?`<div style="font-size:8px;color:${C.muted};margin-top:1px">${escHtml(m.teamlabel)}</div>`:'';
       const cupLine=m.cup?`<div style="font-size:8px;color:${C.sel};margin-top:1px">${escHtml(m.cup)}</div>`:'';
       h+=`<th style="border:1px solid ${C.border};${sep}background:${C.headBg};padding:5px 3px;text-align:center;color:${C.text};vertical-align:top;font-weight:600">
         <div style="font-size:12px;font-weight:700">${escHtml(m.time||'?')}</div>
         <div style="font-size:9px;color:${C.muted};font-weight:400;word-break:break-word">${escHtml(m.opponent||'—')}</div>
         <div style="font-size:9px;color:${C.muted};font-weight:400">${dayStr}</div>
         ${labelLine}${cupLine}
-        <div style="height:3px;border-radius:2px;margin-top:3px;background:${diffColor(m.difficulty)}"></div>
+        <div style="width:9px;height:9px;border-radius:50%;margin:3px auto 0;background:${diffColor(m.difficulty)}"></div>
       </th>`;
     });
     h+=`</tr></thead><tbody>`;

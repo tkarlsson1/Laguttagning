@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>v0.141 — Uttagning</title>
+  <title>v0.142 — Uttagning</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
@@ -397,7 +397,9 @@
     .overview-table th.match-col { text-align: center; width: 70px; max-width: 70px; word-break: break-word; white-space: normal; vertical-align: top; }
     .overview-table th .match-col-time { font-family: var(--font-display); font-size: .9rem; letter-spacing: .04em; display: block; }
     .overview-table th .match-col-opp  { font-size: .65rem; color: var(--muted); font-weight: 400; word-break: break-word; display: block; }
-    .match-col-diffbar { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-top: 4px; }
+    .match-col-diffbar { display: inline-block; width: 10px; height: 10px; border-radius: 50%; }
+    .overview-table th.hdr-text-row { border-bottom: none; vertical-align: top; padding-bottom: 2px; }
+    .overview-table th.hdr-dot-row { border-top: none; padding-top: 2px; padding-bottom: .5rem; text-align: center; }
     .match-col-diffbar.diff-green { background: var(--diff-green); }
     .match-col-diffbar.diff-blue  { background: var(--diff-blue); }
     .match-col-diffbar.diff-red   { background: var(--diff-red); }
@@ -2270,13 +2272,19 @@
     const today=todayStr();
     const sortedPlayers=[...players].sort((a,b)=>shortName(a).localeCompare(shortName(b),'sv'));
     const matchLineups=viewMatches.map(m=>{const lu=allLineups[m.id];return{match:m,pids:new Set(lu?[...new Set(Object.values(lu.slots||{}).flat())]:[])}; });
-    let html='<div class="overview-table-wrap"><table class="overview-table"><thead><tr><th>Spelare</th>';
+    let html='<div class="overview-table-wrap"><table class="overview-table"><thead><tr><th class="hdr-text-row">Spelare</th>';
     matchLineups.forEach(({match:m}, i)=>{
       const d=m.date?new Date(m.date+'T12:00:00'):null;
       const dayStr=d?`${WEEKDAY[d.getDay()]} ${d.toLocaleDateString('sv-SE',{day:'numeric',month:'short'})}`:' ?';
       const prevDate = i > 0 ? matchLineups[i-1].match.date : null;
       const dayBorder = i > 0 && m.date !== prevDate ? ' day-sep' : '';
-      html+=`<th class="match-col${dayBorder}"><span class="match-col-time">${escHtml(m.time||'?')}</span><span class="match-col-opp">${escHtml(m.opponent||'—')}</span><span class="match-col-opp">${dayStr}</span><span class="match-col-diffbar diff-${m.difficulty||'green'}"></span></th>`;
+      html+=`<th class="match-col hdr-text-row${dayBorder}"><span class="match-col-time">${escHtml(m.time||'?')}</span><span class="match-col-opp">${escHtml(m.opponent||'—')}</span><span class="match-col-opp">${dayStr}</span></th>`;
+    });
+    html+='</tr><tr><th class="hdr-dot-row"></th>';
+    matchLineups.forEach(({match:m}, i)=>{
+      const prevDate = i > 0 ? matchLineups[i-1].match.date : null;
+      const dayBorder = i > 0 && m.date !== prevDate ? ' day-sep' : '';
+      html+=`<th class="match-col hdr-dot-row${dayBorder}"><span class="match-col-diffbar diff-${m.difficulty||'green'}"></span></th>`;
     });
     html+='</tr></thead><tbody>';
     sortedPlayers.forEach(p=>{
@@ -2391,7 +2399,7 @@
     let h=`<div style="font-size:15px;font-weight:700;color:${C.text};margin-bottom:2px">${escHtml(currentTeamName)}</div>`;
     h+=`<div style="font-size:12px;color:${C.muted};margin-bottom:10px">${escHtml(titleText)}</div>`;
     h+=`<table style="border-collapse:collapse;width:100%;font-size:12px;table-layout:fixed"><thead><tr>`;
-    h+=`<th style="border:1px solid ${C.border};background:${C.headBg};padding:5px 4px;text-align:left;color:${C.text};width:88px;font-weight:600">Spelare</th>`;
+    h+=`<th style="border:1px solid ${C.border};border-bottom:none;background:${C.headBg};padding:5px 4px 2px;text-align:left;color:${C.text};width:88px;font-weight:600;vertical-align:top">Spelare</th>`;
     matchLineups.forEach(({match:m}, i)=>{
       const d=m.date?new Date(m.date+'T12:00:00'):null;
       const dayStr=d?`${WEEKDAY[d.getDay()]} ${d.toLocaleDateString('sv-SE',{day:'numeric',month:'short'})}`:'?';
@@ -2399,12 +2407,20 @@
       const sep=i>0&&m.date!==prevDate?`border-left:2px solid ${C.muted};`:`border-left:1px solid ${C.border};`;
       const labelLine=(m.teamlabel && m.teamlabel!==currentTeamName)?`<div style="font-size:8px;color:${C.muted};margin-top:1px">${escHtml(m.teamlabel)}</div>`:'';
       const cupLine=m.cup?`<div style="font-size:8px;color:${C.sel};margin-top:1px">${escHtml(m.cup)}</div>`:'';
-      h+=`<th style="border:1px solid ${C.border};${sep}background:${C.headBg};padding:5px 3px;text-align:center;color:${C.text};vertical-align:top;font-weight:600">
+      h+=`<th style="border:1px solid ${C.border};border-bottom:none;${sep}background:${C.headBg};padding:5px 3px 2px;text-align:center;color:${C.text};vertical-align:top;font-weight:600">
         <div style="font-size:12px;font-weight:700">${escHtml(m.time||'?')}</div>
         <div style="font-size:9px;color:${C.muted};font-weight:400;word-break:break-word">${escHtml(m.opponent||'—')}</div>
         <div style="font-size:9px;color:${C.muted};font-weight:400">${dayStr}</div>
         ${labelLine}${cupLine}
-        <div style="width:9px;height:9px;border-radius:50%;margin:3px auto 0;background:${diffColor(m.difficulty)}"></div>
+      </th>`;
+    });
+    h+=`</tr><tr>`;
+    h+=`<th style="border:1px solid ${C.border};border-top:none;background:${C.headBg};padding:2px 4px 5px;width:88px"></th>`;
+    matchLineups.forEach(({match:m}, i)=>{
+      const prevDate=i>0?matchLineups[i-1].match.date:null;
+      const sep=i>0&&m.date!==prevDate?`border-left:2px solid ${C.muted};`:`border-left:1px solid ${C.border};`;
+      h+=`<th style="border:1px solid ${C.border};border-top:none;${sep}background:${C.headBg};padding:2px 3px 5px;text-align:center">
+        <div style="width:9px;height:9px;border-radius:50%;margin:0 auto;background:${diffColor(m.difficulty)}"></div>
       </th>`;
     });
     h+=`</tr></thead><tbody>`;

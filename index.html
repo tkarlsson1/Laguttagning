@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>v0.130 — Uttagning</title>
+  <title>v0.131 — Uttagning</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
@@ -406,6 +406,11 @@
     .overview-table tr:hover td { background: var(--surface2); }
     .overview-table td.player-name-col { font-weight: 500; }
     .overview-table td.dot-col { text-align: center; padding: 0; }
+    /* Day separator: subtle on mobile, stronger on desktop */
+    .overview-table .day-sep { border-left: 2px solid var(--muted); }
+    @media (min-width: 781px) {
+      .overview-table .day-sep { border-left: 4px solid var(--text); }
+    }
     .ov-dot-selected { display: block; width: 100%; height: 100%; padding: .45rem .5rem; background: rgba(76,175,110,.2); color: var(--green); font-size: 1.3rem; line-height: 1; }
     .ov-dot-absent   { display: block; width: 100%; height: 100%; padding: .45rem .5rem; background: rgba(224,92,92,.15); color: var(--danger); font-size: 1.3rem; line-height: 1; }
     .ov-dot-empty    { display: block; width: 100%; height: 100%; padding: .45rem .5rem; color: var(--border); font-size: .9rem; }
@@ -2246,8 +2251,8 @@
       const d=m.date?new Date(m.date+'T12:00:00'):null;
       const dayStr=d?`${WEEKDAY[d.getDay()]} ${d.toLocaleDateString('sv-SE',{day:'numeric',month:'short'})}`:' ?';
       const prevDate = i > 0 ? matchLineups[i-1].match.date : null;
-      const dayBorder = i > 0 && m.date !== prevDate ? 'border-left:2px solid var(--muted);' : '';
-      html+=`<th class="match-col" style="${dayBorder}"><span class="match-col-time">${escHtml(m.time||'?')}</span><span class="match-col-opp">${escHtml(m.opponent||'—')}</span><span class="match-col-opp">${dayStr}</span><span class="match-col-diffbar diff-${m.difficulty||'green'}"></span></th>`;
+      const dayBorder = i > 0 && m.date !== prevDate ? ' day-sep' : '';
+      html+=`<th class="match-col${dayBorder}"><span class="match-col-time">${escHtml(m.time||'?')}</span><span class="match-col-opp">${escHtml(m.opponent||'—')}</span><span class="match-col-opp">${dayStr}</span><span class="match-col-diffbar diff-${m.difficulty||'green'}"></span></th>`;
     });
     html+='</tr></thead><tbody>';
     sortedPlayers.forEach(p=>{
@@ -2255,12 +2260,12 @@
       matchLineups.forEach(({match:m,pids}, i)=>{
         const absent=isPlayerUnavailableOnDate(p,m.date||today),selected=pids.has(p.id);
         const prevDate = i > 0 ? matchLineups[i-1].match.date : null;
-        const dayBorder = i > 0 && m.date !== prevDate ? 'border-left:2px solid var(--muted);' : '';
+        const dayBorder = i > 0 && m.date !== prevDate ? ' day-sep' : '';
         let cell;
         if(absent)cell='<span class="ov-dot-absent" title="Ej tillgänglig">●</span>';
         else if(selected)cell='<span class="ov-dot-selected" title="Uttagen">●</span>';
         else cell='<span class="ov-dot-empty">·</span>';
-        html+=`<td class="dot-col" style="${dayBorder}">${cell}</td>`;
+        html+=`<td class="dot-col${dayBorder}">${cell}</td>`;
       });
       html+='</tr>';
     });

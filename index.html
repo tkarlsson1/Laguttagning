@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>v0.154 — Uttagning</title>
+  <title>v0.155 — Uttagning</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
@@ -695,7 +695,6 @@
         <datalist id="overview-follow-list"></datalist>
         <button class="btn-secondary" id="btn-follow-add" style="padding:.3rem .7rem;font-size:.78rem">Lägg till</button>
       </div>
-      <div class="filter-bar" id="overview-follow-pills" style="display:none"></div>
     </div>
     <div class="filter-bar" id="overview-teamlabel-filter" style="margin-bottom:1rem;display:none"></div>
     <div id="overview-body"></div>
@@ -1014,7 +1013,7 @@
   let followedTeamIds       = [];   // team ids followed in the overview (from current team's doc)
   let followedMatches       = {};   // teamId -> [matches] for followed teams
   let allTeamsCache         = [];   // [{id, name}] of all teams in the system (for search)
-  let activeFollowedFilter  = [];   // followed team ids currently shown in overview
+  let activeOverviewTeams   = [];   // team ids currently shown in overview (own + followed); empty handled as own-only
 
   // ── Team collection helper ────────────────────────
   function teamCol(name) { return collection(db, 'teams', currentTeamId, name); }
@@ -1143,6 +1142,7 @@
       // Reset filters to show all team matches by default
       activeMatchTeamFilter    = [];
       activeOverviewTeamFilter = [];
+      activeOverviewTeams      = currentTeamId ? [currentTeamId] : [];
       activeLineupTeamFilter   = '';
       activeHistoryTeamFilter  = '';
       if (tab.dataset.page==='lineup')   refreshMatchSelector();
@@ -1249,6 +1249,7 @@
     activeFilter = 'all';
     activeMatchTeamFilter = [];
     activeOverviewTeamFilter = [];
+    activeOverviewTeams = [teamId];
     activeLineupTeamFilter = '';
     activeHistoryTeamFilter = '';
     document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b.dataset.filter === 'all'));
@@ -1272,7 +1273,7 @@
     refreshMatchSelector();
 
     // Load followed-teams data for the overview (non-blocking)
-    followedTeamIds = []; followedMatches = {}; activeFollowedFilter = [];
+    followedTeamIds = []; followedMatches = {}; activeOverviewTeams = [teamId];
     loadAllTeamsCache().then(refreshFollowDatalist);
     loadFollowedForCurrentTeam().then(() => { refreshFollowDatalist(); renderOverview(); });
   }
@@ -2518,7 +2519,6 @@
   // Load followedTeamIds from the current team's doc, then fetch their matches.
   async function loadFollowedForCurrentTeam() {
     followedMatches = {};
-    activeFollowedFilter = [];
     const ct = userTeams.find(t => t.id === currentTeamId);
     followedTeamIds = (ct && Array.isArray(ct.followedTeams)) ? ct.followedTeams.slice() : [];
     // Fetch each followed team's matches (read-only, may be a team we're not a member of)
@@ -2554,98 +2554,107 @@
     const useRange = !!(overviewRangeFrom && overviewRangeTo);
     document.getElementById('btn-range-clear').style.display = useRange ? 'inline-flex' : 'none';
 
-    // Get matches in current view
-    let viewMatches, idx, total, weekKey;
+    // Default to own team only
+    if (activeOverviewTeams.length === 0) activeOverviewTeams = [currentTeamId];
+
+    // ── Unified team pills: own team + followed teams as equal choices ──
+    const pillBar = document.getElementById('overview-teamlabel-filter');
+    const ownName = currentTeamName || 'Mitt lag';
+    const allTeamIds = [currentTeamId, ...followedTeamIds];
+    const allShown = activeOverviewTeams.length >= allTeamIds.length
+      && allTeamIds.every(t => activeOverviewTeams.includes(t));
+    pillBar.style.display = 'flex';
+    let pillsHtml = `<button class="filter-btn${allShown?' active':''}" data-team="__all__">Alla</button>`;
+    pillsHtml += `<button class="filter-btn${activeOverviewTeams.includes(currentTeamId)?' active':''}" data-team="${escHtml(currentTeamId)}">${escHtml(ownName)}</button>`;
+    pillsHtml += followedTeamIds.map(tid =>
+      `<button class="filter-btn${activeOverviewTeams.includes(tid)?' active':''}" data-team="${escHtml(tid)}" data-followed="1">${escHtml(followedTeamName(tid))}<span style="margin-left:.4rem;opacity:.6">✕</span></button>`
+    ).join('');
+    pillBar.innerHTML = pillsHtml;
+    pillBar.querySelectorAll('.filter-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const t = btn.dataset.team;
+        if (t === '__all__') { activeOverviewTeams = [...allTeamIds]; renderOverview(); return; }
+        // ✕ on a followed pill removes that followed team
+        if (btn.dataset.followed) {
+          const rect = btn.getBoundingClientRect();
+          if (e.clientX > rect.right - 22) {
+            followedTeamIds = followedTeamIds.filter(x => x !== t);
+            activeOverviewTeams = activeOverviewTeams.filter(x => x !== t);
+            saveFollowedTeams();
+            return;
+          }
+        }
+        // Toggle this team; never allow empty (fall back to own team)
+        if (activeOverviewTeams.includes(t)) {
+          activeOverviewTeams = activeOverviewTeams.filter(x => x !== t);
+          if (activeOverviewTeams.length === 0) activeOverviewTeams = [currentTeamId];
+        } else {
+          activeOverviewTeams = [...activeOverviewTeams, t];
+        }
+        renderOverview();
+      });
+    });
+
+    // ── Collect matches for all selected teams, tagged with origin team id ──
+    // Own team's matches come from `matches`; followed from `followedMatches[tid]`.
+    const showOwn = activeOverviewTeams.includes(currentTeamId);
+    const ownSource = showOwn ? matches.map(m => ({ m, followTeamId: null })) : [];
+    let followedSource = [];
+    for (const tid of activeOverviewTeams) {
+      if (tid === currentTeamId) continue;
+      (followedMatches[tid] || []).forEach(m => followedSource.push({ m, followTeamId: tid }));
+    }
+    const allSource = [...ownSource, ...followedSource];
+
+    // Determine the date window (week or range) based on all selected teams' dates.
+    let winFilter;
     if (useRange) {
       const from = overviewRangeFrom, to = overviewRangeTo;
-      viewMatches = matches.filter(m => m.date && m.date >= from && m.date <= to);
-      if (activeOverviewTeamFilter.length > 0) viewMatches = viewMatches.filter(m => activeOverviewTeamFilter.includes(m.teamlabel||''));
-      viewMatches.sort((a,b)=>(`${a.date||''}T${a.time||'00:00'}`).localeCompare(`${b.date||''}T${b.time||'00:00'}`));
+      winFilter = (d) => d && d >= from && d <= to;
       const fromD = new Date(from+'T12:00:00'), toD = new Date(to+'T12:00:00');
       label.textContent = `${fromD.toLocaleDateString('sv-SE',{day:'numeric',month:'short'})} – ${toD.toLocaleDateString('sv-SE',{day:'numeric',month:'short',year:'numeric'})}`;
       document.getElementById('btn-week-prev').disabled = true;
       document.getElementById('btn-week-next').disabled = true;
     } else {
-      const r = getWeekMatches(overviewWeekOffset, activeOverviewTeamFilter);
-      viewMatches = r.weekMatches;
-      weekKey = r.weekKey; idx = r.idx; total = r.total;
-      document.getElementById('btn-week-prev').disabled = !idx;
-      document.getElementById('btn-week-next').disabled = idx>=total-1;
+      // Build week list from all selected teams' match dates
+      const allWeekKeys = [...new Set(allSource.map(x => isoWeekKey(x.m.date)).filter(Boolean))].sort();
+      if (!allWeekKeys.length) {
+        body.innerHTML = `<div class="overview-empty">Inga matcher denna vecka.</div>`;
+        document.getElementById('btn-copy-overview').style.display='none';
+        document.getElementById('btn-image-overview').style.display='none';
+        label.textContent = '—';
+        document.getElementById('btn-week-prev').disabled = true;
+        document.getElementById('btn-week-next').disabled = true;
+        return;
+      }
+      const todayWeek = isoWeekKey(todayStr());
+      const futureWeeks = allWeekKeys.filter(w => w >= todayWeek);
+      const baseIdx = futureWeeks.length ? allWeekKeys.indexOf(futureWeeks[0]) : allWeekKeys.length-1;
+      const wkIdx = Math.max(0, Math.min(allWeekKeys.length-1, baseIdx + overviewWeekOffset));
+      weekKey = allWeekKeys[wkIdx];
+      winFilter = (d) => d && isoWeekKey(d) === weekKey;
       label.textContent = weekKey ? weekKeyToLabel(weekKey) : '—';
+      document.getElementById('btn-week-prev').disabled = wkIdx === 0;
+      document.getElementById('btn-week-next').disabled = wkIdx >= allWeekKeys.length-1;
     }
 
-    // Team label filter bar
-    const overviewFilterBar = document.getElementById('overview-teamlabel-filter');
-    const allLabels = getTeamLabels();
-    if (allLabels.length > 0) {
-      overviewFilterBar.style.display = 'flex';
-      overviewFilterBar.innerHTML = `<button class="filter-btn${activeOverviewTeamFilter.length===0?' active':''}" data-label="__all__">Alla</button>`
-        + allLabels.map(l=>`<button class="filter-btn${activeOverviewTeamFilter.includes(l)?' active':''}" data-label="${escHtml(l)}">${escHtml(l)}</button>`).join('');
-      overviewFilterBar.querySelectorAll('.filter-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-          if (btn.dataset.label === '__all__') activeOverviewTeamFilter = [];
-          else {
-            const l = btn.dataset.label;
-            if (activeOverviewTeamFilter.includes(l)) activeOverviewTeamFilter = activeOverviewTeamFilter.filter(x=>x!==l);
-            else activeOverviewTeamFilter = [...activeOverviewTeamFilter, l];
-          }
-          renderOverview();
-        });
-      });
-    } else {
-      overviewFilterBar.style.display = 'none';
-    }
+    const windowed = allSource.filter(x => winFilter(x.m.date));
 
-    // ── Followed teams: pills + collect their matches in the same window ──
-    const followPills = document.getElementById('overview-follow-pills');
-    if (followedTeamIds.length > 0) {
-      followPills.style.display = 'flex';
-      followPills.innerHTML = followedTeamIds.map(tid =>
-        `<button class="filter-btn${activeFollowedFilter.includes(tid)?' active':''}" data-follow="${escHtml(tid)}">${escHtml(followedTeamName(tid))}<span style="margin-left:.4rem;opacity:.6">✕</span></button>`
-      ).join('');
-      followPills.querySelectorAll('.filter-btn').forEach(btn => {
-        // Toggle visibility on click; the ✕ removes the followed team.
-        btn.addEventListener('click', (e) => {
-          const tid = btn.dataset.follow;
-          const rect = btn.getBoundingClientRect();
-          // Click on the right ~20px (the ✕) removes; elsewhere toggles.
-          if (e.clientX > rect.right - 22) {
-            followedTeamIds = followedTeamIds.filter(x => x !== tid);
-            activeFollowedFilter = activeFollowedFilter.filter(x => x !== tid);
-            saveFollowedTeams();
-            return;
-          }
-          if (activeFollowedFilter.includes(tid)) activeFollowedFilter = activeFollowedFilter.filter(x=>x!==tid);
-          else activeFollowedFilter = [...activeFollowedFilter, tid];
-          renderOverview();
-        });
-      });
-    } else {
-      followPills.style.display = 'none';
-    }
-
-    // Collect followed matches in the same date window, tagged with their team.
-    let followedCols = [];
-    for (const tid of activeFollowedFilter) {
-      const list = followedMatches[tid] || [];
-      const inWindow = useRange
-        ? list.filter(m => m.date && m.date >= overviewRangeFrom && m.date <= overviewRangeTo)
-        : list.filter(m => m.date && weekKey && isoWeekKey(m.date) === weekKey);
-      inWindow.forEach(m => followedCols.push({ match: m, followTeamId: tid }));
-    }
-
-    if(!viewMatches.length && !followedCols.length){body.innerHTML=`<div class="overview-empty">Inga matcher ${useRange?'i intervallet':'denna vecka'}.</div>`;document.getElementById('btn-copy-overview').style.display='none';document.getElementById('btn-image-overview').style.display='none';return;}
-    const hasLineups = viewMatches.some(m => allLineups[m.id] && Object.keys(allLineups[m.id].slots||{}).length > 0);
+    if(!windowed.length){body.innerHTML=`<div class="overview-empty">Inga matcher ${useRange?'i intervallet':'denna vecka'}.</div>`;document.getElementById('btn-copy-overview').style.display='none';document.getElementById('btn-image-overview').style.display='none';return;}
+    const ownInView = windowed.filter(x => !x.followTeamId).map(x => x.m);
+    const hasLineups = ownInView.some(m => allLineups[m.id] && Object.keys(allLineups[m.id].slots||{}).length > 0);
     const copyBtn = document.getElementById('btn-copy-overview');
     copyBtn.style.display = hasLineups ? 'inline-flex' : 'none';
     copyBtn.textContent = useRange ? 'Kopiera intervall' : 'Kopiera vecka';
     document.getElementById('btn-image-overview').style.display = hasLineups ? 'inline-flex' : 'none';
     const today=todayStr();
     const sortedPlayers=[...players].sort((a,b)=>shortName(a).localeCompare(shortName(b),'sv'));
-    // Own match columns (with lineup pids) + followed columns (no pids, blank cells), merged & sorted by date/time.
-    const ownCols = viewMatches.map(m=>{const lu=allLineups[m.id];return{match:m,pids:new Set(lu?[...new Set(Object.values(lu.slots||{}).flat())]:[]),followTeamId:null}; });
-    const followCols2 = followedCols.map(({match,followTeamId})=>({match,pids:new Set(),followTeamId}));
-    const matchLineups = [...ownCols, ...followCols2].sort((a,b)=>
+    // Build columns: own (with lineup pids) + followed (blank), merged & sorted by date/time.
+    const matchLineups = windowed.map(({m, followTeamId}) => {
+      if (followTeamId) return { match: m, pids: new Set(), followTeamId };
+      const lu = allLineups[m.id];
+      return { match: m, pids: new Set(lu?[...new Set(Object.values(lu.slots||{}).flat())]:[]), followTeamId: null };
+    }).sort((a,b)=>
       (`${a.match.date||''}T${a.match.time||'00:00'}`).localeCompare(`${b.match.date||''}T${b.match.time||'00:00'}`)
     );
     let html='<div class="overview-table-wrap"><table class="overview-table"><thead><tr><th class="hdr-text-row">Spelare</th>';
@@ -2715,7 +2724,7 @@
     if (match.id === currentTeamId) { alert('Det är redan det lag du är inne på.'); return; }
     if (followedTeamIds.includes(match.id)) { alert('Det laget följs redan.'); return; }
     followedTeamIds.push(match.id);
-    activeFollowedFilter.push(match.id); // show it immediately
+    activeOverviewTeams.push(match.id); // show it immediately
     input.value = '';
     await saveFollowedTeams();
     refreshFollowDatalist();

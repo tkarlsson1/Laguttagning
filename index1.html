@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>v0.145-laget3 — Uttagning</title>
+  <title>v0.146-laget4 — Uttagning</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
@@ -809,7 +809,7 @@
 
 <!-- ── LAGET.SE IMPORT MODAL ──────────────────────────── -->
 <div id="laget-modal" class="modal-backdrop">
-  <div class="modal" style="max-width:680px">
+  <div class="modal" style="max-width:1000px">
     <div class="modal-title">IMPORTERA FRÅN LAGET.SE</div>
     <div class="field">
       <label for="laget-url">Lagets sida på laget.se</label>
@@ -1899,8 +1899,8 @@
     }
     const inputStyle = 'background:var(--bg);border:1px solid var(--border);border-radius:4px;color:var(--text);font-family:var(--font-body);font-size:.8rem;padding:.2rem .4rem;outline:none;width:100%';
     preview.innerHTML = `<div style="font-size:.82rem;color:var(--muted);margin-bottom:.5rem">${lagetMatches.length} matcher hittade — kontrollera och justera vid behov</div>
-      <div style="overflow-x:auto">
-      <table class="fogis-preview-table" id="laget-editable-table">
+      <div style="overflow-x:auto;-webkit-overflow-scrolling:touch">
+      <table class="fogis-preview-table" id="laget-editable-table" style="min-width:760px">
         <thead><tr><th>Datum</th><th>Tid</th><th>Lag</th><th>Motståndare</th><th>H/B</th><th>Plats</th><th>Format</th><th>Svårighet</th></tr></thead>
         <tbody>${lagetMatches.map((m,i) => {
           const d = new Date(m.date+'T12:00:00');

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>v0.143-laget1 — Uttagning</title>
+  <title>v0.144-laget2 — Uttagning</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
@@ -812,11 +812,11 @@
   <div class="modal" style="max-width:680px">
     <div class="modal-title">IMPORTERA FRÅN LAGET.SE</div>
     <div class="field">
-      <label for="laget-text">Klistra in kalenderdata (ICS)</label>
-      <textarea id="laget-text" rows="6" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:var(--font-body);font-size:.85rem;padding:.75rem 1rem;resize:vertical;outline:none;width:100%;transition:border-color .2s" placeholder="Klistra in hela innehållet från lagets .ics-fil här..."></textarea>
-      <div style="font-size:.78rem;color:var(--muted);margin-top:.4rem">Öppna <span style="color:var(--text)">cal.laget.se/[lag].ics</span> i webbläsaren, markera allt och klistra in här. Endast matcher importeras — träningar och övriga aktiviteter hoppas över.</div>
+      <label for="laget-url">Lagets sida på laget.se</label>
+      <input id="laget-url" type="text" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:var(--font-body);font-size:.85rem;padding:.75rem 1rem;outline:none;width:100%;transition:border-color .2s" placeholder="https://www.laget.se/IKOden-P14" />
+      <div style="font-size:.78rem;color:var(--muted);margin-top:.4rem">Klistra in adressen till lagets startsida på laget.se. Matcher, motståndare, tider, platser och svårighetsgrad hämtas automatiskt. Endast matcher importeras — träningar och övriga aktiviteter hoppas över.</div>
     </div>
-    <button class="btn-secondary" id="btn-laget-parse" style="margin-bottom:1rem">Analysera</button>
+    <button class="btn-secondary" id="btn-laget-parse" style="margin-bottom:1rem">Hämta matcher</button>
     <div id="laget-preview"></div>
     <div class="modal-actions">
       <button class="btn-secondary" id="btn-laget-cancel">Avbryt</button>
@@ -935,6 +935,8 @@
                                      from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
   import { getFirestore, collection, doc, getDoc, getDocs, onSnapshot, addDoc, updateDoc, deleteDoc, setDoc, serverTimestamp }
                                      from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  import { getFunctions, httpsCallable }
+                                     from "https://www.gstatic.com/firebasejs/10.12.0/firebase-functions.js";
 
   const firebaseConfig = {
     apiKey:"AIzaSyDtWJUooasHwd3PKnx_vHvbE4rzU5iGS40", authDomain:"laguttagning.firebaseapp.com",
@@ -944,6 +946,7 @@
   const fbApp = initializeApp(firebaseConfig);
   const auth  = getAuth(fbApp);
   const db    = getFirestore(fbApp);
+  const functions = getFunctions(fbApp, 'europe-west1');
 
   // Secondary app for creating new users without signing out admin
   const fbAppSecondary = initializeApp(firebaseConfig, 'secondary');
@@ -1847,7 +1850,8 @@
   }
 
   document.getElementById('btn-import-laget').addEventListener('click', () => {
-    document.getElementById('laget-text').value = '';
+    const currentTeam = userTeams.find(t => t.id === currentTeamId);
+    document.getElementById('laget-url').value = currentTeam?.lagetUrl || '';
     document.getElementById('laget-preview').innerHTML = '';
     document.getElementById('btn-laget-import').style.display = 'none';
     lagetModal.classList.add('open');
@@ -1855,13 +1859,40 @@
   document.getElementById('btn-laget-cancel').addEventListener('click', () => lagetModal.classList.remove('open'));
   lagetModal.addEventListener('click', e => { if (e.target === lagetModal) lagetModal.classList.remove('open'); });
 
-  document.getElementById('btn-laget-parse').addEventListener('click', () => {
-    const text = document.getElementById('laget-text').value.trim();
+  document.getElementById('btn-laget-parse').addEventListener('click', async () => {
+    const url = document.getElementById('laget-url').value.trim();
     const preview = document.getElementById('laget-preview');
-    if (!text) { preview.innerHTML = '<div class="fogis-parse-error">Klistra in kalenderdata först.</div>'; return; }
-    lagetMatches = parseLagetICS(text);
+    const parseBtn = document.getElementById('btn-laget-parse');
+    if (!url) { preview.innerHTML = '<div class="fogis-parse-error">Klistra in lagets laget.se-URL först.</div>'; return; }
+
+    parseBtn.disabled = true;
+    parseBtn.textContent = 'HÄMTAR...';
+    preview.innerHTML = '<div style="font-size:.82rem;color:var(--muted)">Hämtar matcher och svårighetsgrad från laget.se — detta kan ta några sekunder...</div>';
+    document.getElementById('btn-laget-import').style.display = 'none';
+
+    try {
+      const importLaget = httpsCallable(functions, 'importLaget');
+      const res = await importLaget({ url });
+      lagetMatches = (res.data && res.data.matches) ? res.data.matches : [];
+
+      // Save the URL on the team document for next time.
+      if (currentTeamId) {
+        try { await updateDoc(doc(db, 'teams', currentTeamId), { lagetUrl: url }); } catch (e) { console.warn('Could not save lagetUrl', e); }
+        const ct = userTeams.find(t => t.id === currentTeamId);
+        if (ct) ct.lagetUrl = url;
+      }
+    } catch (err) {
+      console.error(err);
+      preview.innerHTML = `<div class="fogis-parse-error">Kunde inte hämta: ${escHtml(err.message || 'okänt fel')}</div>`;
+      parseBtn.disabled = false; parseBtn.textContent = 'Hämta matcher';
+      return;
+    }
+
+    parseBtn.disabled = false;
+    parseBtn.textContent = 'Hämta matcher';
+
     if (!lagetMatches.length) {
-      preview.innerHTML = '<div class="fogis-parse-error">Inga matcher hittades. Kontrollera att du klistrat in hela ICS-innehållet.</div>';
+      preview.innerHTML = '<div class="fogis-parse-error">Inga matcher hittades. Kontrollera att URL:en är rätt.</div>';
       document.getElementById('btn-laget-import').style.display = 'none';
       return;
     }

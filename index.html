@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>v0.143 — Uttagning</title>
+  <title>v0.149 — Uttagning</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
@@ -600,7 +600,9 @@
   <div id="page-matches" class="page">
     <div class="page-header">
       <div class="page-title">MATCHER <span id="match-count"></span></div>
-      <div style="display:flex;gap:.75rem">
+      <div style="display:flex;gap:.75rem;flex-wrap:wrap">
+        <button class="btn-secondary" id="btn-import-laget">Importera från laget.se</button>
+        <button class="btn-secondary" id="btn-update-laget" style="display:none">Uppdatera från laget.se</button>
         <button class="btn-secondary" id="btn-import-fogis">Importera från Fogis</button>
         <button class="btn-secondary" id="btn-add-match">+ Lägg till</button>
       </div>
@@ -806,6 +808,24 @@
   </div>
 </div>
 
+<!-- ── LAGET.SE IMPORT MODAL ──────────────────────────── -->
+<div id="laget-modal" class="modal-backdrop">
+  <div class="modal" style="max-width:1000px">
+    <div class="modal-title">IMPORTERA FRÅN LAGET.SE</div>
+    <div class="field">
+      <label for="laget-url">Lagets sida på laget.se</label>
+      <input id="laget-url" type="text" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:var(--font-body);font-size:.85rem;padding:.75rem 1rem;outline:none;width:100%;transition:border-color .2s" placeholder="https://www.laget.se/IKOden-P14" />
+      <div style="font-size:.78rem;color:var(--muted);margin-top:.4rem">Klistra in adressen till lagets startsida på laget.se. Matcher, motståndare, tider, platser och svårighetsgrad hämtas automatiskt. Endast matcher importeras — träningar och övriga aktiviteter hoppas över.</div>
+    </div>
+    <button class="btn-secondary" id="btn-laget-parse" style="margin-bottom:1rem">Hämta matcher</button>
+    <div id="laget-preview"></div>
+    <div class="modal-actions">
+      <button class="btn-secondary" id="btn-laget-cancel">Avbryt</button>
+      <button class="btn-primary" id="btn-laget-import" style="display:none">IMPORTERA MATCHER</button>
+    </div>
+  </div>
+</div>
+
 <!-- ── README MODAL ──────────────────────────────────── -->
 <div id="readme-modal" class="modal-backdrop">
   <div class="modal" style="max-width:560px">
@@ -916,6 +936,8 @@
                                      from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
   import { getFirestore, collection, doc, getDoc, getDocs, onSnapshot, addDoc, updateDoc, deleteDoc, setDoc, serverTimestamp }
                                      from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  import { getFunctions, httpsCallable }
+                                     from "https://www.gstatic.com/firebasejs/10.12.0/firebase-functions.js";
 
   const firebaseConfig = {
     apiKey:"AIzaSyDtWJUooasHwd3PKnx_vHvbE4rzU5iGS40", authDomain:"laguttagning.firebaseapp.com",
@@ -925,6 +947,7 @@
   const fbApp = initializeApp(firebaseConfig);
   const auth  = getAuth(fbApp);
   const db    = getFirestore(fbApp);
+  const functions = getFunctions(fbApp, 'europe-west1');
 
   // Secondary app for creating new users without signing out admin
   const fbAppSecondary = initializeApp(firebaseConfig, 'secondary');
@@ -934,6 +957,7 @@
 
   // ── Formations ────────────────────────────────────
   const FORMATIONS = {
+    '5v5':  ['1-2-1','2-1-1','1-1-2','2-2'],
     '7v7':  ['2-3-1','3-2-1','2-2-2','3-1-2'],
     '9v9':  ['3-3-2','3-2-3','4-2-2','4-3-1','3-4-1','2-4-2','4-1-3','2-3-3','1-4-3','2-1-4-1','2-1-3-2'],
     '11v11':['4-4-2','4-3-3','4-2-3-1','3-5-2','3-4-3','4-1-4-1','4-3-2-1','5-3-2','5-4-1','4-5-1','3-4-2-1','4-1-2-1-2','4-2-2-2','3-3-3-1']
@@ -1097,11 +1121,11 @@
       document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
       tab.classList.add('active');
       document.getElementById('page-'+tab.dataset.page).classList.add('active');
-      // Reset filters to own team on tab switch
-      activeMatchTeamFilter    = [currentTeamName];
-      activeOverviewTeamFilter = [currentTeamName];
-      activeLineupTeamFilter   = currentTeamName;
-      activeHistoryTeamFilter  = currentTeamName;
+      // Reset filters to show all team matches by default
+      activeMatchTeamFilter    = [];
+      activeOverviewTeamFilter = [];
+      activeLineupTeamFilter   = '';
+      activeHistoryTeamFilter  = '';
       if (tab.dataset.page==='lineup')   refreshMatchSelector();
       if (tab.dataset.page==='matches')  { renderMatches(); scrollMatchesToToday(); }
       if (tab.dataset.page==='overview') { overviewWeekOffset=0; renderOverview(); }
@@ -1204,10 +1228,10 @@
     document.getElementById('formation-group').style.display = 'none';
     // Reset player filter
     activeFilter = 'all';
-    activeMatchTeamFilter = [currentTeamName];
-    activeOverviewTeamFilter = [currentTeamName];
-    activeLineupTeamFilter = currentTeamName;
-    activeHistoryTeamFilter = currentTeamName;
+    activeMatchTeamFilter = [];
+    activeOverviewTeamFilter = [];
+    activeLineupTeamFilter = '';
+    activeHistoryTeamFilter = '';
     document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b.dataset.filter === 'all'));
     // Reset history
     selectedHistoryMatchId = null;
@@ -1454,6 +1478,10 @@
   function renderMatches() {
     document.getElementById('match-count').textContent=`(${matches.length})`;
     const list=document.getElementById('match-list');
+
+    // Show "Uppdatera från laget.se" only if this team has a saved URL
+    const ct = userTeams.find(t => t.id === currentTeamId);
+    document.getElementById('btn-update-laget').style.display = ct?.lagetUrl ? 'inline-flex' : 'none';
 
     // Build multi-select filter bar
     const labels = getTeamLabels();
@@ -1770,7 +1798,236 @@
       btn.disabled = false; btn.textContent = 'IMPORTERA MATCHER';
     }
   });
-  let pendingDelete=null, pendingConfirmCb=null;
+
+  // ── LAGET.SE ICS IMPORT ───────────────────────────
+  let lagetMatches = [];
+  const lagetModal = document.getElementById('laget-modal');
+  const LAGET_TEAM_RE = /Irsta IF P12 (Röd 1|Röd 2|Svart)/;
+  const LAGET_FOGIS_RE = /\/Game\/\d+\/(\d+)/;
+  const LAGET_DT_RE = /^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})$/;
+
+  function unfoldICS(raw) { return raw.replace(/\r?\n[ \t]/g, ''); }
+
+  function parseICS(raw) {
+    const lines = unfoldICS(raw).split(/\r?\n/);
+    const events = []; let cur = null;
+    for (const line of lines) {
+      if (line === 'BEGIN:VEVENT') { cur = {}; continue; }
+      if (line === 'END:VEVENT') { if (cur) events.push(cur); cur = null; continue; }
+      if (!cur) continue;
+      const idx = line.indexOf(':'); if (idx === -1) continue;
+      const left = line.slice(0, idx), value = line.slice(idx + 1);
+      const key = left.split(';')[0];
+      cur[key] = value;
+    }
+    return events;
+  }
+
+  function icsDateTime(v) {
+    if (!v) return { date: '', time: '' };
+    const m = v.match(LAGET_DT_RE);
+    if (!m) return { date: '', time: '' };
+    const [, y, mo, d, h, mi] = m;
+    return { date: `${y}-${mo}-${d}`, time: `${h}:${mi}` };
+  }
+
+  function parseLagetICS(raw) {
+    const events = parseICS(raw);
+    return events
+      .filter(e => (e.CATEGORIES || '') === 'Match')
+      .map(ev => {
+        const summary = (ev.SUMMARY || '').replace(/^Match\s+/, '').trim();
+        const parts = summary.split(' - ');
+        const home = (parts[0] || '').trim();
+        const away = (parts.slice(1).join(' - ') || '').trim();
+        const homeM = home.match(LAGET_TEAM_RE);
+        const awayM = away.match(LAGET_TEAM_RE);
+        let teamlabel = '', opponent = '', homeway = '', flag = '';
+        if (homeM && !awayM) { teamlabel = homeM[1]; opponent = away; homeway = 'home'; }
+        else if (awayM && !homeM) { teamlabel = awayM[1]; opponent = home; homeway = 'away'; }
+        else { opponent = away || home; homeway = 'home'; flag = 'Kunde inte identifiera Irsta-lag — kontrollera'; }
+        const { date, time } = icsDateTime(ev.DTSTART);
+        const fm = (ev.DESCRIPTION || '').match(LAGET_FOGIS_RE);
+        const fogisId = fm ? fm[1] : '';
+        return { date, time, opponent, homeway, teamlabel, location: ev.LOCATION || '', difficulty: 'green', serie: '', fogisId, flag };
+      })
+      .filter(m => m.date)
+      .sort((a,b) => (`${a.date}T${a.time||'00:00'}`).localeCompare(`${b.date}T${b.time||'00:00'}`));
+  }
+
+  document.getElementById('btn-import-laget').addEventListener('click', () => {
+    const currentTeam = userTeams.find(t => t.id === currentTeamId);
+    document.getElementById('laget-url').value = currentTeam?.lagetUrl || '';
+    document.getElementById('laget-preview').innerHTML = '';
+    document.getElementById('btn-laget-import').style.display = 'none';
+    lagetModal.classList.add('open');
+  });
+  document.getElementById('btn-laget-cancel').addEventListener('click', () => lagetModal.classList.remove('open'));
+  lagetModal.addEventListener('click', e => { if (e.target === lagetModal) lagetModal.classList.remove('open'); });
+
+  // Silent "Uppdatera från laget.se": fetches + syncs against the saved URL,
+  // no preview. Uses the same write logic (change detection, cup preserved).
+  document.getElementById('btn-update-laget').addEventListener('click', async () => {
+    const currentTeam = userTeams.find(t => t.id === currentTeamId);
+    const url = currentTeam?.lagetUrl;
+    if (!url) return; // button is hidden in this case anyway
+    const btn = document.getElementById('btn-update-laget');
+    btn.disabled = true;
+    const orig = btn.textContent;
+    btn.textContent = 'UPPDATERAR...';
+    try {
+      const importLaget = httpsCallable(functions, 'importLaget');
+      const res = await importLaget({ url });
+      const list = (res.data && res.data.matches) ? res.data.matches : [];
+      const stats = await writeLagetMatches(list);
+      alert(lagetStatsText(stats));
+    } catch (err) {
+      console.error(err);
+      alert('Kunde inte uppdatera: ' + (err.message || 'okänt fel'));
+    } finally {
+      btn.disabled = false; btn.textContent = orig;
+    }
+  });
+
+  // Fields the import owns and keeps in sync with laget.se. Cup is NEVER touched
+  // (always manual). Used both for writing and for change detection.
+  const LAGET_OWNED_FIELDS = ['date','time','opponent','location','format','difficulty','homeway','teamlabel','serie'];
+
+  // Write/update matches from laget.se. Returns { created, updated, verified }.
+  // - matched on fogisId; existing match with no changed owned field → verified (no write)
+  // - cup is preserved on existing matches and defaults to '' on new ones
+  async function writeLagetMatches(list) {
+    let created = 0, updated = 0, verified = 0;
+    for (const m of list) {
+      const owned = {
+        date: m.date, time: m.time, opponent: m.opponent, location: m.location || '',
+        format: m.format || '11v11', difficulty: m.difficulty, homeway: m.homeway,
+        teamlabel: m.teamlabel || '', serie: m.serie || ''
+      };
+      const existing = m.fogisId ? matches.find(x => x.fogisId === m.fogisId) : null;
+      if (existing) {
+        const changed = LAGET_OWNED_FIELDS.some(f => (existing[f] || '') !== (owned[f] || ''));
+        if (changed) { await updateDoc(teamDoc('matches', existing.id), owned); updated++; }
+        else { verified++; }
+      } else {
+        await addDoc(teamCol('matches'), { ...owned, cup: '', fogisId: m.fogisId || '' });
+        created++;
+      }
+    }
+    return { created, updated, verified };
+  }
+
+  function lagetStatsText(s) {
+    const parts = [
+      s.created  && `${s.created} skapade`,
+      s.updated  && `${s.updated} uppdaterade`,
+      s.verified && `${s.verified} verifierade (oförändrade)`
+    ].filter(Boolean);
+    return parts.length ? `Klart: ${parts.join(', ')}.` : 'Klart: inga matcher att importera.';
+  }
+
+  document.getElementById('btn-laget-parse').addEventListener('click', async () => {
+    const url = document.getElementById('laget-url').value.trim();
+    const preview = document.getElementById('laget-preview');
+    const parseBtn = document.getElementById('btn-laget-parse');
+    if (!url) { preview.innerHTML = '<div class="fogis-parse-error">Klistra in lagets laget.se-URL först.</div>'; return; }
+
+    parseBtn.disabled = true;
+    parseBtn.textContent = 'HÄMTAR...';
+    preview.innerHTML = '<div style="font-size:.82rem;color:var(--muted)">Hämtar matcher och svårighetsgrad från laget.se — detta kan ta några sekunder...</div>';
+    document.getElementById('btn-laget-import').style.display = 'none';
+
+    try {
+      const importLaget = httpsCallable(functions, 'importLaget');
+      const res = await importLaget({ url });
+      lagetMatches = (res.data && res.data.matches) ? res.data.matches : [];
+
+      // Save the URL on the team document for next time.
+      if (currentTeamId) {
+        try { await updateDoc(doc(db, 'teams', currentTeamId), { lagetUrl: url }); } catch (e) { console.warn('Could not save lagetUrl', e); }
+        const ct = userTeams.find(t => t.id === currentTeamId);
+        if (ct) ct.lagetUrl = url;
+      }
+    } catch (err) {
+      console.error(err);
+      preview.innerHTML = `<div class="fogis-parse-error">Kunde inte hämta: ${escHtml(err.message || 'okänt fel')}</div>`;
+      parseBtn.disabled = false; parseBtn.textContent = 'Hämta matcher';
+      return;
+    }
+
+    parseBtn.disabled = false;
+    parseBtn.textContent = 'Hämta matcher';
+
+    if (!lagetMatches.length) {
+      preview.innerHTML = '<div class="fogis-parse-error">Inga matcher hittades. Kontrollera att URL:en är rätt.</div>';
+      document.getElementById('btn-laget-import').style.display = 'none';
+      return;
+    }
+    const inputStyle = 'background:var(--bg);border:1px solid var(--border);border-radius:4px;color:var(--text);font-family:var(--font-body);font-size:.8rem;padding:.2rem .4rem;outline:none;width:100%';
+    preview.innerHTML = `<div style="font-size:.82rem;color:var(--muted);margin-bottom:.5rem">${lagetMatches.length} matcher hittade — kontrollera och justera vid behov</div>
+      <div style="overflow-x:auto;-webkit-overflow-scrolling:touch">
+      <table class="fogis-preview-table" id="laget-editable-table" style="min-width:760px">
+        <thead><tr><th>Datum</th><th>Tid</th><th>Lag</th><th>Motståndare</th><th>H/B</th><th>Plats</th><th>Format</th><th>Svårighet</th></tr></thead>
+        <tbody>${lagetMatches.map((m,i) => {
+          const d = new Date(m.date+'T12:00:00');
+          const dateStr = `${WEEKDAY[d.getDay()]} ${d.toLocaleDateString('sv-SE',{day:'numeric',month:'short'})}`;
+          return `<tr data-idx="${i}"${m.flag?' style="background:rgba(224,92,92,.08)"':''}>
+            <td><span style="font-size:.78rem">${dateStr}</span></td>
+            <td><input class="lp-time" value="${escHtml(m.time||'')}" placeholder="HH:MM" style="${inputStyle};width:60px" /></td>
+            <td><input class="lp-teamlabel" value="${escHtml(m.teamlabel)}" style="${inputStyle};width:80px"${m.flag?' placeholder="?"':''} /></td>
+            <td><input class="lp-opponent" value="${escHtml(m.opponent)}" style="${inputStyle};min-width:140px" /></td>
+            <td><select class="lp-homeway" style="${inputStyle};width:80px">
+              <option value="home"${m.homeway==='home'?' selected':''}>Hemma</option>
+              <option value="away"${m.homeway==='away'?' selected':''}>Borta</option>
+            </select></td>
+            <td><input class="lp-location" value="${escHtml(m.location||'')}" style="${inputStyle};min-width:120px" /></td>
+            <td><select class="lp-format" style="${inputStyle};width:70px">
+              <option value="5v5"${m.format==='5v5'?' selected':''}>5v5</option>
+              <option value="7v7"${m.format==='7v7'?' selected':''}>7v7</option>
+              <option value="9v9"${m.format==='9v9'?' selected':''}>9v9</option>
+              <option value="11v11"${m.format==='11v11'?' selected':''}>11v11</option>
+            </select></td>
+            <td><select class="lp-difficulty" style="${inputStyle};width:80px">
+              <option value="green"${m.difficulty==='green'?' selected':''}>Grön</option>
+              <option value="blue"${m.difficulty==='blue'?' selected':''}>Blå</option>
+              <option value="red"${m.difficulty==='red'?' selected':''}>Röd</option>
+              <option value="black"${m.difficulty==='black'?' selected':''}>Svart</option>
+            </select></td>
+          </tr>`;
+        }).join('')}</tbody>
+      </table></div>`;
+    document.getElementById('btn-laget-import').style.display = 'inline-flex';
+  });
+
+  document.getElementById('btn-laget-import').addEventListener('click', async () => {
+    const btn = document.getElementById('btn-laget-import');
+    btn.disabled = true; btn.textContent = 'IMPORTERAR...';
+    try {
+      const table = document.getElementById('laget-editable-table');
+      if (table) {
+        table.querySelectorAll('tbody tr').forEach(row => {
+          const i = parseInt(row.dataset.idx);
+          if (isNaN(i) || !lagetMatches[i]) return;
+          lagetMatches[i].time       = row.querySelector('.lp-time')?.value.trim()       || '';
+          lagetMatches[i].teamlabel  = row.querySelector('.lp-teamlabel')?.value.trim()  || '';
+          lagetMatches[i].opponent   = row.querySelector('.lp-opponent')?.value.trim()   || '';
+          lagetMatches[i].homeway    = row.querySelector('.lp-homeway')?.value           || 'home';
+          lagetMatches[i].location   = row.querySelector('.lp-location')?.value.trim()   || '';
+          lagetMatches[i].difficulty = row.querySelector('.lp-difficulty')?.value        || 'green';
+          lagetMatches[i].format     = row.querySelector('.lp-format')?.value            || '11v11';
+        });
+      }
+      const stats = await writeLagetMatches(lagetMatches);
+      lagetModal.classList.remove('open');
+      lagetMatches = [];
+      setTimeout(() => alert(lagetStatsText(stats)), 300);
+    } catch(err) {
+      console.error(err); alert('Något gick fel vid import: '+err.message);
+    } finally {
+      btn.disabled = false; btn.textContent = 'IMPORTERA MATCHER';
+    }
+  });
+
   const confirmBackdrop=document.getElementById('confirm-backdrop');
   const confirmOkBtn=document.getElementById('confirm-ok');
 

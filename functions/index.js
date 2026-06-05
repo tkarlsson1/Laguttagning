@@ -78,6 +78,23 @@ function difficultyFromSerie(serieName) {
   return "green"; // safe default if no colour found
 }
 
+/**
+ * Derive the match format from the serie name. Smaller formats spell the size
+ * out as "X mot X" or "XmX" (5/7/9). 11-a-side serie names omit the size
+ * entirely (e.g. "P16 Div.1 2026"), so absence of a size implies 11v11.
+ * The user can adjust this in the preview.
+ */
+function formatFromSerie(serieName) {
+  const s = (serieName || "").toLowerCase();
+  // Match "7 mot 7", "9m9", "5 m 5" etc — capture the first size digit.
+  const m = s.match(/(\d+)\s*(?:mot|m)\s*\1/);
+  if (m) {
+    const n = m[1];
+    if (n === "5" || n === "7" || n === "9") return `${n}v${n}`;
+  }
+  return "11v11"; // no explicit size in the serie name → assume 11-a-side
+}
+
 // ─── ICS parsing ─────────────────────────────────────────────────────────
 
 /** Parse raw ICS text into an array of event objects keyed by property name. */
@@ -188,6 +205,7 @@ function parseMatches(rawICS) {
       homeway,
       teamlabel,
       difficulty: "green", // filled in later from serie scrape
+      format: "11v11", // filled in later from serie scrape
       serie: "",
       serieId,
       fogisId,
@@ -238,15 +256,19 @@ async function fetchSerieInfo(urlName, matches) {
       });
       if (!res.ok) {
         logger.warn(`Serie page ${serieId} returned ${res.status}`);
-        result[serieId] = { serie: "", difficulty: "green" };
+        result[serieId] = { serie: "", difficulty: "green", format: "11v11" };
         continue;
       }
       const html = await res.text();
       const serie = serieNameFromHTML(html);
-      result[serieId] = { serie, difficulty: difficultyFromSerie(serie) };
+      result[serieId] = {
+        serie,
+        difficulty: difficultyFromSerie(serie),
+        format: formatFromSerie(serie),
+      };
     } catch (err) {
       logger.warn(`Failed to fetch serie page ${serieId}: ${err.message}`);
-      result[serieId] = { serie: "", difficulty: "green" };
+      result[serieId] = { serie: "", difficulty: "green", format: "11v11" };
     }
   }
   return result;
@@ -309,13 +331,14 @@ exports.importLaget = onCall(
       );
     }
 
-    // 3. Scrape serie name + difficulty per unique serie, apply to matches.
+    // 3. Scrape serie name + difficulty + format per unique serie, apply.
     const serieInfo = await fetchSerieInfo(urlName, matches);
     for (const m of matches) {
       const info = serieInfo[m.serieId];
       if (info) {
         m.serie = info.serie;
         m.difficulty = info.difficulty;
+        m.format = info.format;
       }
     }
 

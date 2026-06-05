@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>v0.144-laget2 — Uttagning</title>
+  <title>v0.145-laget3 — Uttagning</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
@@ -956,6 +956,7 @@
 
   // ── Formations ────────────────────────────────────
   const FORMATIONS = {
+    '5v5':  ['1-2-1','2-1-1','1-1-2','2-2'],
     '7v7':  ['2-3-1','3-2-1','2-2-2','3-1-2'],
     '9v9':  ['3-3-2','3-2-3','4-2-2','4-3-1','3-4-1','2-4-2','4-1-3','2-3-3','1-4-3','2-1-4-1','2-1-3-2'],
     '11v11':['4-4-2','4-3-3','4-2-3-1','3-5-2','3-4-3','4-1-4-1','4-3-2-1','5-3-2','5-4-1','4-5-1','3-4-2-1','4-1-2-1-2','4-2-2-2','3-3-3-1']
@@ -1900,7 +1901,7 @@
     preview.innerHTML = `<div style="font-size:.82rem;color:var(--muted);margin-bottom:.5rem">${lagetMatches.length} matcher hittade — kontrollera och justera vid behov</div>
       <div style="overflow-x:auto">
       <table class="fogis-preview-table" id="laget-editable-table">
-        <thead><tr><th>Datum</th><th>Tid</th><th>Lag</th><th>Motståndare</th><th>H/B</th><th>Plats</th><th>Svårighet</th></tr></thead>
+        <thead><tr><th>Datum</th><th>Tid</th><th>Lag</th><th>Motståndare</th><th>H/B</th><th>Plats</th><th>Format</th><th>Svårighet</th></tr></thead>
         <tbody>${lagetMatches.map((m,i) => {
           const d = new Date(m.date+'T12:00:00');
           const dateStr = `${WEEKDAY[d.getDay()]} ${d.toLocaleDateString('sv-SE',{day:'numeric',month:'short'})}`;
@@ -1914,6 +1915,12 @@
               <option value="away"${m.homeway==='away'?' selected':''}>Borta</option>
             </select></td>
             <td><input class="lp-location" value="${escHtml(m.location||'')}" style="${inputStyle};min-width:120px" /></td>
+            <td><select class="lp-format" style="${inputStyle};width:70px">
+              <option value="5v5"${m.format==='5v5'?' selected':''}>5v5</option>
+              <option value="7v7"${m.format==='7v7'?' selected':''}>7v7</option>
+              <option value="9v9"${m.format==='9v9'?' selected':''}>9v9</option>
+              <option value="11v11"${m.format==='11v11'?' selected':''}>11v11</option>
+            </select></td>
             <td><select class="lp-difficulty" style="${inputStyle};width:80px">
               <option value="green"${m.difficulty==='green'?' selected':''}>Grön</option>
               <option value="blue"${m.difficulty==='blue'?' selected':''}>Blå</option>
@@ -1941,11 +1948,12 @@
           lagetMatches[i].homeway    = row.querySelector('.lp-homeway')?.value           || 'home';
           lagetMatches[i].location   = row.querySelector('.lp-location')?.value.trim()   || '';
           lagetMatches[i].difficulty = row.querySelector('.lp-difficulty')?.value        || 'green';
+          lagetMatches[i].format     = row.querySelector('.lp-format')?.value            || '11v11';
         });
       }
       let created = 0, updated = 0, skipped = 0;
       for (const m of lagetMatches) {
-        const data = { date: m.date, time: m.time, opponent: m.opponent, location: m.location, format: '', difficulty: m.difficulty, homeway: m.homeway, serie: '', cup: '', teamlabel: m.teamlabel || '', fogisId: m.fogisId };
+        const data = { date: m.date, time: m.time, opponent: m.opponent, location: m.location, format: m.format || '11v11', difficulty: m.difficulty, homeway: m.homeway, serie: '', cup: '', teamlabel: m.teamlabel || '', fogisId: m.fogisId };
         if (m.fogisId) {
           const existing = matches.find(x => x.fogisId === m.fogisId);
           if (existing) { await updateDoc(teamDoc('matches', existing.id), data); updated++; }

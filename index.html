@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>v0.150 — Uttagning</title>
+  <title>v0.151 — Uttagning</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
@@ -983,6 +983,8 @@
   let activeFilter     = 'all';
   let editingPlayerId  = null;
   let editingMatchId   = null;
+  let pendingDelete    = null;
+  let pendingConfirmCb = null;
   let unsubPlayers     = null;
   let unsubMatches     = null;
   let unsubLineup      = null;

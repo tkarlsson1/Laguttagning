@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>v0.147-laget5 — Uttagning</title>
+  <title>v0.148-laget6 — Uttagning</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
@@ -602,6 +602,7 @@
       <div class="page-title">MATCHER <span id="match-count"></span></div>
       <div style="display:flex;gap:.75rem;flex-wrap:wrap">
         <button class="btn-secondary" id="btn-import-laget">Importera från laget.se</button>
+        <button class="btn-secondary" id="btn-update-laget" style="display:none">Uppdatera från laget.se</button>
         <button class="btn-secondary" id="btn-import-fogis">Importera från Fogis</button>
         <button class="btn-secondary" id="btn-add-match">+ Lägg till</button>
       </div>
@@ -1478,6 +1479,10 @@
     document.getElementById('match-count').textContent=`(${matches.length})`;
     const list=document.getElementById('match-list');
 
+    // Show "Uppdatera från laget.se" only if this team has a saved URL
+    const ct = userTeams.find(t => t.id === currentTeamId);
+    document.getElementById('btn-update-laget').style.display = ct?.lagetUrl ? 'inline-flex' : 'none';
+
     // Build multi-select filter bar
     const labels = getTeamLabels();
     const filterBar = document.getElementById('match-teamlabel-filter');
@@ -1860,6 +1865,67 @@
   document.getElementById('btn-laget-cancel').addEventListener('click', () => lagetModal.classList.remove('open'));
   lagetModal.addEventListener('click', e => { if (e.target === lagetModal) lagetModal.classList.remove('open'); });
 
+  // Silent "Uppdatera från laget.se": fetches + syncs against the saved URL,
+  // no preview. Uses the same write logic (change detection, cup preserved).
+  document.getElementById('btn-update-laget').addEventListener('click', async () => {
+    const currentTeam = userTeams.find(t => t.id === currentTeamId);
+    const url = currentTeam?.lagetUrl;
+    if (!url) return; // button is hidden in this case anyway
+    const btn = document.getElementById('btn-update-laget');
+    btn.disabled = true;
+    const orig = btn.textContent;
+    btn.textContent = 'UPPDATERAR...';
+    try {
+      const importLaget = httpsCallable(functions, 'importLaget');
+      const res = await importLaget({ url });
+      const list = (res.data && res.data.matches) ? res.data.matches : [];
+      const stats = await writeLagetMatches(list);
+      alert(lagetStatsText(stats));
+    } catch (err) {
+      console.error(err);
+      alert('Kunde inte uppdatera: ' + (err.message || 'okänt fel'));
+    } finally {
+      btn.disabled = false; btn.textContent = orig;
+    }
+  });
+
+  // Fields the import owns and keeps in sync with laget.se. Cup is NEVER touched
+  // (always manual). Used both for writing and for change detection.
+  const LAGET_OWNED_FIELDS = ['date','time','opponent','location','format','difficulty','homeway','teamlabel','serie'];
+
+  // Write/update matches from laget.se. Returns { created, updated, verified }.
+  // - matched on fogisId; existing match with no changed owned field → verified (no write)
+  // - cup is preserved on existing matches and defaults to '' on new ones
+  async function writeLagetMatches(list) {
+    let created = 0, updated = 0, verified = 0;
+    for (const m of list) {
+      const owned = {
+        date: m.date, time: m.time, opponent: m.opponent, location: m.location || '',
+        format: m.format || '11v11', difficulty: m.difficulty, homeway: m.homeway,
+        teamlabel: m.teamlabel || '', serie: m.serie || ''
+      };
+      const existing = m.fogisId ? matches.find(x => x.fogisId === m.fogisId) : null;
+      if (existing) {
+        const changed = LAGET_OWNED_FIELDS.some(f => (existing[f] || '') !== (owned[f] || ''));
+        if (changed) { await updateDoc(teamDoc('matches', existing.id), owned); updated++; }
+        else { verified++; }
+      } else {
+        await addDoc(teamCol('matches'), { ...owned, cup: '', fogisId: m.fogisId || '' });
+        created++;
+      }
+    }
+    return { created, updated, verified };
+  }
+
+  function lagetStatsText(s) {
+    const parts = [
+      s.created  && `${s.created} skapade`,
+      s.updated  && `${s.updated} uppdaterade`,
+      s.verified && `${s.verified} verifierade (oförändrade)`
+    ].filter(Boolean);
+    return parts.length ? `Klart: ${parts.join(', ')}.` : 'Klart: inga matcher att importera.';
+  }
+
   document.getElementById('btn-laget-parse').addEventListener('click', async () => {
     const url = document.getElementById('laget-url').value.trim();
     const preview = document.getElementById('laget-preview');
@@ -1951,21 +2017,10 @@
           lagetMatches[i].format     = row.querySelector('.lp-format')?.value            || '11v11';
         });
       }
-      let created = 0, updated = 0, skipped = 0;
-      for (const m of lagetMatches) {
-        const data = { date: m.date, time: m.time, opponent: m.opponent, location: m.location, format: m.format || '11v11', difficulty: m.difficulty, homeway: m.homeway, serie: '', cup: '', teamlabel: m.teamlabel || '', fogisId: m.fogisId };
-        if (m.fogisId) {
-          const existing = matches.find(x => x.fogisId === m.fogisId);
-          if (existing) { await updateDoc(teamDoc('matches', existing.id), data); updated++; }
-          else          { await addDoc(teamCol('matches'), data); created++; }
-        } else {
-          await addDoc(teamCol('matches'), data); created++;
-        }
-      }
+      const stats = await writeLagetMatches(lagetMatches);
       lagetModal.classList.remove('open');
       lagetMatches = [];
-      const parts = [created && `${created} skapade`, updated && `${updated} uppdaterade`, skipped && `${skipped} hoppade över (saknar lag)`].filter(Boolean).join(', ');
-      setTimeout(() => alert(`Import klar: ${parts}.`), 300);
+      setTimeout(() => alert(lagetStatsText(stats)), 300);
     } catch(err) {
       console.error(err); alert('Något gick fel vid import: '+err.message);
     } finally {

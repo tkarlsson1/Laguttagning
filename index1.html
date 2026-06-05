@@ -1945,8 +1945,7 @@
       }
       let created = 0, updated = 0, skipped = 0;
       for (const m of lagetMatches) {
-        if (!m.teamlabel) { skipped++; continue; }
-        const data = { date: m.date, time: m.time, opponent: m.opponent, location: m.location, format: '', difficulty: m.difficulty, homeway: m.homeway, serie: '', cup: '', teamlabel: m.teamlabel, fogisId: m.fogisId };
+        const data = { date: m.date, time: m.time, opponent: m.opponent, location: m.location, format: '', difficulty: m.difficulty, homeway: m.homeway, serie: '', cup: '', teamlabel: m.teamlabel || '', fogisId: m.fogisId };
         if (m.fogisId) {
           const existing = matches.find(x => x.fogisId === m.fogisId);
           if (existing) { await updateDoc(teamDoc('matches', existing.id), data); updated++; }

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>v0.146-laget4 — Uttagning</title>
+  <title>v0.147-laget5 — Uttagning</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
@@ -1120,11 +1120,11 @@
       document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
       tab.classList.add('active');
       document.getElementById('page-'+tab.dataset.page).classList.add('active');
-      // Reset filters to own team on tab switch
-      activeMatchTeamFilter    = [currentTeamName];
-      activeOverviewTeamFilter = [currentTeamName];
-      activeLineupTeamFilter   = currentTeamName;
-      activeHistoryTeamFilter  = currentTeamName;
+      // Reset filters to show all team matches by default
+      activeMatchTeamFilter    = [];
+      activeOverviewTeamFilter = [];
+      activeLineupTeamFilter   = '';
+      activeHistoryTeamFilter  = '';
       if (tab.dataset.page==='lineup')   refreshMatchSelector();
       if (tab.dataset.page==='matches')  { renderMatches(); scrollMatchesToToday(); }
       if (tab.dataset.page==='overview') { overviewWeekOffset=0; renderOverview(); }
@@ -1227,10 +1227,10 @@
     document.getElementById('formation-group').style.display = 'none';
     // Reset player filter
     activeFilter = 'all';
-    activeMatchTeamFilter = [currentTeamName];
-    activeOverviewTeamFilter = [currentTeamName];
-    activeLineupTeamFilter = currentTeamName;
-    activeHistoryTeamFilter = currentTeamName;
+    activeMatchTeamFilter = [];
+    activeOverviewTeamFilter = [];
+    activeLineupTeamFilter = '';
+    activeHistoryTeamFilter = '';
     document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b.dataset.filter === 'all'));
     // Reset history
     selectedHistoryMatchId = null;

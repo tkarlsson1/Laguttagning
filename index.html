@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>v0.153 — Uttagning</title>
+  <title>v0.154 — Uttagning</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
@@ -2654,7 +2654,7 @@
       const dayStr=d?`${WEEKDAY[d.getDay()]} ${d.toLocaleDateString('sv-SE',{day:'numeric',month:'short'})}`:' ?';
       const prevDate = i > 0 ? matchLineups[i-1].match.date : null;
       const dayBorder = i > 0 && m.date !== prevDate ? ' day-sep' : '';
-      const teamMark = followTeamId ? `<span class="match-col-followteam">${escHtml(followTeamName(followTeamId))}</span>` : '';
+      const teamMark = followTeamId ? `<span class="match-col-followteam">${escHtml(followedTeamName(followTeamId))}</span>` : '';
       html+=`<th class="match-col hdr-text-row${dayBorder}${followTeamId?' follow-col':''}">${teamMark}<span class="match-col-time">${escHtml(m.time||'?')}</span><span class="match-col-opp">${escHtml(m.opponent||'—')}</span><span class="match-col-opp">${dayStr}</span></th>`;
     });
     html+='</tr><tr><th class="hdr-dot-row"></th>';

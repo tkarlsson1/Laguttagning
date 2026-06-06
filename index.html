@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>v0.161 — Uttagning</title>
+  <title>v0.162 — Uttagning</title>
   <link rel="icon" href="favicon.ico" sizes="any" />
   <link rel="apple-touch-icon" href="favicon-180.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -426,7 +426,7 @@
     .history-layout { display: grid; grid-template-columns: 280px 1fr; gap: 2rem; align-items: start; }
     @media (max-width: 780px) { .history-layout { grid-template-columns: 1fr; } }
     .history-list { display: flex; flex-direction: column; gap: .5rem; max-height: 80vh; overflow-y: auto; }
-    .history-match-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; display: flex; align-items: stretch; overflow: hidden; cursor: pointer; transition: border-color .2s; }
+    .history-match-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; display: flex; flex-shrink: 0; align-items: stretch; overflow: hidden; cursor: pointer; transition: border-color .2s; }
     .history-match-card:hover    { border-color: var(--green); }
     .history-match-card.selected { border-color: var(--green); background: rgba(76,175,110,.06); }
     .history-match-card .match-diff-bar { width: 4px; flex-shrink: 0; }

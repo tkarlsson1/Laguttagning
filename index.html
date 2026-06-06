@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>v0.162 — Uttagning</title>
+  <title>v0.163 — Uttagning</title>
   <link rel="icon" href="favicon.ico" sizes="any" />
   <link rel="apple-touch-icon" href="favicon-180.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -1844,58 +1844,6 @@
   // ── LAGET.SE ICS IMPORT ───────────────────────────
   let lagetMatches = [];
   const lagetModal = document.getElementById('laget-modal');
-  const LAGET_TEAM_RE = /Irsta IF P12 (Röd 1|Röd 2|Svart)/;
-  const LAGET_FOGIS_RE = /\/Game\/\d+\/(\d+)/;
-  const LAGET_DT_RE = /^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})$/;
-
-  function unfoldICS(raw) { return raw.replace(/\r?\n[ \t]/g, ''); }
-
-  function parseICS(raw) {
-    const lines = unfoldICS(raw).split(/\r?\n/);
-    const events = []; let cur = null;
-    for (const line of lines) {
-      if (line === 'BEGIN:VEVENT') { cur = {}; continue; }
-      if (line === 'END:VEVENT') { if (cur) events.push(cur); cur = null; continue; }
-      if (!cur) continue;
-      const idx = line.indexOf(':'); if (idx === -1) continue;
-      const left = line.slice(0, idx), value = line.slice(idx + 1);
-      const key = left.split(';')[0];
-      cur[key] = value;
-    }
-    return events;
-  }
-
-  function icsDateTime(v) {
-    if (!v) return { date: '', time: '' };
-    const m = v.match(LAGET_DT_RE);
-    if (!m) return { date: '', time: '' };
-    const [, y, mo, d, h, mi] = m;
-    return { date: `${y}-${mo}-${d}`, time: `${h}:${mi}` };
-  }
-
-  function parseLagetICS(raw) {
-    const events = parseICS(raw);
-    return events
-      .filter(e => (e.CATEGORIES || '') === 'Match')
-      .map(ev => {
-        const summary = (ev.SUMMARY || '').replace(/^Match\s+/, '').trim();
-        const parts = summary.split(' - ');
-        const home = (parts[0] || '').trim();
-        const away = (parts.slice(1).join(' - ') || '').trim();
-        const homeM = home.match(LAGET_TEAM_RE);
-        const awayM = away.match(LAGET_TEAM_RE);
-        let teamlabel = '', opponent = '', homeway = '', flag = '';
-        if (homeM && !awayM) { teamlabel = homeM[1]; opponent = away; homeway = 'home'; }
-        else if (awayM && !homeM) { teamlabel = awayM[1]; opponent = home; homeway = 'away'; }
-        else { opponent = away || home; homeway = 'home'; flag = 'Kunde inte identifiera Irsta-lag — kontrollera'; }
-        const { date, time } = icsDateTime(ev.DTSTART);
-        const fm = (ev.DESCRIPTION || '').match(LAGET_FOGIS_RE);
-        const fogisId = fm ? fm[1] : '';
-        return { date, time, opponent, homeway, teamlabel, location: ev.LOCATION || '', difficulty: 'green', serie: '', fogisId, flag };
-      })
-      .filter(m => m.date)
-      .sort((a,b) => (`${a.date}T${a.time||'00:00'}`).localeCompare(`${b.date}T${b.time||'00:00'}`));
-  }
 
   document.getElementById('btn-import-laget').addEventListener('click', () => {
     const currentTeam = userTeams.find(t => t.id === currentTeamId);

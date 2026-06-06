@@ -14,7 +14,12 @@
  */
 
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
+const { onSchedule } = require("firebase-functions/v2/scheduler");
 const logger = require("firebase-functions/logger");
+const admin = require("firebase-admin");
+const { FieldValue } = require("firebase-admin/firestore");
+
+admin.initializeApp();
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
@@ -274,6 +279,77 @@ async function fetchSerieInfo(urlName, matches) {
   return result;
 }
 
+// ─── Shared fetch+parse pipeline ───────────────────────────────────────────
+
+/**
+ * Given a laget.se team start-page URL, fetch the ICS feed, parse matches,
+ * derive the team name, and scrape serie info (difficulty + format).
+ * Returns { teamName, matches }. Throws HttpsError on failure.
+ * Used by both the callable importLaget and the scheduled nightly update.
+ */
+async function fetchLagetMatches(rawUrl) {
+  const url = (rawUrl || "").trim();
+  if (!url) {
+    throw new HttpsError("invalid-argument", "Ingen laget.se-URL angiven.");
+  }
+
+  // Extract the URL name (first path segment) from the team start-page URL.
+  let urlName = "";
+  try {
+    const u = new URL(url.includes("://") ? url : `https://${url}`);
+    const seg = u.pathname.split("/").filter(Boolean);
+    urlName = seg[0] || "";
+  } catch (_) {
+    urlName = "";
+  }
+  if (!urlName) {
+    throw new HttpsError("invalid-argument", "Kunde inte tolka laget.se-URL:en.");
+  }
+
+  // 1. Fetch the public ICS feed.
+  const icsUrl = `https://cal.laget.se/${urlName}.ics`;
+  let rawICS = "";
+  try {
+    const res = await fetch(icsUrl, {
+      headers: { "User-Agent": "Mozilla/5.0 (Laguttagning import)" },
+    });
+    if (!res.ok) {
+      throw new HttpsError(
+        "not-found",
+        `Kunde inte hämta kalendern (HTTP ${res.status}). Kontrollera URL:en.`
+      );
+    }
+    rawICS = await res.text();
+  } catch (err) {
+    if (err instanceof HttpsError) throw err;
+    throw new HttpsError("unavailable", `Kunde inte nå laget.se: ${err.message}`);
+  }
+
+  // 2. Parse matches and derive team name.
+  const { teamName, matches } = parseMatches(rawICS);
+  if (!matches.length) {
+    throw new HttpsError("not-found", "Inga matcher hittades i kalendern.");
+  }
+
+  // 3. Scrape serie name + difficulty + format per unique serie, apply.
+  const serieInfo = await fetchSerieInfo(urlName, matches);
+  for (const m of matches) {
+    const info = serieInfo[m.serieId];
+    if (info) {
+      m.serie = info.serie;
+      m.difficulty = info.difficulty;
+      m.format = info.format;
+    }
+  }
+
+  logger.info(
+    `fetchLagetMatches: ${urlName} → team "${teamName}", ${matches.length} matches, ` +
+    `${Object.keys(serieInfo).length} series`
+  );
+
+  return { teamName, matches };
+}
+
 // ─── Main callable ───────────────────────────────────────────────────────
 
 exports.importLaget = onCall(
@@ -283,71 +359,120 @@ exports.importLaget = onCall(
     if (!request.auth) {
       throw new HttpsError("unauthenticated", "Du måste vara inloggad.");
     }
+    const rawUrl = request.data && request.data.url ? request.data.url : "";
+    // Fetch, parse, scrape; the app handles preview + Firestore write.
+    return await fetchLagetMatches(rawUrl);
+  }
+);
 
-    const rawUrl = (request.data && request.data.url ? request.data.url : "").trim();
-    if (!rawUrl) {
-      throw new HttpsError("invalid-argument", "Ingen laget.se-URL angiven.");
-    }
+// ─── Server-side match sync (for the scheduled nightly update) ──────────────
 
-    // Extract the URL name (first path segment) from the team start-page URL.
-    // Accepts forms like https://www.laget.se/IKOden-P14 or .../IKOden-P14/
-    let urlName = "";
-    try {
-      const u = new URL(rawUrl.includes("://") ? rawUrl : `https://${rawUrl}`);
-      const seg = u.pathname.split("/").filter(Boolean);
-      urlName = seg[0] || "";
-    } catch (_) {
-      urlName = "";
-    }
-    if (!urlName) {
-      throw new HttpsError("invalid-argument", "Kunde inte tolka laget.se-URL:en.");
-    }
+// Fields the import owns and keeps in sync with laget.se. Cup is NEVER touched
+// (always manual). Mirrors the app's LAGET_OWNED_FIELDS exactly.
+const LAGET_OWNED_FIELDS = [
+  "date", "time", "opponent", "location", "format", "difficulty", "homeway", "teamlabel", "serie",
+];
 
-    // 1. Fetch the public ICS feed.
-    const icsUrl = `https://cal.laget.se/${urlName}.ics`;
-    let rawICS = "";
-    try {
-      const res = await fetch(icsUrl, {
-        headers: { "User-Agent": "Mozilla/5.0 (Laguttagning import)" },
-      });
-      if (!res.ok) {
-        throw new HttpsError(
-          "not-found",
-          `Kunde inte hämta kalendern (HTTP ${res.status}). Kontrollera URL:en.`
-        );
-      }
-      rawICS = await res.text();
-    } catch (err) {
-      if (err instanceof HttpsError) throw err;
-      throw new HttpsError("unavailable", `Kunde inte nå laget.se: ${err.message}`);
-    }
+/**
+ * Sync laget.se matches into one team's matches subcollection, server-side.
+ * Matches on fogisId; updates only when an owned field changed; never touches
+ * cup; sets teamlabel = team name. Returns { created, updated, verified }.
+ */
+async function syncTeamMatches(db, teamId, teamName, list) {
+  let created = 0, updated = 0, verified = 0;
+  const matchesCol = db.collection("teams").doc(teamId).collection("matches");
+  const snap = await matchesCol.get();
+  const existingMatches = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 
-    // 2. Parse matches and derive team name.
-    const { teamName, matches } = parseMatches(rawICS);
-    if (!matches.length) {
-      throw new HttpsError(
-        "not-found",
-        "Inga matcher hittades i kalendern."
+  for (const m of list) {
+    const owned = {
+      date: m.date, time: m.time, opponent: m.opponent, location: m.location || "",
+      format: m.format || "11v11", difficulty: m.difficulty, homeway: m.homeway,
+      teamlabel: teamName || "", serie: m.serie || "",
+    };
+    const existing = m.fogisId
+      ? existingMatches.find((x) => x.fogisId === m.fogisId)
+      : null;
+    if (existing) {
+      const changed = LAGET_OWNED_FIELDS.some(
+        (f) => (existing[f] || "") !== (owned[f] || "")
       );
+      if (changed) {
+        await matchesCol.doc(existing.id).update(owned);
+        updated++;
+      } else {
+        verified++;
+      }
+    } else {
+      await matchesCol.add({ ...owned, cup: "", fogisId: m.fogisId || "" });
+      created++;
+    }
+  }
+  return { created, updated, verified };
+}
+
+// ─── Scheduled nightly update ───────────────────────────────────────────────
+
+exports.nightlyUpdate = onSchedule(
+  {
+    schedule: "0 4 * * *",
+    timeZone: "Europe/Stockholm",
+    region: "europe-west1",
+    memory: "256MiB",
+    timeoutSeconds: 540,
+  },
+  async () => {
+    const db = admin.firestore();
+    const startedAt = new Date();
+
+    // Find all teams with a saved laget.se URL.
+    const teamsSnap = await db.collection("teams").get();
+    const teams = teamsSnap.docs
+      .map((d) => ({ id: d.id, ...d.data() }))
+      .filter((t) => t.lagetUrl);
+
+    let totalCreated = 0, totalUpdated = 0, totalVerified = 0;
+    const failures = [];
+    const perTeam = [];
+
+    for (const t of teams) {
+      try {
+        const { matches } = await fetchLagetMatches(t.lagetUrl);
+        const stats = await syncTeamMatches(db, t.id, t.name || t.id, matches);
+        totalCreated += stats.created;
+        totalUpdated += stats.updated;
+        totalVerified += stats.verified;
+        perTeam.push({ teamId: t.id, name: t.name || t.id, ...stats });
+      } catch (err) {
+        logger.warn(`nightlyUpdate failed for team ${t.id}: ${err.message}`);
+        failures.push({ teamId: t.id, name: t.name || t.id, error: err.message });
+        perTeam.push({ teamId: t.id, name: t.name || t.id, error: err.message });
+      }
     }
 
-    // 3. Scrape serie name + difficulty + format per unique serie, apply.
-    const serieInfo = await fetchSerieInfo(urlName, matches);
-    for (const m of matches) {
-      const info = serieInfo[m.serieId];
-      if (info) {
-        m.serie = info.serie;
-        m.difficulty = info.difficulty;
-        m.format = info.format;
-      }
+    // Write a log entry for this run (always, even quiet nights).
+    const logEntry = {
+      ranAt: FieldValue.serverTimestamp(),
+      startedAt: startedAt.toISOString(),
+      finishedAt: new Date().toISOString(),
+      teamsProcessed: teams.length,
+      totalCreated,
+      totalUpdated,
+      totalVerified,
+      failureCount: failures.length,
+      failures,
+      perTeam,
+    };
+    try {
+      await db.collection("updateLogs").add(logEntry);
+    } catch (err) {
+      logger.error(`Could not write updateLogs entry: ${err.message}`);
     }
 
     logger.info(
-      `importLaget: ${urlName} → team "${teamName}", ${matches.length} matches, ` +
-      `${Object.keys(serieInfo).length} series`
+      `nightlyUpdate done: ${teams.length} teams, ` +
+      `${totalCreated} created, ${totalUpdated} updated, ${totalVerified} verified, ` +
+      `${failures.length} failures`
     );
-
-    // 4. Return data; the app handles preview + Firestore write.
-    return { teamName, matches };
   }
 );

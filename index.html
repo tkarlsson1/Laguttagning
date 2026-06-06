@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>v0.158 — Uttagning</title>
+  <title>v0.159 — Uttagning</title>
   <link rel="icon" href="favicon.ico" sizes="any" />
   <link rel="apple-touch-icon" href="favicon-180.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -897,6 +897,14 @@
       <div id="update-all-msg" style="font-size:.82rem;margin-top:.5rem;min-height:1.2em;white-space:pre-line"></div>
     </div>
 
+    <!-- Nightly update log -->
+    <div class="admin-section">
+      <div class="admin-section-title">Logg: nattliga uppdateringar</div>
+      <div id="update-log-warning" style="display:none;background:rgba(224,92,92,.12);border:1px solid var(--danger);border-radius:8px;padding:.6rem .8rem;margin-bottom:.75rem;font-size:.85rem;color:var(--danger)"></div>
+      <p style="font-size:.82rem;color:var(--muted);margin-bottom:.75rem">Automatisk uppdatering körs varje natt kl 04:00. De 30 senaste körningarna visas här.</p>
+      <div id="update-log-list" style="font-size:.82rem"></div>
+    </div>
+
     <!-- Bulk delete matches by team label -->
     <div class="admin-section">
       <div class="admin-section-title">Ta bort matcher per lag</div>
@@ -956,7 +964,7 @@
   import { initializeApp }           from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
   import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail, createUserWithEmailAndPassword }
                                      from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-  import { getFirestore, collection, doc, getDoc, getDocs, onSnapshot, addDoc, updateDoc, deleteDoc, setDoc, serverTimestamp }
+  import { getFirestore, collection, doc, getDoc, getDocs, onSnapshot, addDoc, updateDoc, deleteDoc, setDoc, serverTimestamp, query, orderBy, limit }
                                      from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
   import { getFunctions, httpsCallable }
                                      from "https://www.gstatic.com/firebasejs/10.12.0/firebase-functions.js";
@@ -2978,6 +2986,50 @@
     bulkSel.innerHTML = labels.length
       ? '<option value="">— Välj lag —</option>' + labels.map(l=>`<option value="${escHtml(l)}">${escHtml(l)}</option>`).join('')
       : '<option value="">Inga lag-etiketter finns</option>';
+    loadUpdateLogs();
+  }
+
+  // Load and render the nightly update logs (admin only).
+  async function loadUpdateLogs() {
+    const listEl = document.getElementById('update-log-list');
+    const warnEl = document.getElementById('update-log-warning');
+    listEl.innerHTML = '<span style="color:var(--muted)">Hämtar logg...</span>';
+    warnEl.style.display = 'none';
+    try {
+      const q = query(collection(db, 'updateLogs'), orderBy('ranAt', 'desc'), limit(30));
+      const snap = await getDocs(q);
+      const logs = snap.docs.map(d => d.data());
+      if (!logs.length) {
+        listEl.innerHTML = '<span style="color:var(--muted)">Inga körningar loggade än. Första nattkörningen sker kl 04:00.</span>';
+        return;
+      }
+      // Warning banner if the most recent run had failures
+      const latest = logs[0];
+      if (latest.failureCount > 0) {
+        const names = (latest.failures || []).map(f => f.name || f.teamId).join(', ');
+        warnEl.textContent = `Varning: senaste uppdateringen misslyckades för ${latest.failureCount} lag: ${names}`;
+        warnEl.style.display = 'block';
+      }
+      // Render rows
+      listEl.innerHTML = logs.map(log => {
+        const when = log.ranAt && log.ranAt.toDate
+          ? log.ranAt.toDate().toLocaleString('sv-SE', { dateStyle: 'medium', timeStyle: 'short' })
+          : (log.startedAt ? new Date(log.startedAt).toLocaleString('sv-SE', { dateStyle: 'medium', timeStyle: 'short' }) : '—');
+        const failed = (log.failureCount || 0) > 0;
+        const summary = `${log.teamsProcessed||0} lag · ${log.totalCreated||0} skapade, ${log.totalUpdated||0} uppdaterade, ${log.totalVerified||0} oförändrade`;
+        const failLine = failed
+          ? `<div style="color:var(--danger);margin-top:.2rem">${log.failureCount} misslyckades: ${escHtml((log.failures||[]).map(f=>f.name||f.teamId).join(', '))}</div>`
+          : '';
+        return `<div style="border:1px solid var(--border);border-radius:8px;padding:.5rem .7rem;margin-bottom:.4rem${failed?';border-color:var(--danger)':''}">
+          <div style="display:flex;justify-content:space-between;gap:.5rem"><span style="font-weight:600">${escHtml(when)}</span>${failed?'<span style="color:var(--danger)">⚠</span>':'<span style="color:var(--green)">✓</span>'}</div>
+          <div style="color:var(--muted);margin-top:.2rem">${escHtml(summary)}</div>
+          ${failLine}
+        </div>`;
+      }).join('');
+    } catch (err) {
+      console.error(err);
+      listEl.innerHTML = `<span style="color:var(--danger)">Kunde inte hämta logg: ${escHtml(err.message||'okänt fel')}</span>`;
+    }
   }
 
   async function refreshAdminTeamList() {

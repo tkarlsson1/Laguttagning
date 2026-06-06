@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>v0.156 — Uttagning</title>
+  <title>v0.157 — Uttagning</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
@@ -885,6 +885,14 @@
       </div>
       <button class="btn-primary" id="btn-add-user-to-team" style="font-size:1rem;padding:.7rem 1.2rem">Lägg till &amp; skicka lösenordslänk</button>
       <div id="add-user-msg" style="font-size:.82rem;margin-top:.5rem;min-height:1.2em"></div>
+    </div>
+
+    <!-- Update all teams' calendars from laget.se -->
+    <div class="admin-section">
+      <div class="admin-section-title">Uppdatera alla lags kalendrar</div>
+      <p style="font-size:.82rem;color:var(--muted);margin-bottom:.75rem">Hämtar och synkar matcher från laget.se för alla lag som har en sparad laget.se-adress. Cup-matcher och uppställningar påverkas inte.</p>
+      <button class="btn-primary" id="btn-update-all-calendars" style="font-size:1rem;padding:.7rem 1.2rem">Uppdatera alla kalendrar</button>
+      <div id="update-all-msg" style="font-size:.82rem;margin-top:.5rem;min-height:1.2em;white-space:pre-line"></div>
     </div>
 
     <!-- Bulk delete matches by team label -->
@@ -1904,7 +1912,7 @@
       const importLaget = httpsCallable(functions, 'importLaget');
       const res = await importLaget({ url });
       const list = (res.data && res.data.matches) ? res.data.matches : [];
-      const stats = await writeLagetMatches(list);
+      const stats = await writeLagetMatches(list, currentTeamId, currentTeamName);
       alert(lagetStatsText(stats));
     } catch (err) {
       console.error(err);
@@ -1921,21 +1929,28 @@
   // Write/update matches from laget.se. Returns { created, updated, verified }.
   // - matched on fogisId; existing match with no changed owned field → verified (no write)
   // - cup is preserved on existing matches and defaults to '' on new ones
-  async function writeLagetMatches(list) {
+  // Write/sync laget.se matches to a specific team. Fetches that team's existing
+  // matches fresh (avoids stale-array timing issues) and applies change detection.
+  // Cup is never touched; teamlabel is set to the team's name. Returns {created, updated, verified}.
+  async function writeLagetMatches(list, teamId, teamName) {
     let created = 0, updated = 0, verified = 0;
+    // Fresh read of the target team's existing matches
+    const matchesCol = collection(db, 'teams', teamId, 'matches');
+    const snap = await getDocs(matchesCol);
+    const existingMatches = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     for (const m of list) {
       const owned = {
         date: m.date, time: m.time, opponent: m.opponent, location: m.location || '',
         format: m.format || '11v11', difficulty: m.difficulty, homeway: m.homeway,
-        teamlabel: currentTeamName || '', serie: m.serie || ''
+        teamlabel: teamName || '', serie: m.serie || ''
       };
-      const existing = m.fogisId ? matches.find(x => x.fogisId === m.fogisId) : null;
+      const existing = m.fogisId ? existingMatches.find(x => x.fogisId === m.fogisId) : null;
       if (existing) {
         const changed = LAGET_OWNED_FIELDS.some(f => (existing[f] || '') !== (owned[f] || ''));
-        if (changed) { await updateDoc(teamDoc('matches', existing.id), owned); updated++; }
+        if (changed) { await updateDoc(doc(db, 'teams', teamId, 'matches', existing.id), owned); updated++; }
         else { verified++; }
       } else {
-        await addDoc(teamCol('matches'), { ...owned, cup: '', fogisId: m.fogisId || '' });
+        await addDoc(matchesCol, { ...owned, cup: '', fogisId: m.fogisId || '' });
         created++;
       }
     }
@@ -2040,7 +2055,7 @@
           lagetMatches[i].format     = row.querySelector('.lp-format')?.value            || '11v11';
         });
       }
-      const stats = await writeLagetMatches(lagetMatches);
+      const stats = await writeLagetMatches(lagetMatches, currentTeamId, currentTeamName);
       lagetModal.classList.remove('open');
       lagetMatches = [];
       setTimeout(() => alert(lagetStatsText(stats)), 300);
@@ -3003,6 +3018,57 @@
   }
 
   document.getElementById('btn-admin').addEventListener('click', openAdminModal);
+
+  // Update all teams' calendars from laget.se (admin bulk operation)
+  document.getElementById('btn-update-all-calendars').addEventListener('click', async () => {
+    const btn = document.getElementById('btn-update-all-calendars');
+    const msgEl = document.getElementById('update-all-msg');
+    btn.disabled = true;
+    msgEl.style.color = 'var(--muted)';
+    msgEl.textContent = 'Hämtar lista över lag...';
+    try {
+      // Fetch all teams fresh, keep those with a saved lagetUrl
+      const snap = await getDocs(collection(db, 'teams'));
+      const teamsWithUrl = snap.docs
+        .map(d => ({ id: d.id, ...d.data() }))
+        .filter(t => t.lagetUrl);
+      if (!teamsWithUrl.length) {
+        msgEl.style.color = 'var(--muted)';
+        msgEl.textContent = 'Inga lag har en sparad laget.se-adress än.';
+        btn.disabled = false;
+        return;
+      }
+      const importLaget = httpsCallable(functions, 'importLaget');
+      let done = 0;
+      const failures = [];
+      let totalCreated = 0, totalUpdated = 0, totalVerified = 0;
+      for (const t of teamsWithUrl) {
+        msgEl.textContent = `Uppdaterar ${t.name || t.id} (${done+1}/${teamsWithUrl.length})...`;
+        try {
+          const res = await importLaget({ url: t.lagetUrl });
+          const list = (res.data && res.data.matches) ? res.data.matches : [];
+          const stats = await writeLagetMatches(list, t.id, t.name || t.id);
+          totalCreated += stats.created; totalUpdated += stats.updated; totalVerified += stats.verified;
+        } catch (err) {
+          console.warn('Update failed for team', t.id, err);
+          failures.push(t.name || t.id);
+        }
+        done++;
+      }
+      // If the currently active team was updated, refresh its followed-overview data
+      try { await loadFollowedForCurrentTeam(); renderOverview(); } catch (e) {}
+      let summary = `Klart: ${teamsWithUrl.length} lag behandlade. ${totalCreated} skapade, ${totalUpdated} uppdaterade, ${totalVerified} oförändrade.`;
+      if (failures.length) summary += `\nVarning: kunde inte uppdatera ${failures.length} lag: ${failures.join(', ')}.`;
+      msgEl.style.color = failures.length ? 'var(--danger)' : 'var(--green)';
+      msgEl.textContent = summary;
+    } catch (err) {
+      console.error(err);
+      msgEl.style.color = 'var(--danger)';
+      msgEl.textContent = 'Något gick fel: ' + (err.message || 'okänt fel');
+    } finally {
+      btn.disabled = false;
+    }
+  });
   document.getElementById('btn-bulk-delete-matches').addEventListener('click', () => {
     const label = document.getElementById('bulk-delete-label').value;
     const msgEl = document.getElementById('bulk-delete-msg');

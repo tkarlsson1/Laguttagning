@@ -89,6 +89,15 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // App-wide settings, e.g. appConfig/nightlyUpdate { enabled: bool }.
+    match /appConfig/{docId} {
+      allow read: if isAdmin();
+      allow create, update: if isAdmin() &&
+        request.resource.data.keys().hasOnly(['enabled']) &&
+        request.resource.data.enabled is bool;
+      allow delete: if false;
+    }
+
     match /admins/{adminId} {
       allow read: if signedIn() && request.auth.uid == adminId;
       allow write: if false;

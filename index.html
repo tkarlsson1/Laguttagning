@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>v0.163 — Uttagning</title>
+  <title>v0.164 — Uttagning</title>
   <link rel="icon" href="favicon.ico" sizes="any" />
   <link rel="apple-touch-icon" href="favicon-180.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -896,11 +896,21 @@
       <div id="update-all-msg" style="font-size:.82rem;margin-top:.5rem;min-height:1.2em;white-space:pre-line"></div>
     </div>
 
+    <!-- Nightly update on/off -->
+    <div class="admin-section">
+      <div class="admin-section-title">Nattlig uppdatering</div>
+      <div class="theme-toggle">
+        <span id="nightly-status">Hämtar inställning...</span>
+        <div class="toggle-switch" id="nightly-toggle"></div>
+      </div>
+      <div id="nightly-msg" style="font-size:.82rem;margin-top:.5rem;min-height:1.2em"></div>
+    </div>
+
     <!-- Nightly update log -->
     <div class="admin-section">
       <div class="admin-section-title">Logg: nattliga uppdateringar</div>
       <div id="update-log-warning" style="display:none;background:rgba(224,92,92,.12);border:1px solid var(--danger);border-radius:8px;padding:.6rem .8rem;margin-bottom:.75rem;font-size:.85rem;color:var(--danger)"></div>
-      <p style="font-size:.82rem;color:var(--muted);margin-bottom:.75rem">Automatisk uppdatering körs varje natt kl 04:00. De 30 senaste körningarna visas här.</p>
+      <p style="font-size:.82rem;color:var(--muted);margin-bottom:.75rem">De 30 senaste körningarna visas här.</p>
       <div id="update-log-list" style="font-size:.82rem"></div>
     </div>
 
@@ -2933,8 +2943,67 @@
     bulkSel.innerHTML = labels.length
       ? '<option value="">— Välj lag —</option>' + labels.map(l=>`<option value="${escHtml(l)}">${escHtml(l)}</option>`).join('')
       : '<option value="">Inga lag-etiketter finns</option>';
+    loadNightlySetting();
     loadUpdateLogs();
   }
+
+  // ── Nightly update on/off (appConfig/nightlyUpdate) ──
+  // null = unknown (still loading or load failed); the toggle is locked then.
+  let nightlyEnabled = null;
+  let nightlySaving = false;
+
+  function renderNightlySetting() {
+    const toggle = document.getElementById('nightly-toggle');
+    const status = document.getElementById('nightly-status');
+    const locked = nightlyEnabled === null || nightlySaving;
+    toggle.classList.toggle('on', nightlyEnabled === true);
+    toggle.style.opacity = locked ? '.5' : '';
+    toggle.style.cursor = locked ? 'default' : 'pointer';
+    if (nightlyEnabled === true) status.textContent = 'Påslagen – körs varje natt kl 04:00';
+    else if (nightlyEnabled === false) status.textContent = 'Avstängd – ingen automatisk uppdatering';
+  }
+
+  async function loadNightlySetting() {
+    const status = document.getElementById('nightly-status');
+    const msgEl = document.getElementById('nightly-msg');
+    nightlyEnabled = null;
+    status.textContent = 'Hämtar inställning...';
+    msgEl.textContent = '';
+    renderNightlySetting();
+    try {
+      const snap = await getDoc(doc(db, 'appConfig', 'nightlyUpdate'));
+      // A missing document means enabled (same rule as the Cloud Function).
+      nightlyEnabled = !(snap.exists() && snap.data().enabled === false);
+    } catch (err) {
+      console.error(err);
+      status.textContent = 'Okänt läge';
+      msgEl.style.color = 'var(--danger)';
+      msgEl.textContent = 'Kunde inte hämta inställningen: ' + (err.message || 'okänt fel');
+    }
+    renderNightlySetting();
+  }
+
+  document.getElementById('nightly-toggle').addEventListener('click', async () => {
+    if (nightlyEnabled === null || nightlySaving) return;
+    const msgEl = document.getElementById('nightly-msg');
+    const newValue = !nightlyEnabled;
+    nightlySaving = true;
+    msgEl.style.color = 'var(--muted)';
+    msgEl.textContent = 'Sparar...';
+    renderNightlySetting();
+    try {
+      await setDoc(doc(db, 'appConfig', 'nightlyUpdate'), { enabled: newValue });
+      nightlyEnabled = newValue;
+      msgEl.textContent = '';
+    } catch (err) {
+      console.error(err);
+      msgEl.style.color = 'var(--danger)';
+      msgEl.textContent = 'Kunde inte spara inställningen: ' + (err.message || 'okänt fel');
+    } finally {
+      nightlySaving = false;
+      renderNightlySetting();
+    }
+  });
 
   // Load and render the nightly update logs (admin only).
   async function loadUpdateLogs() {
@@ -2950,9 +3019,9 @@
         listEl.innerHTML = '<span style="color:var(--muted)">Inga körningar loggade än. Första nattkörningen sker kl 04:00.</span>';
         return;
       }
-      // Warning banner if the most recent run had failures
+      // Warning banner if the most recent run had failures (a paused night has none)
       const latest = logs[0];
-      if (latest.failureCount > 0) {
+      if (!latest.skipped && latest.failureCount > 0) {
         const names = (latest.failures || []).map(f => f.name || f.teamId).join(', ');
         warnEl.textContent = `Varning: senaste uppdateringen misslyckades för ${latest.failureCount} lag: ${names}`;
         warnEl.style.display = 'block';
@@ -2962,6 +3031,13 @@
         const when = log.ranAt && log.ranAt.toDate
           ? log.ranAt.toDate().toLocaleString('sv-SE', { dateStyle: 'medium', timeStyle: 'short' })
           : (log.startedAt ? new Date(log.startedAt).toLocaleString('sv-SE', { dateStyle: 'medium', timeStyle: 'short' }) : '—');
+        // Paused night: neutral row, not counted as a failure
+        if (log.skipped) {
+          return `<div style="border:1px solid var(--border);border-radius:8px;padding:.5rem .7rem;margin-bottom:.4rem">
+          <div style="display:flex;justify-content:space-between;gap:.5rem"><span style="font-weight:600">${escHtml(when)}</span><span style="color:var(--muted)">Pausad</span></div>
+          <div style="color:var(--muted);margin-top:.2rem">Nattjobbet var avstängt – ingen uppdatering gjordes</div>
+        </div>`;
+        }
         const failed = (log.failureCount || 0) > 0;
         const summary = `${log.teamsProcessed||0} lag · ${log.totalCreated||0} skapade, ${log.totalUpdated||0} uppdaterade, ${log.totalVerified||0} oförändrade`;
         const failLine = failed

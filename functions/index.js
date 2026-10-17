@@ -425,6 +425,33 @@ exports.nightlyUpdate = onSchedule(
     const db = admin.firestore();
     const startedAt = new Date();
 
+    // Check whether the nightly update is paused (appConfig/nightlyUpdate).
+    // A missing document means enabled. If the read fails, run as usual.
+    let enabled = true;
+    try {
+      const cfgSnap = await db.collection("appConfig").doc("nightlyUpdate").get();
+      if (cfgSnap.exists && cfgSnap.data().enabled === false) enabled = false;
+    } catch (err) {
+      logger.warn(`Could not read appConfig/nightlyUpdate, running anyway: ${err.message}`);
+    }
+
+    if (!enabled) {
+      try {
+        await db.collection("updateLogs").add({
+          ranAt: FieldValue.serverTimestamp(),
+          startedAt: startedAt.toISOString(),
+          finishedAt: new Date().toISOString(),
+          skipped: true,
+          teamsProcessed: 0,
+          failureCount: 0,
+        });
+      } catch (err) {
+        logger.error(`Could not write updateLogs entry: ${err.message}`);
+      }
+      logger.info("nightlyUpdate skipped: disabled in appConfig/nightlyUpdate");
+      return;
+    }
+
     // Find all teams with a saved laget.se URL.
     const teamsSnap = await db.collection("teams").get();
     const teams = teamsSnap.docs
